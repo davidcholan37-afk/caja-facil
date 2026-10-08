@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0F766E">
+  <meta name="description" content="Punto de venta para minimarkets y negocios: ventas, inventario, caja y reportes.">
+  <title>Caja Fácil</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Caja Fácil">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <aside class="side" aria-label="Menú">
+      <div class="brand"><span class="logo">S/</span><div><b id="bizName">Caja Fácil</b><small>Punto de venta</small></div></div>
+      <nav id="sideNav"></nav>
+      <button class="lockbtn" data-a="lock" id="lockBtn" hidden>Bloquear</button>
+    </aside>
+    <main id="view" tabindex="-1"></main>
+    <nav class="tabs" id="tabNav" aria-label="Menú principal"></nav>
+  </div>
+
+  <div id="lock" hidden>
+    <div class="lock-box">
+      <span class="logo big">S/</span>
+      <h1 id="lockTitle">Ingresa tu PIN</h1>
+      <div class="dots" id="lockDots"><i></i><i></i><i></i><i></i></div>
+      <div class="keypad" id="lockPad"></div>
+      <button class="link" data-a="lockcancel" id="lockCancel" hidden>Cancelar</button>
+    </div>
+  </div>
+
+  <div id="modal" class="modal" hidden><div class="sheet" role="dialog" aria-modal="true"></div></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="ticket" aria-hidden="true"></div>
+
+  <noscript><p style="padding:24px;font-family:sans-serif">Caja Fácil necesita JavaScript para funcionar.</p></noscript>
+  <script src="script.js"></script>
+</body>
+</html>
