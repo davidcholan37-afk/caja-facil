@@ -3,30 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0F766E">
-  <meta name="description" content="Punto de venta para minimarkets y negocios: ventas, balanza, inventario, clientes, caja y reportes.">
+  <meta name="theme-color" content="#1C130D">
+  <meta name="description" content="Punto de venta para bodegas, minimarkets y fruterías: ventas con lector o cámara, balanza, inventario, clientes, caja y reportes.">
   <title>Caja Fácil</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Caja Fácil">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="img.js" defer></script>
+  <script src="fotos.js" defer></script>
   <script src="script.js" defer></script>
 </head>
 <body>
+  <div id="bg" aria-hidden="true"></div>
   <div id="app">
     <aside class="side" aria-label="Menú">
-      <div class="brand"><span class="logo">S/</span><div><b id="bizName">Caja Fácil</b><small id="storeName">Punto de venta</small></div></div>
+      <div class="brand" title="Caja Fácil"><span class="logo">S/</span><span class="bt"><b id="bizName">Caja Fácil</b><small id="storeName">Punto de venta</small></span></div>
       <nav id="sideNav"></nav>
       <div class="sidefoot">
         <div class="uchip" id="userChip"></div>
-        <button class="lockbtn" data-a="switchuser">Cambiar usuario</button>
+        <button class="lockbtn" data-a="switchuser" title="Cambiar de usuario"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Salir</span></button>
       </div>
     </aside>
     <main id="view" tabindex="-1"></main>
@@ -51,6 +51,6 @@
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="print" aria-hidden="true"></div>
 
-  <noscript><p style="padding:24px;font-family:sans-serif">Caja Fácil necesita JavaScript para funcionar.</p></noscript>
+  <noscript><p style="padding:24px;font-family:sans-serif;color:#fff">Caja Fácil necesita JavaScript para funcionar.</p></noscript>
 </body>
 </html>

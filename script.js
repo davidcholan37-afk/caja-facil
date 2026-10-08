@@ -1,4 +1,4 @@
-/* Caja Fácil — punto de venta para minimarkets y negocios. Versión 4.
+/* Caja Fácil — punto de venta para bodegas, minimarkets y fruterías. Versión 5.
    Todo se guarda en este navegador (IndexedDB). Archivo generado desde src/. */
 (() => {
 "use strict";
@@ -104,12 +104,12 @@ const SENSITIVE = { limite: "Pasar el límite de crédito", anular: "Anular vent
 const newTicket = (n) => ({ n, name: "", items: [], disc: 0, client: "", doc: "", mesa: 0, prev: 0 });
 const defCfg = () => ({
   mute: false, yapeNum: "", plinNum: "", payName: "", igv: 18, igvOn: true, paper: 80, autoPrint: false, tables: 0,
-  pts: { on: false, per: 1, val: 0.02, min: 100 }, lock: 3, tile: "m", showImg: true, needShift: true, negStock: false,
+  pts: { on: false, per: 1, val: 0.02, min: 100 }, lock: 3, tile: "m", showImg: true, needShift: false, negStock: false,
   scale: { baud: 9600, cmd: "", unit: "auto", fmt: "8N1" }, labels: { on: true, pre: 2, len: 5, kind: "peso" },
   series: { NV: { s: "NV01", n: 0 }, B: { s: "B001", n: 0 }, F: { s: "F001", n: 0 } }, docDef: "NV", lastBackup: 0
 });
 const blank = () => ({
-  v: 4,
+  v: 5,
   biz: { name: "Mi negocio", ruc: "", addr: "", phone: "", foot: "¡Gracias por su compra!", store: "Tienda principal", sid: "T" + uid().slice(-5).toUpperCase() },
   cfg: defCfg(), roles: DEF_ROLES(),
   users: [{ id: "u1", name: "Administrador", role: "admin", pin: "", on: true }],
@@ -146,6 +146,7 @@ function normalize(o) {
   db.cfg = Object.assign(defCfg(), oc);
   ["pts", "scale", "labels"].forEach((k) => { db.cfg[k] = Object.assign(defCfg()[k], oc[k] || {}); });
   db.cfg.series = Object.assign(defCfg().series, oc.series || {});
+  if ((db.v || 0) < 5) { db.cfg.needShift = false; db.v = 5; } // v5: la caja se abre sola al primer cobro
   db.roles = Object.assign(DEF_ROLES(), db.roles || {});
   db.roles.admin = PERMS.map((p) => p[0]);
   if (!Array.isArray(db.users) || !db.users.length) db.users = blank().users;
@@ -267,7 +268,7 @@ const isLocked = (date) => DB.periods.some((p) => date >= p.from && date <= p.to
 
 /* ---------- productos de ejemplo ---------- */
 const SAMPLE = [
-  ["Tomate", 4.5, 3, 30, "Verduras", "1", "kg"], ["Cebolla roja", 3.5, 2.4, 40, "Verduras", "2", "kg"],
+  ["Tomate", 4.5, 3, 30, "Verduras", "1", "kg"], ["Cebolla", 3.5, 2.4, 40, "Verduras", "2", "kg"],
   ["Papa blanca", 2.8, 1.9, 60, "Verduras", "3", "kg"], ["Zanahoria", 2.5, 1.6, 25, "Verduras", "4", "kg"],
   ["Limón", 6, 4.5, 15, "Verduras", "5", "kg"], ["Lechuga", 2.5, 1.5, 20, "Verduras", "6", "u"],
   ["Palta fuerte", 12, 9, 18, "Verduras", "7", "kg"], ["Plátano de seda", 3.5, 2.4, 22, "Frutas", "8", "kg"],
@@ -281,7 +282,10 @@ const SAMPLE = [
   ["Fideos 500 g", 3.2, 2.5, 30, "Abarrotes", "7750011"], ["Atún en lata", 6.5, 5.2, 24, "Abarrotes", "7750012"],
   ["Queso fresco", 22, 17, 6, "Lácteos", "13", "kg"], ["Pollo entero", 10.5, 8.6, 20, "Carnes", "14", "kg"],
   ["Detergente 500 g", 6, 4.8, 6, "Limpieza", "7750013"], ["Papel higiénico x4", 5, 3.8, 10, "Limpieza", "7750014"],
-  ["Jabón de tocador", 2.5, 1.7, 15, "Limpieza", "7750015"], ["Cigarro", 0.5, 0.35, 200, "Otros", "15"]
+  ["Jabón de tocador", 2.5, 1.7, 15, "Limpieza", "7750015"], ["Cigarro", 0.5, 0.35, 200, "Otros", "15"],
+  ["Naranja", 3.5, 2.3, 30, "Frutas", "17", "kg"], ["Papaya", 4, 2.8, 15, "Frutas", "18", "kg"], ["Mango", 5.5, 3.8, 20, "Frutas", "20", "kg"],
+  ["Maracuyá", 5, 3.4, 14, "Frutas", "25", "kg"], ["Piña", 5, 3.5, 12, "Frutas", "19"], ["Sandía", 2.2, 1.4, 40, "Frutas", "26", "kg"],
+  ["Pimiento", 6, 4.2, 10, "Verduras", "21", "kg"], ["Camote", 2.5, 1.6, 25, "Verduras", "22", "kg"], ["Ajo", 12, 8.5, 5, "Verduras", "23", "kg"], ["Kion", 9, 6, 4, "Verduras", "24", "kg"]
 ];
 function loadSample() {
   SAMPLE.forEach(([name, price, cost, stock, cat, code, unit]) => {
@@ -316,18 +320,19 @@ const IMGMAP = [
   [/sandwich|sanguche|butifarra|\btriple\b/, "sandwich"], [/hamburguesa/, "hamburguesa"], [/pizza/, "pizza"],
   [/\bsopa|\bcaldo|ramen|aji-no-men|maruchan|calducho/, "sopa"], [/\btamal|humita/, "tamal"],
   [/manzana verde/, "manzana_verde"], [/manzana/, "manzana"], [/panqueque|pancake/, "panqueque"], [/\bpanal|biberon|mamadera/, "biberon"],
-  [/papaya|\bmelon/, "melon"], [/pan frances|baguette|ciabatta/, "pan_frances"], [/croissant|cachito/, "croissant"],
+  [/papaya/, "papaya"], [/\bmelon/, "melon"], [/pan frances|baguette|ciabatta/, "pan_frances"], [/croissant|cachito/, "croissant"],
   [/paneton|\bkeke|queque|cupcake|muffin|pionono/, "keke"], [/\btorta|pastel/, "torta"],
   [/\bpan\b|\bpanes\b|tostada|\bmolde\b|bizcocho/, "pan"],
-  [/tomate/, "tomate"], [/lechuga|espinaca|acelga|\bcol\b|repollo|\bapio/, "lechuga"], [/cebolla/, "cebolla"],
-  [/\bpapas?\b|olluco|\byuca/, "papa"], [/camote/, "camote"], [/zanahoria|beterraga|\bnabo/, "zanahoria"], [/\bajos?\b/, "ajo"],
-  [/pimiento|pimenton/, "pimiento"], [/\baji\b|rocoto|\bchile\b/, "aji"], [/pepino|zapallito|calabac/, "pepino"],
+  [/tomate/, "tomate"], [/\bcol\b|repollo/, "col"], [/lechuga|espinaca|acelga|\bapio/, "lechuga"], [/cebolla/, "cebolla"],
+  [/\bpapas?\b|olluco|\byuca/, "papa"], [/camote/, "camote"], [/beterraga|betarraga|remolacha/, "beterraga"], [/zanahoria|\bnabo/, "zanahoria"], [/\bajos?\b/, "ajo"],
+  [/pimiento (rojo|morron)|pimenton/, "pimiento_rojo"], [/pimiento amarillo/, "pimiento_amarillo"], [/pimiento/, "pimiento"], [/\baji\b|rocoto|\bchile\b/, "aji"], [/zapallito|calabac|zucchini/, "zapallito"], [/pepino/, "pepino"],
   [/brocoli|coliflor/, "brocoli"], [/choclo|\bmaiz|\bcancha\b/, "choclo"], [/berenjena/, "berenjena"], [/palta|aguacate/, "palta"],
-  [/limon|\blima\b/, "limon"], [/champi|\bhongo/, "champinon"], [/\bkion|jengibre/, "kion"], [/arveja|vainita|\bhaba/, "arveja"],
+  [/limon amarillo/, "limon_amarillo"], [/limon|\blima\b/, "limon"], [/champi|\bhongo/, "champinon"], [/\bkion|jengibre/, "kion"], [/arveja|vainita|\bhaba/, "arveja"],
+  [/maracuy|granadilla/, "maracuya"], [/\bgranadas?\b/, "granada"], [/ciruela/, "ciruela"], [/esparrago/, "esparrago"], [/\bporo\b|puerro/, "poro"],
   [/frejol|frijol|lenteja|pallar|garbanzo|menestra/, "menestra"], [/aceituna/, "aceituna"],
   [/culantro|perejil|hierbabuena|huacatay|albahaca|\bmenta\b|oregano|romero/, "hierbas"],
-  [/platano|banana|guineo/, "platano"], [/naranja|mandarina|tangelo|toronja/, "naranja"], [/\bmango/, "mango"], [/\bpinas?\b/, "pina"],
-  [/\buvas?\b/, "uva"], [/fresa|frutilla/, "fresa"], [/\bperas?\b/, "pera"], [/durazno|melocoton/, "durazno"], [/sandia/, "sandia"],
+  [/platano|banana|guineo/, "platano"], [/mandarina|tangelo|clementina/, "mandarina"], [/toronja|pomelo/, "toronja"], [/naranja/, "naranja"], [/\bmango/, "mango"], [/\bpinas?\b/, "pina"],
+  [/\buvas?\b/, "uva"], [/fresa|frutilla/, "fresa"], [/\bperas?\b/, "pera"], [/durazno|melocoton|nectarin/, "durazno"], [/sandia/, "sandia"],
   [/cereza|guinda/, "cereza"], [/\bkiwi/, "kiwi"], [/\bcoco\b/, "coco"],
   [/\barroz/, "arroz"], [/avena|quinua|\btrigo|cereal|kiwicha|harina|semola/, "cereal"],
   [/huevo/, "huevo"], [/leche|yogur/, "leche"], [/queso/, "queso"], [/mantequilla|margarina/, "mantequilla"],
@@ -354,30 +359,57 @@ const IMGMAP = [
   [/lapiz|lapicero|plumon|borrador|colores/, "lapiz"], [/juguete|peluche|pelota/, "peluche"], [/labial|maquillaje|esmalte|rimel/, "labial"], [/recarga|servicio/, "billete"]
 ];
 const CATMAP = [[/verdur|hortaliza/, "brocoli"], [/fruta/, "manzana"], [/licor|cerveza|vino/, "cerveza"], [/bebida|gaseosa|refresco/, "gaseosa"], [/lacteo|leche/, "leche"], [/panader|\bpan/, "pan"], [/carne|pollo|embutido/, "carne"], [/pescad|marisco/, "pescado"], [/limpieza/, "detergente"], [/higiene|cuidado|perfum|tocador/, "shampoo"], [/golosina|dulce|confite/, "caramelo"], [/snack|piqueo/, "canchita"], [/abarrote/, "canasta"], [/farmacia|botica|medic/, "medicina"], [/mascota/, "perro"], [/libreria|util|escolar/, "lapiz"], [/bazar|plastico/, "bolsa"], [/comida|menu|plato|cocina/, "sopa"], [/helado/, "helado"]];
-const IMGNAME = { tomate: "Tomate", lechuga: "Lechuga", cebolla: "Cebolla", papa: "Papa", zanahoria: "Zanahoria", ajo: "Ajo", pimiento: "Pimiento", aji: "Ají", pepino: "Pepino", brocoli: "Brócoli", choclo: "Choclo", berenjena: "Berenjena", palta: "Palta", limon: "Limón", limon_amarillo: "Limón amarillo", champinon: "Champiñón", kion: "Kion", arveja: "Arveja", menestra: "Menestras", camote: "Camote", aceituna: "Aceituna", hierbas: "Hierbas", platano: "Plátano", manzana: "Manzana", manzana_verde: "Manzana verde", naranja: "Naranja", mango: "Mango", pina: "Piña", uva: "Uva", fresa: "Fresa", pera: "Pera", durazno: "Durazno", sandia: "Sandía", melon: "Melón", cereza: "Cereza", kiwi: "Kiwi", coco: "Coco", arroz: "Arroz", cereal: "Cereales", pan: "Pan", pan_frances: "Pan francés", croissant: "Cachito", huevo: "Huevo", huevos: "Huevos", leche: "Leche", queso: "Queso", mantequilla: "Mantequilla", sal: "Sal", miel: "Miel", frasco: "Frasco", conserva: "Conserva", fideos: "Fideos", aceite: "Aceite", botella: "Botella", chocolate: "Chocolate", caramelo: "Caramelo", chupetin: "Chupetín", galleta: "Galleta", canchita: "Canchita", mani: "Maní", dona: "Dona", keke: "Keke", torta: "Torta", pastel: "Pastel", helado: "Helado", helado_cono: "Helado de cono", gaseosa: "Gaseosa", agua: "Agua", cerveza: "Cerveza", brindis: "Cervezas", vino: "Vino", espumante: "Espumante", jugo: "Jugo", cafe: "Café", te: "Té", mate: "Mate", vaso: "Vaso", biberon: "Biberón", carne: "Carne", pollo: "Pollo", cerdo: "Cerdo", tocino: "Tocino", pescado: "Pescado", langostino: "Langostino", salchicha: "Hot dog", jabon: "Jabón", detergente: "Detergente", esponja: "Esponja", papel: "Papel", cepillo: "Cepillo", shampoo: "Shampoo", escoba: "Escoba", balde: "Balde", cigarro: "Cigarro", caja: "Caja", carrito: "Carrito", bolsa: "Bolsa", canasta: "Canasta", taper: "Táper", sandwich: "Sándwich", hamburguesa: "Hamburguesa", papas_fritas: "Papitas", pizza: "Pizza", sopa: "Sopa", tamal: "Tamal", pretzel: "Pretzel", panqueque: "Panqueque", hielo: "Hielo", dinero: "Dinero", billete: "Billete", vela: "Vela", galleta_arroz: "Galleta de arroz", medicina: "Medicina", pilas: "Pilas", foco: "Foco", perro: "Perro", gato: "Gato", cuaderno: "Cuaderno", lapiz: "Lápiz", peluche: "Peluche", labial: "Labial" };
+const IMGNAME = { tomate: "Tomate", lechuga: "Lechuga", cebolla: "Cebolla", papa: "Papa", zanahoria: "Zanahoria", ajo: "Ajo", pimiento: "Pimiento", aji: "Ají", pepino: "Pepino", brocoli: "Brócoli", choclo: "Choclo", berenjena: "Berenjena", palta: "Palta", limon: "Limón", limon_amarillo: "Limón amarillo", papaya: "Papaya", col: "Col", mandarina: "Mandarina", toronja: "Toronja", maracuya: "Maracuyá", granada: "Granada", ciruela: "Ciruela", esparrago: "Espárrago", poro: "Poro", beterraga: "Beterraga", zapallito: "Zapallito", pimiento_rojo: "Pimiento rojo", pimiento_amarillo: "Pimiento amarillo", champinon: "Champiñón", kion: "Kion", arveja: "Arveja", menestra: "Menestras", camote: "Camote", aceituna: "Aceituna", hierbas: "Hierbas", platano: "Plátano", manzana: "Manzana", manzana_verde: "Manzana verde", naranja: "Naranja", mango: "Mango", pina: "Piña", uva: "Uva", fresa: "Fresa", pera: "Pera", durazno: "Durazno", sandia: "Sandía", melon: "Melón", cereza: "Cereza", kiwi: "Kiwi", coco: "Coco", arroz: "Arroz", cereal: "Cereales", pan: "Pan", pan_frances: "Pan francés", croissant: "Cachito", huevo: "Huevo", huevos: "Huevos", leche: "Leche", queso: "Queso", mantequilla: "Mantequilla", sal: "Sal", miel: "Miel", frasco: "Frasco", conserva: "Conserva", fideos: "Fideos", aceite: "Aceite", botella: "Botella", chocolate: "Chocolate", caramelo: "Caramelo", chupetin: "Chupetín", galleta: "Galleta", canchita: "Canchita", mani: "Maní", dona: "Dona", keke: "Keke", torta: "Torta", pastel: "Pastel", helado: "Helado", helado_cono: "Helado de cono", gaseosa: "Gaseosa", agua: "Agua", cerveza: "Cerveza", brindis: "Cervezas", vino: "Vino", espumante: "Espumante", jugo: "Jugo", cafe: "Café", te: "Té", mate: "Mate", vaso: "Vaso", biberon: "Biberón", carne: "Carne", pollo: "Pollo", cerdo: "Cerdo", tocino: "Tocino", pescado: "Pescado", langostino: "Langostino", salchicha: "Hot dog", jabon: "Jabón", detergente: "Detergente", esponja: "Esponja", papel: "Papel", cepillo: "Cepillo", shampoo: "Shampoo", escoba: "Escoba", balde: "Balde", cigarro: "Cigarro", caja: "Caja", carrito: "Carrito", bolsa: "Bolsa", canasta: "Canasta", taper: "Táper", sandwich: "Sándwich", hamburguesa: "Hamburguesa", papas_fritas: "Papitas", pizza: "Pizza", sopa: "Sopa", tamal: "Tamal", pretzel: "Pretzel", panqueque: "Panqueque", hielo: "Hielo", dinero: "Dinero", billete: "Billete", vela: "Vela", galleta_arroz: "Galleta de arroz", medicina: "Medicina", pilas: "Pilas", foco: "Foco", perro: "Perro", gato: "Gato", cuaderno: "Cuaderno", lapiz: "Lápiz", peluche: "Peluche", labial: "Labial" };
 function imgKey(p) {
-  if (p.img && p.img.startsWith("lib:")) return p.img.slice(4);
+  if (p.img && /^(lib|foto):/.test(p.img)) return p.img.slice(p.img.indexOf(":") + 1);
   const n = norm(p.name);
   for (const [re, k] of IMGMAP) if (re.test(n)) return k;
   const c = norm(p.cat);
   for (const [re, k] of CATMAP) if (re.test(c)) return k;
   return "caja";
 }
+const FOTO = () => window.CF_FOTO || {};
+// "foto": fotografía real (de la tienda o del celular); "art": ilustración 3D sobre fondo de color.
+function imgKind(p) {
+  if (!p) return "art";
+  if (p.img && p.img.startsWith("data:")) return "foto";
+  if (p.img && p.img.startsWith("lib:")) return "art";
+  return FOTO()[imgKey(p)] ? "foto" : "art";
+}
 function imgSrc(p) {
   if (p && p.img && p.img.startsWith("data:")) return p.img;
-  const I = window.CF_IMG; if (!I) return "";
-  return I[imgKey(p)] || I.caja || "";
+  const I = window.CF_IMG || {}, k = imgKey(p);
+  if (imgKind(p) === "foto") return FOTO()[k];
+  return I[k] || I.caja || "";
 }
-const catImg = (c) => { const I = window.CF_IMG; if (!I) return ""; if (c === "__top") return I.carrito; if (c === "__fav") return I.canasta; const n = norm(c); for (const [re, k] of CATMAP) if (re.test(n)) return I[k]; const p = DB.products.find((x) => x.cat === c); return p ? imgSrc(p) : I.caja; };
-const TINTS = ["#E8F5E9", "#FFF3E0", "#E3F2FD", "#FCE4EC", "#F3E5F5", "#E0F7FA", "#FFFDE7", "#EFEBE9"];
-const tintOf = (p) => p.color || TINTS[[...norm(p.cat || p.name)].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length];
-const pimg = (p, cls = "pim") => { const s = imgSrc(p); return s ? `<img class="${cls}" src="${s}" alt="" loading="lazy" decoding="async">` : `<span class="${cls} noimg" aria-hidden="true">${esc((p.name || "?").slice(0, 1).toUpperCase())}</span>`; };
+const catImg = (c) => {
+  const I = window.CF_IMG || {}, F = FOTO();
+  if (c === "__top") return I.carrito; if (c === "__fav") return I.canasta;
+  const p = DB.products.find((x) => x.cat === c && imgKind(x) === "foto") || DB.products.find((x) => x.cat === c);
+  if (p) return imgSrc(p);
+  const n = norm(c); for (const [re, k] of CATMAP) if (re.test(n)) return F[k] || I[k];
+  return I.caja;
+};
+// Cartulinas fosforescentes de mercado: el color del precio de cada producto.
+const CARDS = ["#FFE53D", "#9BEA5A", "#FF9A3D", "#6FD3FF", "#FF6FB0", "#FFFFFF"];
+const CARDNAME = ["Amarillo", "Verde", "Naranja", "Celeste", "Rosado", "Blanco"];
+const OLDTINT = { "#E8F5E9": 1, "#FFF3E0": 2, "#E3F2FD": 3, "#FCE4EC": 4, "#F3E5F5": 4, "#E0F7FA": 3, "#FFFDE7": 0, "#EFEBE9": 5 };
+const CATCARD = [[/verdur|hortaliza/, 1], [/fruta/, 2], [/bebida|gaseosa|refresco|licor|cerveza|\bagua/, 3], [/snack|golosina|dulce|confite|piqueo/, 4], [/abarrote/, 0], [/lacteo|leche|queso/, 5], [/panader|\bpan/, 2], [/limpieza|higiene|tocador|aseo/, 3], [/carne|pollo|embutido|pescad/, 4]];
+const TINTS = CARDS;
+function tintOf(p) {
+  const c = String(p.color || "").toUpperCase();
+  if (c) return CARDS.includes(c) ? c : OLDTINT[c] != null ? CARDS[OLDTINT[c]] : c;
+  const n = norm(p.cat || "");
+  for (const [re, i] of CATCARD) if (re.test(n)) return CARDS[i];
+  return CARDS[[...norm(p.cat || p.name)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 5];
+}
+const pimg = (p, cls = "pim") => { const s = imgSrc(p); return s ? `<img class="${cls} k-${imgKind(p)}" src="${s}" alt="" loading="lazy" decoding="async">` : `<span class="${cls} noimg" aria-hidden="true">${esc((p.name || "?").slice(0, 1).toUpperCase())}</span>`; };
 // Foto tomada con el celular o elegida de la PC: se recorta cuadrada y se achica para que ocupe poco.
 function readPhoto(file, cb) {
   if (!file) return;
   const img = new Image(), url = URL.createObjectURL(file);
   img.onload = () => {
-    const S = 240, c = document.createElement("canvas"); c.width = c.height = S;
+    const S = 320, c = document.createElement("canvas"); c.width = c.height = S;
     const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, S, S);
     const r = Math.max(S / img.width, S / img.height), w = img.width * r, h = img.height * r;
     x.drawImage(img, (S - w) / 2, (S - h) / 2, w, h); URL.revokeObjectURL(url);
@@ -418,7 +450,7 @@ function openModal(html, cls = "") {
 }
 function closeModal() {
   const m = $("#modal"); m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
-  ui.pay = null; ui.mk = ""; stopScaleRead();
+  ui.pay = null; ui.mk = ""; stopScaleRead(); stopCam();
   const b = modalBack; modalBack = null; if (b) return b();
   focusQ();
 }
@@ -466,7 +498,17 @@ const IC = {
   prev: '<path d="M7 3h10v18l-5-3-5 3z"/>',
   cam: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   print: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>',
-  wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/>'
+  wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/>',
+  scan: '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M7.5 9v6M10.5 9v6M14 9v6M16.5 9v6" stroke-width="1.6"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  hold: '<path d="M6 4h12v16l-6-4-6 4z"/><path d="M12 8v4"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  torch: '<path d="M9 3h6v4l-1.5 3v10h-3V10L9 7z"/>',
+  money: '<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v.01M18 14.5v.01"/>'
 };
 const svg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k] || ""}</svg>`;
 
@@ -557,7 +599,7 @@ function login(u) {
   if (!tabOk(ui.tab)) ui.tab = "venta";
   render(); focusQ();
 }
-function closeModalQuiet() { const m = $("#modal"); if (!m.hidden) { m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll"); ui.pay = null; modalBack = null; stopScaleRead(); } }
+function closeModalQuiet() { const m = $("#modal"); if (!m.hidden) { m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll"); ui.pay = null; modalBack = null; stopScaleRead(); stopCam(); } }
 function lockNow() { if (!needLogin()) return toast("Pon una clave a tu usuario en Ajustes para poder bloquear"); log("Salió / bloqueó", (me() || {}).name || ""); loginScreen(); }
 
 // Operación delicada: si el usuario no tiene permiso, la autoriza alguien que sí lo tenga con su clave.
@@ -634,6 +676,7 @@ function setLine(id, pres, qty, opts = {}) {
       const need = r3(usedInCart(id, k) + qty * r.f);
       if (need > r.stock + 1e-9) { toast(r.stock <= 0 ? "Sin stock: " + r.p.name : `Solo quedan ${fmtQ(r.stock)}${r.p.unit === "kg" ? " kg" : ""} de ${r.p.name}`); beep(false); return false; }
     }
+    if (!l || qty > l.qty) { ui.fresh = k; ui.bump = id; }
     if (l) l.qty = r3(qty); else DB.cart.items.push({ id, pres: pres || "", qty: r3(qty) });
     ui.sel = k;
   }
@@ -717,16 +760,17 @@ function focusQ() {
   const q = $("#q"); if (q && document.activeElement !== q) q.focus();
 }
 VIEWS.venta = function viewSale(v) {
-  const cobra = can("cobrar");
+  const cobra = can("cobrar"), tables = +DB.cfg.tables;
   v.innerHTML = `<div class="pos">
     <section class="left">
       <div class="searchbar">
-        <label class="sbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/></svg>
-          <input id="q" type="search" placeholder="${DESK() ? "Código o nombre (Enter)" : "Código o nombre"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
-        <button class="tool ${scaleState.on ? "live" : ""}" data-a="scaletool" id="scaleTool" title="Balanza">${svg("scale")}<span>${scaleState.on ? "Balanza lista" : "Balanza"}</span></button>
-        ${+DB.cfg.tables ? `<button class="tool" data-a="mesas" title="Mesas">${svg("mesa")}<span>Mesas</span></button>` : ""}
-        ${cobra ? `<button class="tool" data-a="prevload" title="Cobrar una preventa">${svg("prev")}<span>Preventa</span></button>` : ""}
-        <button class="tool" data-a="quick" title="Venta por monto"><b class="plus">+</b><span>Monto</span></button>
+        <label class="sbox">${svg("search")}<input id="q" type="search" enterkeyhint="go" placeholder="${DESK() ? "Escanea o busca un producto" : "Busca o escribe el código"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
+        <button class="tool cam" data-a="camscan" title="Escanear códigos con la cámara">${svg("scan")}<span>Cámara</span></button>
+        <button class="tool xtra ${scaleState.on ? "live" : ""}" data-a="scaletool" id="scaleTool" title="Balanza">${svg("scale")}<span>${scaleState.on ? "Balanza lista" : "Balanza"}</span></button>
+        ${tables ? `<button class="tool xtra" data-a="mesas" title="Mesas">${svg("mesa")}<span>Mesas</span></button>` : ""}
+        ${cobra ? `<button class="tool xtra" data-a="prevload" title="Cobrar una preventa">${svg("prev")}<span>Preventa</span></button>` : ""}
+        <button class="tool xtra" data-a="quick" title="Cobrar un monto suelto">${svg("plus")}<span>Monto</span></button>
+        <button class="tool more" data-a="tools" title="Más herramientas" aria-label="Más herramientas">${svg("mas")}</button>
       </div>
       <div class="chips cats" id="cats"></div>
       <div class="grid t-${DB.cfg.tile}" id="grid"></div>
@@ -734,15 +778,15 @@ VIEWS.venta = function viewSale(v) {
     <aside class="cart" id="cart" aria-label="Ticket actual"></aside>
   </div>
   <div class="fbar" aria-label="Atajos de teclado">
-    ${cobra ? `<button data-a="pay" data-m="efectivo"><kbd>F2</kbd>Efectivo</button>` : ""}
+    ${cobra ? `<button data-a="pay" data-m="efectivo"><kbd>F2</kbd>Cobrar</button>` : `<button data-a="prevsave"><kbd>F2</kbd>Guardar preventa</button>`}
     <button data-a="focusq"><kbd>F3</kbd>Buscar</button>
-    <button data-a="tknew"><kbd>F4</kbd>Nuevo ticket</button>
     <button data-a="pickcli"><kbd>F1</kbd>Cliente</button>
-    <button data-a="qeditsel"><kbd>F6</kbd>Cantidad / peso</button>
-    ${cobra ? `<button data-a="split"><kbd>F7</kbd>Dividir pago</button><button data-a="pay" data-m="yape"><kbd>F8</kbd>Yape</button><button data-a="pay" data-m="tarjeta"><kbd>F9</kbd>Tarjeta</button><button data-a="pay" data-m="plin"><kbd>F10</kbd>Plin</button>` : `<button data-a="prevsave"><kbd>F2</kbd>Guardar preventa</button>`}
-    <button data-a="rmsel"><kbd>Supr</kbd>Quitar</button>
+    <button data-a="tknew"><kbd>F4</kbd>Poner en espera</button>
+    <button data-a="qeditsel"><kbd>F6</kbd>Cantidad o peso</button>
+    ${cobra ? `<button data-a="split"><kbd>F7</kbd>Dividir pago</button><button data-a="pay" data-m="yape"><kbd>F8</kbd>Yape</button><button data-a="pay" data-m="tarjeta"><kbd>F9</kbd>Tarjeta</button><button data-a="pay" data-m="plin"><kbd>F10</kbd>Plin</button>` : ""}
+    <button data-a="rmsel"><kbd>Supr</kbd>Quitar línea</button>
   </div>
-  <button class="cartbar" id="cartbar" data-a="opencart" hidden></button>`;
+  <div class="cartbar" id="cartbar" hidden></div>`;
   paintSale(); focusQ();
 };
 function paintSale() { if (ui.tab !== "venta" || !$("#grid")) return; paintCats(); paintGrid(); paintCart(); }
@@ -757,12 +801,24 @@ function paintCats() {
   if (!cats.length && !DB.products.length) { el.innerHTML = ""; return; }
   const im = (c) => { const s = catImg(c); return s ? `<img src="${s}" alt="">` : ""; };
   const chip = (c, label, img = true) => `<button class="chip ${ui.cat === c ? "on" : ""}" data-a="cat" data-c="${esc(c)}">${img ? im(c) : ""}${label}</button>`;
-  el.innerHTML = chip("", "Todos", false) + (DB.products.some((p) => p.fav) ? chip("__fav", "★ Favoritos", false) : "") + chip("__top", "Más vendidos") + cats.map((c) => chip(c, esc(c))).join("");
+  el.innerHTML = chip("", "Todo", false) + (DB.products.some((p) => p.fav) ? chip("__fav", "★ Favoritos", false) : "") + chip("__top", "Más vendidos", false) + cats.map((c) => chip(c, esc(c))).join("");
+}
+// Ficha de producto: foto real (o ilustración) con su precio en cartulina, como en el mercado.
+function tileHtml(p, qn) {
+  const kg = p.unit === "kg", u = kg ? " kg" : "";
+  const low = p.stock != null && p.stock <= (p.min || 0), out = p.stock != null && p.stock <= 0;
+  const st = p.stock == null || out ? "" : `${low ? "Quedan" : "Stock"} ${fmtQ(p.stock)}${u}`;
+  const tilt = ([...String(p.id)].reduce((a, c) => a + c.charCodeAt(0), 0) % 5) - 2;
+  return `<button class="pt k-${imgKind(p)} ${qn ? "in" : ""} ${out ? "out" : low ? "low" : ""}" data-a="add" data-id="${p.id}" style="--cc:${tintOf(p)};--tilt:${tilt * 0.9 - 1.5}deg">
+    <span class="pbox">${pimg(p)}<span class="badges">${p.code && p.code.length <= 5 ? `<span class="cd" title="Código">${esc(p.code)}</span>` : ""}${kg ? `<span class="kgb" title="Se vende por peso">${svg("scale")}kg</span>` : ""}${(p.pres || []).length ? `<span class="presb" title="Tiene presentaciones">+${p.pres.length}</span>` : ""}</span>${out ? `<span class="tape">Agotado</span>` : ""}${qn ? `<span class="qty num ${ui.bump === p.id ? "bump" : ""}">${fmtQ(qn)}${u}</span>` : ""}</span>
+    <span class="prc num"><i>S/</i>${p.price.toFixed(2)}${kg ? "<em>kilo</em>" : ""}</span>
+    <b class="nm">${esc(p.name)}</b>
+    <small class="st">${st || (out ? "Sin stock" : "&nbsp;")}</small></button>`;
 }
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><img src="${(window.CF_IMG || {}).canasta || ""}" alt="" class="eimg"><h2>Aún no tienes productos</h2><p>Agrégalos uno por uno, impórtalos desde Excel o prueba con una lista de ejemplo.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
+    el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Tu puesto está vacío</h2><p>Agrega tus productos uno por uno, impórtalos desde Excel o carga una lista de ejemplo para probar.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
     return;
   }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
@@ -770,55 +826,77 @@ function paintGrid() {
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
   let list = DB.products.filter((p) => p.on !== false && (q ? true : catOk(p)) && (!q || norm(p.name).includes(q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
-  if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>Sin resultados</h2><p>Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto.</p></div>`; return; }
+  if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»</h2><p>Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto.</p></div>`; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
-  el.innerHTML = list.map((p) => {
-    const kg = p.unit === "kg", u = kg ? " kg" : "", qn = inCart[p.id];
-    const low = p.stock != null && p.stock <= (p.min || 0), out = p.stock != null && p.stock <= 0;
-    const st = p.stock == null ? "" : out ? "Agotado" : `${low ? "Quedan" : "Stock"} ${fmtQ(p.stock)}${u}`;
-    return `<button class="pt ${qn ? "in" : ""} ${out ? "out" : ""}" data-a="add" data-id="${p.id}" style="--tint:${tintOf(p)}">
-      <span class="pbox">${pimg(p)}${kg ? `<span class="kgb" title="Se pesa">${svg("scale")}</span>` : ""}${p.code && p.code.length <= 5 ? `<span class="cd">${esc(p.code)}</span>` : ""}</span>
-      <b class="nm">${esc(p.name)}</b>
-      <span class="ft"><span class="pr num">${money(p.price)}${kg ? "<em>/kg</em>" : ""}</span>${st ? `<small class="${out ? "out" : low ? "low" : ""}">${st}</small>` : ""}</span>
-      ${qn ? `<span class="qty">${fmtQ(qn)}${u}</span>` : ""}${(p.pres || []).length ? `<span class="presb">+${p.pres.length}</span>` : ""}</button>`;
-  }).join("");
+  el.innerHTML = list.map((p) => tileHtml(p, inCart[p.id])).join("");
+  ui.bump = null;
 }
 function paintTickets() {
   const el = $("#tks"); if (!el) return;
-  el.innerHTML = DB.tickets.map((t, i) => `<button class="tk ${i === DB.cur ? "on" : ""} ${t.mesa ? "mesa" : ""}" data-a="tk" data-i="${i}">${esc(ticketLabel(t))}<small class="num">${t.items.length ? money(ticketTotal(t)) : "vacío"}</small></button>`).join("") +
-    `<button class="tk add" data-a="tknew" aria-label="Nuevo ticket (F4)">+ Nuevo<small>F4</small></button>`;
+  el.innerHTML = DB.tickets.map((t, i) => `<button class="tk ${i === DB.cur ? "on" : ""} ${t.mesa ? "mesa" : ""}" data-a="tk" data-i="${i}">${esc(ticketLabel(t))}<small class="num">${t.items.length ? money(ticketTotal(t)) : "vacío"}</small></button>`).join("");
 }
+const nItems = (n) => `${n} ${n === 1 ? "producto" : "productos"}`;
 function paintCart() {
   const el = $("#cart"); if (!el) return;
   const t = DB.cart, T = cartTotals(), lines = T.lines, cobra = can("cobrar"), c = cli(t.client), doc = t.doc || DB.cfg.docDef || "NV";
+  if (lines.length) ui.done = null;
+  const bar = $("#cartbar");
+  if (!lines.length && ui.done && saleById(ui.done)) { el.innerHTML = doneHtml(saleById(ui.done)); if (bar) bar.hidden = true; return; }
+  ui.done = null;
   if (!lines.length) document.body.classList.remove("cart-open");
   if (!lines.some((x) => lineKey(x.l.id, x.l.pres) === ui.sel)) ui.sel = lines.length ? lineKey(lines[lines.length - 1].l.id, lines[lines.length - 1].l.pres) : null;
-  const debt = c ? balanceOf(c) : 0, pts = c && DB.cfg.pts.on ? pointsOf(c) : 0;
+  const debt = c ? balanceOf(c) : 0, pts = c && DB.cfg.pts.on ? pointsOf(c) : 0, dis = lines.length ? "" : "disabled";
+  const fresh = ui.fresh; ui.fresh = null;
   el.innerHTML = `<div class="cart-in">
-    <div class="cart-h"><h2>${esc(ticketLabel(t))}</h2><div class="row">${t.mesa || t.prev ? "" : `<button class="link" data-a="tkname">Nombre</button>`}${lines.length || DB.tickets.length > 1 ? `<button class="link" data-a="clear">${DB.tickets.length > 1 ? "Quitar" : "Vaciar"}</button>` : ""}<button class="cart-x" data-a="closecart" aria-label="Cerrar ticket">✕</button></div></div>
-    <div class="tks" id="tks"></div>
-    <div class="who">
-      <button class="cl ${c ? "set" : ""}" data-a="pickcli">${c ? `<span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span>` : `<span class="av none">${svg("user")}</span>`}<span><b>${c ? esc(c.name) : "Cliente: público general"}</b><small>${c ? `${c.doc ? esc(c.dt) + " " + esc(c.doc) : "Sin documento"}${debt > 0 ? " · debe " + money(debt) : ""}${pts ? ` · ${pts} pts` : ""}` : "Toca para elegir (F1)"}</small></span></button>
-      <div class="seg" role="group" aria-label="Comprobante">${Object.keys(DOCS).map((d) => `<button class="${doc === d ? "on" : ""}" data-a="doc" data-d="${d}" title="${DOCS[d]}">${d === "NV" ? "Nota" : DOCS[d]}</button>`).join("")}</div>
-    </div>
-    <div class="lines">${lines.length ? `<div class="lh" aria-hidden="true"><span>Cant.</span><span>Producto</span><span>P. unit.</span><span>Importe</span><span></span></div>` + lines.map(({ l, r }) => { const k = lineKey(l.id, l.pres); return `<div class="ln ${ui.sel === k ? "sel" : ""}" data-a="sel" data-k="${k}">
+    <div class="paper">
+      <div class="rhead">
+        <div class="rtop"><span class="bizl">${esc(DB.biz.name || "Caja Fácil")}</span><span class="rtime num">${hhmm(Date.now())}</span><button class="cart-x" data-a="closecart" aria-label="Cerrar ticket">${svg("close")}</button></div>
+        <div class="rmeta">${t.mesa || t.prev ? `<b class="tkn">${esc(ticketLabel(t))}</b>` : `<button class="tkn" data-a="tkname" title="Ponerle un nombre a este ticket">${esc(ticketLabel(t))}${svg("edit")}</button>`}
+          <span class="racts"><button class="ib" data-a="tknew" title="Poner en espera y atender a otro cliente (F4)">${svg("hold")}<span>En espera</span></button>${lines.length || DB.tickets.length > 1 ? `<button class="ib" data-a="clear" title="${DB.tickets.length > 1 ? "Quitar este ticket" : "Vaciar el ticket"}">${svg("trash")}<span>${DB.tickets.length > 1 ? "Quitar" : "Vaciar"}</span></button>` : ""}</span></div>
+        ${DB.tickets.length > 1 ? `<div class="tks" id="tks"></div>` : ""}
+        <div class="who">
+          <button class="cl ${c ? "set" : ""}" data-a="pickcli">${c ? `<span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span>` : `<span class="av none">${svg("user")}</span>`}<span><b>${c ? esc(c.name) : "Público general"}</b><small>${c ? `${c.doc ? esc(c.dt) + " " + esc(c.doc) : "Sin documento"}${debt > 0 ? " · debe " + money(debt) : ""}${pts ? ` · ${pts} pts` : ""}` : "Elegir cliente (F1)"}</small></span></button>
+          <div class="seg" role="group" aria-label="Comprobante">${Object.keys(DOCS).map((d) => `<button class="${doc === d ? "on" : ""}" data-a="doc" data-d="${d}" title="${DOCS[d]}">${d === "NV" ? "Nota" : DOCS[d]}</button>`).join("")}</div>
+        </div>
+      </div>
+      <div class="lines">${lines.length ? `<div class="lh" aria-hidden="true"><span>Cant.</span><span>Producto</span><span>P. unit.</span><span>Importe</span><span></span></div>` + lines.map(({ l, r }) => { const k = lineKey(l.id, l.pres); return `<div class="ln ${ui.sel === k ? "sel" : ""} ${fresh === k ? "fresh" : ""}" data-a="sel" data-k="${k}">
         <span class="qc step"><button class="sb" data-a="dec" data-k="${k}" aria-label="Quitar uno">−</button><button class="qv num" data-a="qedit" data-k="${k}" aria-label="Cambiar cantidad">${fmtQ(l.qty)}${unitTxt(r)}</button><button class="sb" data-a="inc" data-k="${k}" aria-label="Agregar uno">+</button></span>
         <span class="nm">${r.p ? pimg(r.p, "lim") : ""}<span><b>${esc(r.name)}</b>${r.code ? `<small>Cód. ${esc(r.code)}</small>` : ""}</span></span>
         <button class="pu num ${l.pr != null ? "chg" : ""}" data-a="lprice" data-k="${k}" title="Cambiar precio">${money(r.price)}${r.unit === "kg" ? "<small>/kg</small>" : ""}</button>
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
-        <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">✕</button></div>`; }).join("") : `<div class="cart-empty"><img src="${(window.CF_IMG || {}).carrito || ""}" alt=""><p>Escanea, escribe un código o toca un producto.</p></div>`}</div>
-    <div class="tot">
-      ${lines.length ? `<div class="trow"><label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>
-        <div class="sumx"><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
-      <div class="bigtot"><span>${T.count} ${T.count === 1 ? "producto" : "productos"}${T.disc ? ` · descuento ${money(T.disc)}` : ""}</span><b class="num" id="cartTotal">${money(T.total)}</b></div>
-      ${cobra ? `<div class="paygrid">${["efectivo", "yape", "tarjeta", "plin"].map((m) => `<button class="pay ${m}" data-a="pay" data-m="${m}" ${lines.length ? "" : "disabled"}>${METHODS[m]}<span class="kbd">${FK[m]}</span></button>`).join("")}</div>
-      <div class="paygrid2"><button class="pay2" data-a="pay" data-m="credito" ${lines.length ? "" : "disabled"}>Crédito</button><button class="pay2" data-a="split" ${lines.length ? "" : "disabled"}>Dividir <span class="kbd">F7</span></button><button class="pay2" data-a="prevsave" ${lines.length ? "" : "disabled"}>Preventa</button></div>`
-      : `<button class="pay efectivo big1" data-a="prevsave" ${lines.length ? "" : "disabled"}>Guardar preventa<span class="kbd">F2</span></button><p class="muted c">El cliente paga en caja con el número de preventa.</p>`}
+        <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Ticket vacío</b>Escanea un código, escríbelo arriba o toca un producto.</p></div>`}</div>
+      <div class="tot">
+        ${lines.length ? `<div class="trow">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}
+          <div class="sumx"><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
+        <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
+      </div>
+    </div>
+    <div class="paybox">
+      ${cobra ? `<button class="cobrar" data-a="pay" data-m="efectivo" ${dis}><span>Cobrar</span><b class="num">${money(T.total)}</b><span class="kbd">F2</span></button>
+      <div class="paymini">${["yape", "plin", "tarjeta"].map((m) => `<button class="pm ${m}" data-a="pay" data-m="${m}" ${dis}>${METHODS[m]}<span class="kbd">${FK[m]}</span></button>`).join("")}<button class="pm" data-a="pay" data-m="credito" ${dis}>Crédito</button><button class="pm" data-a="split" ${dis}>Dividir<span class="kbd">F7</span></button><button class="pm" data-a="prevsave" ${dis}>Preventa</button></div>`
+      : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();
   const sel = $(".ln.sel"); if (sel && sel.scrollIntoViewIfNeeded) sel.scrollIntoViewIfNeeded(false); else if (sel) sel.scrollIntoView({ block: "nearest" });
-  const bar = $("#cartbar");
-  if (bar) { bar.hidden = !lines.length; bar.innerHTML = `<span>${T.count} ${T.count === 1 ? "producto" : "productos"}</span><span class="num">Ver ticket · ${money(T.total)}</span>`; }
+  if (bar) {
+    bar.hidden = !lines.length;
+    bar.innerHTML = `<button class="cb-open ${fresh ? "bump" : ""}" data-a="opencart"><span class="cbn num">${T.count}</span><span class="cbt">Ver ticket<b class="num">${money(T.total)}</b></span></button>${cobra ? `<button class="cb-pay" data-a="pay" data-m="efectivo">Cobrar</button>` : `<button class="cb-pay" data-a="prevsave">Guardar</button>`}`;
+  }
+}
+// Después de cobrar: el ticket muestra el vuelto bien grande hasta que empiece la siguiente venta.
+function doneHtml(s) {
+  const pays = paysOf(s), cash = s.recv > 0 && pays.some((p) => p.m === "efectivo"), c = cli(s.client);
+  return `<div class="cart-in"><div class="paper done" role="status">
+    <div class="rtop"><span class="bizl">${esc(DB.biz.name || "Caja Fácil")}</span><span class="rtime num">${hhmm(s.t)}</span><button class="cart-x" data-a="newsale" aria-label="Cerrar">${svg("close")}</button></div>
+    <div class="stamp">${svg("check")}<span>Venta lista</span></div>
+    <p class="dno">${DOCS[s.doc ? s.doc.type : "NV"]} ${docNo(s)}${s.cname ? ` · ${esc(s.cname)}` : ""}</p>
+    ${cash ? `<div class="vu"><span>Vuelto</span><b class="num" id="doneChange">${money(s.change)}</b><small>Pagó con ${money(s.recv)} · total ${money(s.total)}</small></div>`
+      : `<div class="vu paid"><span>${esc(methodLabel(s))}</span><b class="num">${money(s.total)}</b><small>${s.ref ? "Operación " + esc(s.ref) : pays.some((p) => p.m === "credito") ? "Anotado en la cuenta del cliente" : "Pago completo"}</small></div>`}
+    ${s.ptsEarn ? `<p class="dpts">${esc(s.cname.split(" ")[0])} ganó ${s.ptsEarn} puntos</p>` : ""}
+    <div class="dacts"><button class="btn sec" data-a="print" data-id="${s.id}">${svg("print", "bi")}Imprimir</button><button class="btn sec" data-a="wa" data-id="${s.id}">${svg("wa", "bi")}WhatsApp${c && c.phone ? "" : ""}</button></div>
+    <button class="link" data-a="seercpt" data-id="${s.id}">Ver comprobante</button>
+  </div>
+  <div class="paybox"><button class="cobrar next" data-a="newsale">Nueva venta<span class="kbd">Enter</span></button><p class="phint">O escanea el siguiente producto: se abre solo.</p></div></div>`;
 }
 
 /* ---------- cliente y comprobante del ticket ---------- */
@@ -852,7 +930,7 @@ function startPay(method, split) {
   if (!cartLines().length) return toast("Agrega productos al ticket");
   if (!can("cobrar")) return need("cobrar", () => openPay(method, split), "Cobrar esta venta");
   const chk = docCheck(); if (chk) { toast(chk, true); beep(false); return; }
-  if (DB.cfg.needShift && can("caja") && !curShift()) return openShift(() => openPay(method, split));
+  if (can("caja") && !curShift()) { if (DB.cfg.needShift) return openShift(() => openPay(method, split)); autoShift(); }
   openPay(method, split);
 }
 function openPay(method, split) {
@@ -879,23 +957,32 @@ function creditBlock() {
   const debt = balanceOf(c), due = payDue(), after = r2(debt + due), over = c.limit > 0 && after > c.limit;
   return `<div class="credit ${over ? "over" : ""}"><div class="kv"><span>Cliente</span><b>${esc(c.name)}</b></div><div class="kv"><span>Debe ahora</span><b class="num">${money(debt)}</b></div><div class="kv"><span>Debería después</span><b class="num">${money(after)}</b></div>${c.limit > 0 ? `<div class="kv"><span>Límite de crédito</span><b class="num">${money(c.limit)}</b></div>` : ""}${over ? `<p class="warn">Pasa su límite: necesita autorización.</p>` : ""}${c.days ? `<p class="muted">Plazo para pagar: ${c.days} días.</p>` : ""}</div>`;
 }
+// Billetes y monedas sugeridos: el monto exacto y los que la gente suele dar (redondeos, 10, 20, 50, 100, 200).
+function cashOpts(due) {
+  const c = [Math.ceil(due - 0.001), Math.ceil(due / 5) * 5, Math.ceil(due / 10) * 10, 20, 50, 100, 200].filter((n) => n > due + 0.001);
+  return [...new Set(c)].sort((a, b) => a - b).slice(0, 4);
+}
+const BILLS = [10, 20, 50, 100, 200];
+const billCls = (v) => (BILLS.includes(v) ? "b" + v : "coin");
 function paintPay() {
   const p = ui.pay, total = cartTotals().total, due = payDue(), t = DB.cart, doc = t.doc || DB.cfg.docDef || "NV", c = cli(t.client);
   if (p.split) return paintSplit();
   const M = ["efectivo", "yape", "plin", "tarjeta", "transferencia", "credito"].filter((m) => m !== "credito" || DB.clients.length || can("clientes"));
   const KEYL = { efectivo: "E", yape: "Y", plin: "P", tarjeta: "T", transferencia: "R", credito: "C" };
-  openModal(`<div class="payhead"><h2>Cobrar</h2><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
-    <div class="paytot"><span class="muted">Total a pagar</span><b class="num">${money(due)}</b>${p.pts ? `<small class="muted">Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div>
+  let body;
+  if (p.method === "efectivo") body = `<p class="ask">¿Con cuánto paga? <small>Toca el billete y la venta queda lista</small></p>
+      <div class="bills"><button class="bill exact" data-a="cashgo" data-v="${due}"><small>Exacto</small><b class="num">${money(due)}</b><em>Sin vuelto</em></button>${cashOpts(due).map((v) => `<button class="bill ${billCls(v)}" data-a="cashgo" data-v="${v}"><small>${BILLS.includes(v) ? "Billete" : "Paga con"}</small><b class="num">S/ ${v}</b><em class="num">Vuelto ${money(r2(v - due))}</em></button>`).join("")}</div>
+      <div class="other"><label class="fld"><span>Otro monto</span><input class="inp num big" id="recv" data-in="recv" inputmode="decimal" enterkeyhint="done" placeholder="${due.toFixed(2)}" value="${esc(p.recv)}" autofocus></label><div class="vuelto" id="vuelto"></div></div>
+      <button class="btn lg" id="payok" data-a="payok">Cobrar en efectivo</button>`;
+  else if (p.method === "yape" || p.method === "plin") body = `${payTo(p.method)}<button class="btn lg go ${p.method}" id="payok" data-a="payok">Ya llegó el ${METHODS[p.method]}: cobrar ${money(due)}</button>`;
+  else if (p.method === "credito") body = `${creditBlock()}<button class="btn lg" id="payok" data-a="payok" ${c ? "" : "disabled"}>Anotar ${money(due)} al crédito</button>`;
+  else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
+      <button class="btn lg" id="payok" data-a="payok">Cobrar ${money(due)} con ${METHODS[p.method].toLowerCase()}</button>`;
+  openModal(`<div class="payhead"><div class="paytot"><span>Total a pagar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
     ${ptsBlock()}
-    <div class="methods m6">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" data-a="method" data-m="${k}">${METHODS[k]}<span class="kbd">${KEYL[k]}</span></button>`).join("")}</div>
-    ${p.method === "efectivo" ? `<label class="fld"><span>Cliente paga con</span><input class="inp num big" id="recv" data-in="recv" inputmode="decimal" placeholder="${due.toFixed(2)} (exacto)" value="${esc(p.recv)}" autofocus></label>
-      <div class="quick">${[10, 20, 50, 100, 200].filter((n) => n >= due).slice(0, 4).map((n) => `<button class="chip" data-a="recv" data-v="${n}">S/ ${n}</button>`).join("")}<button class="chip" data-a="recv" data-v="${due}">Exacto</button></div>
-      <div class="vuelto" id="vuelto"><span>Vuelto</span><b class="num">S/ 0.00</b></div>`
-      : p.method === "yape" || p.method === "plin" ? payTo(p.method)
-      : p.method === "credito" ? creditBlock()
-      : `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>`}
-    <button class="link splitlink" data-a="split">Dividir el pago entre varios medios <span class="kbd">F7</span></button>
-    <div class="btns h"><button class="btn sec" data-a="close">Volver</button><button class="btn" id="payok" data-a="payok" ${p.method === "credito" && !c ? "disabled" : ""}>Confirmar cobro</button></div>`, "paym");
+    <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}">${METHODS[k]}<span class="kbd">${KEYL[k]}</span></button>`).join("")}</div>
+    <div class="paybody">${body}</div>
+    <div class="payfoot"><button class="link" data-a="close">Volver al ticket</button><button class="link" data-a="split">Dividir el pago <span class="kbd">F7</span></button></div>`, "paym");
   ui.mk = "pay"; updPay();
 }
 function splitCalc() {
@@ -929,11 +1016,11 @@ function paintSplit() {
 }
 function updPay() {
   const p = ui.pay; if (!p || p.split || p.method !== "efectivo") return;
-  const due = payDue(), recv = p.recv === "" ? due : num(p.recv), ch = r2(recv - due), bad = ch < 0;
+  const due = payDue(), empty = p.recv.trim() === "", recv = empty ? due : num(p.recv), ch = r2(recv - due), bad = ch < 0;
   const vu = $("#vuelto"); if (!vu) return;
-  vu.className = "vuelto" + (bad ? " bad" : "");
-  vu.innerHTML = bad ? `<span>Falta</span><b class="num">${money(-ch)}</b>` : `<span>Vuelto</span><b class="num">${money(ch)}</b>`;
-  $("#payok").disabled = bad;
+  vu.className = "vuelto" + (bad ? " bad" : empty ? " idle" : "");
+  vu.innerHTML = empty ? `<span>Si lo dejas vacío</span><b>Paga exacto</b>` : bad ? `<span>Falta</span><b class="num">${money(-ch)}</b>` : `<span>Vuelto</span><b class="num">${money(ch)}</b>`;
+  const ok = $("#payok"); ok.disabled = bad; ok.textContent = empty ? `Cobrar ${money(due)} exacto` : bad ? "Falta dinero" : `Cobrar y dar ${money(ch)} de vuelto`;
 }
 function confirmPay() {
   const T = cartTotals(); if (!T.lines.length) return closeModal();
@@ -949,8 +1036,9 @@ function confirmPay() {
   const ref = p.ref || "";
   const go2 = () => {
     const s = finalizeSale(pays, given, { ref });
-    beep(true); document.body.classList.remove("cart-open");
-    showReceipt(s, true); paintSale(); paintNav();
+    beep(true); closeModal(); ui.done = s.id; ui.q = ""; const qi = $("#q"); if (qi) qi.value = "";
+    if (!DESK()) document.body.classList.add("cart-open");
+    paintSale(); paintNav();
     if (DB.cfg.autoPrint) printHtml(receiptHtml(s));
   };
   const credit = pays.filter((x) => x.m === "credito").reduce((a, x) => a + x.amt, 0);
@@ -1020,7 +1108,7 @@ function receiptText(s) {
   if (s.ptsEarn) t += `\nPuntos ganados: ${s.ptsEarn}`;
   return t + `\n\n${DB.biz.foot || "Gracias por su compra"}`;
 }
-function showReceipt(s, fromSale = true) {
+function showReceipt(s, fromSale = false) {
   const c = cli(s.client), ret = (s.returns || []).length;
   openModal(`<div class="rcpt">${receiptHtml(s)}</div>
     ${s.void ? `<p class="tag void" style="margin-top:8px">Venta anulada${s.void.why ? ": " + esc(s.void.why) : ""}</p>` : ""}
@@ -1136,7 +1224,19 @@ act({
   partdel: (el) => { ui.pay.parts.splice(+el.dataset.i, 1); paintPay(); },
   gosettings: () => { closeModal(); ui.atab = "cobros"; go("aj"); },
   focusq: () => { const q = $("#q"); if (q) { q.focus(); q.select(); } },
-  newsale: () => { closeModal(); ui.q = ""; render(); },
+  newsale: () => { if (modalOpen()) closeModal(); ui.done = null; ui.q = ""; document.body.classList.remove("cart-open"); render(); },
+  cashgo: (el) => { if (!ui.pay) return; ui.pay.recv = String(el.dataset.v); confirmPay(); },
+  showdisc: () => { if (!can("descuento")) return need("descuento", () => { ui.showDisc = true; paintCart(); const d = $("#disc"); if (d) d.focus(); }, "Descuento"); ui.showDisc = true; paintCart(); const d = $("#disc"); if (d) d.focus(); },
+  seercpt: (el) => { const s = saleById(el.dataset.id); if (s) showReceipt(s, true); },
+  tools: () => {
+    const cobra = can("cobrar");
+    openModal(`<h2>Herramientas de venta</h2><div class="menu">
+      <button class="mi" data-a="scaletool"><span class="ic">${svg("scale")}</span>Balanza</button>
+      <button class="mi" data-a="quick"><span class="ic">${svg("plus")}</span>Cobrar un monto suelto</button>
+      ${cobra ? `<button class="mi" data-a="prevload"><span class="ic">${svg("prev")}</span>Cobrar una preventa</button>` : ""}
+      ${+DB.cfg.tables ? `<button class="mi" data-a="mesas"><span class="ic">${svg("mesa")}</span>Mesas</button>` : ""}
+      <button class="mi" data-a="tknew"><span class="ic">${svg("hold")}</span>Poner el ticket en espera</button></div>`);
+  },
   quick: openQuick,
   quickok: () => {
     const a = num($("#qa").value); if (!(a > 0)) return toast("Escribe un monto mayor a 0");
@@ -1310,6 +1410,112 @@ act({
   scaletest: openScaleTest
 });
 
+/* ===================== 33 · CÁMARA: escanear códigos de barras con el celular o la webcam ===================== */
+// Usa el lector del navegador si existe (Chrome en Android); si no (iPhone, PC), carga escaner.js solo la primera vez.
+const cam = { on: false, stream: null, det: null, lib: null, timer: 0, last: "", lastT: 0, seen: [] };
+const camOk = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+function loadScanLib() {
+  return new Promise((res, rej) => {
+    if (window.__Html5QrcodeLibrary__) return res(window.__Html5QrcodeLibrary__);
+    const s = document.createElement("script"); s.src = "escaner.js"; s.async = true;
+    s.onload = () => (window.__Html5QrcodeLibrary__ ? res(window.__Html5QrcodeLibrary__) : rej(new Error("lib")));
+    s.onerror = () => rej(new Error("lib"));
+    document.head.appendChild(s);
+  });
+}
+// mode "venta": suma productos al ticket. mode "codigo": llena el código del producto que estás creando.
+function openCam(mode = "venta") {
+  if (!camOk()) return toast("Este navegador no deja usar la cámara. Abre Caja Fácil desde su enlace https en Safari o Chrome.", true);
+  cam.seen = []; cam.last = ""; cam.mode = mode;
+  if (mode === "codigo") {
+    openModal(`<div class="camhead"><h2>Leer el código del producto</h2><button class="x" data-a="camback" aria-label="Volver">${svg("close")}</button></div>
+      <div class="camv"><div id="camlib"></div><div class="camframe" aria-hidden="true"><i></i></div><p class="camst" id="camst">Abriendo la cámara…</p></div>
+      <p class="camhint">Apunta al código de barras del empaque. Se copia solo en la ficha.</p>
+      <div class="btns"><button class="btn sec lg" data-a="camback">Volver sin leer</button></div>`, "camm");
+    ui.mk = "cam"; startCam(); return;
+  }
+  openModal(`<div class="camhead"><h2>Escanear con la cámara</h2><button class="x" data-a="close" aria-label="Cerrar cámara">${svg("close")}</button></div>
+    <div class="camv"><div id="camlib"></div><div class="camframe" aria-hidden="true"><i></i></div><p class="camst" id="camst">Abriendo la cámara…</p></div>
+    <p class="camhint">Apunta al código de barras: cada producto que lea se suma solo al ticket. Para otra unidad del mismo, retíralo y vuelve a apuntar.</p>
+    <div class="camlog" id="camlog" aria-live="polite"></div>
+    <div class="btns"><button class="btn lg" data-a="close" id="camdone">Listo</button></div>`, "camm");
+  ui.mk = "cam"; startCam();
+}
+async function startCam() {
+  const st = (t, err) => { const e = $("#camst"); if (e) { e.textContent = t; e.classList.toggle("err", !!err); e.hidden = !t; } };
+  try {
+    if ("BarcodeDetector" in window) {
+      const have = await window.BarcodeDetector.getSupportedFormats();
+      const want = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf", "qr_code"].filter((f) => have.includes(f));
+      if (want.length) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+        if (ui.mk !== "cam") { stream.getTracks().forEach((t) => t.stop()); return; }
+        cam.stream = stream;
+        const v = document.createElement("video"); v.setAttribute("playsinline", ""); v.muted = true; v.srcObject = stream;
+        $("#camlib").appendChild(v); await v.play();
+        cam.det = new window.BarcodeDetector({ formats: want }); cam.on = true; st("");
+        const loop = async () => { if (!cam.on) return; try { const r = await cam.det.detect(v); if (r.length) onCamCode(r[0].rawValue); } catch (e) {} cam.timer = setTimeout(loop, 150); };
+        loop(); return;
+      }
+    }
+    const L = await loadScanLib(); if (ui.mk !== "cam") return;
+    const F = L.Html5QrcodeSupportedFormats;
+    const lib = new L.Html5Qrcode("camlib", { verbose: false, formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128, F.CODE_39, F.ITF, F.QR_CODE], experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+    cam.lib = lib;
+    await lib.start({ facingMode: "environment" }, { fps: 12, qrbox: (w, h) => ({ width: Math.round(Math.min(w * 0.84, 380)), height: Math.round(Math.min(h * 0.5, 190)) }), aspectRatio: 1.3333 }, (txt) => onCamCode(txt), () => {});
+    if (ui.mk !== "cam" || cam.lib !== lib) { try { await lib.stop(); } catch (e) {} return; }
+    cam.on = true; st("");
+  } catch (e) {
+    cam.on = false;
+    const s = String((e && (e.name || e.message)) || e);
+    st(/NotAllowed|Permission|denied/i.test(s) ? "La cámara está bloqueada. Permítela en los ajustes del navegador y vuelve a intentar."
+      : /NotFound|Overconstrained|no camera/i.test(s) ? "No encontré una cámara en este equipo."
+      : s === "lib" || (e && e.message === "lib") ? "No se pudo cargar el lector. La primera vez necesitas internet."
+      : "No se pudo abrir la cámara.", true);
+  }
+}
+function stopCam() {
+  cam.on = false; clearTimeout(cam.timer);
+  if (cam.stream) { cam.stream.getTracks().forEach((t) => t.stop()); cam.stream = null; }
+  if (cam.lib) { const l = cam.lib; cam.lib = null; try { const p = l.stop(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+}
+function camLog(html, bad) {
+  const el = $("#camlog"); if (!el) return;
+  cam.seen.unshift({ html, bad }); cam.seen = cam.seen.slice(0, 4);
+  const T = cartTotals();
+  el.innerHTML = cam.seen.map((x, i) => `<p class="${x.bad ? "bad" : ""} ${i ? "" : "new"}">${x.html}</p>`).join("") + (T.count ? `<p class="camtot">Ticket: ${nItems(T.count)} · <b class="num">${money(T.total)}</b></p>` : "");
+}
+// Cada código leído entra como si lo hubieran escrito en el buscador (productos, presentaciones y etiquetas de balanza).
+function onCamCode(raw) {
+  const code = String(raw || "").trim(); if (!code || ui.mk !== "cam") return;
+  if (cam.mode === "codigo") {
+    const dup = DB.products.find((x) => x.code === code && (!ui.pe || x.id !== ui.pe.id));
+    stopCam(); beep(true); if (navigator.vibrate) navigator.vibrate(35);
+    if (ui.pe) { ui.pe.d.code = code; paintPE(); }
+    if (dup) toast(`Ojo: ese código ya lo tiene «${dup.name}»`, true);
+    return;
+  }
+  // El mismo código no se vuelve a contar mientras siga frente a la cámara: para otra unidad, retíralo y vuelve a apuntar.
+  const now = Date.now(); if (code === cam.last && now - cam.lastT < 1200) { cam.lastT = now; return; }
+  cam.last = code; cam.lastT = now;
+  const p = DB.products.find((x) => x.code && x.code === code);
+  const ps = p ? null : DB.products.find((x) => (x.pres || []).some((y) => y.code && y.code === code));
+  const lab = p || ps ? null : parseLabel(code);
+  if (!p && !ps && !lab) { beep(false); camLog(`No encontré el código <b class="num">${esc(code)}</b>`, true); return; }
+  if (p && p.unit === "kg") { stopCam(); closeModal(); submitCode(code); return; } // se pesa: abre la balanza
+  const n0 = cartTotals().count, q0 = DB.cart.items.reduce((a, i) => a + i.qty, 0);
+  submitCode(code);
+  const ok = cartTotals().count !== n0 || DB.cart.items.reduce((a, i) => a + i.qty, 0) !== q0;
+  const name = lab ? lab.p.name : p ? p.name : `${ps.name} (${ps.pres.find((y) => y.code === code).name})`;
+  if (ok && navigator.vibrate) navigator.vibrate(35);
+  camLog(ok ? `${svg("check")} ${esc(name)}` : `${esc(name)}: sin stock`, !ok);
+}
+act({
+  camscan: () => openCam("venta"),
+  camcode: () => { if (typeof readPE === "function") readPE(); openCam("codigo"); },
+  camback: () => { stopCam(); if (ui.pe) paintPE(); else closeModal(); }
+});
+
 /* ===================== 40 · PRODUCTOS E INVENTARIO ===================== */
 const lowItems = () => DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, "es"));
 const suggest = (p) => Math.max(1, Math.ceil(Math.max((p.min || 0) * 2 - p.stock, p.min || 1)));
@@ -1358,19 +1564,20 @@ function readPE() {
 function paintPE() {
   const { id, d } = ui.pe, cats = [...new Set(DB.products.map((x) => x.cat).filter(Boolean))].sort();
   const kg = d.unit === "kg", others = DB.products.filter((x) => x.id !== id).sort((a, b) => a.name.localeCompare(b.name, "es"));
-  const imgMode = d.img && d.img.startsWith("data:") ? "Foto propia" : d.img && d.img.startsWith("lib:") ? "Imagen elegida" : "Automática por nombre";
+  const imgMode = d.img && d.img.startsWith("data:") ? "Tu foto" : d.img && d.img.startsWith("foto:") ? "Foto elegida" : d.img && d.img.startsWith("lib:") ? "Ilustración elegida" : "Automática por nombre";
   openModal(`<div id="pe"><h2>${id ? "Editar producto" : "Nuevo producto"}</h2>
     <div class="pe-top">
-      <div class="pe-img" style="--tint:${d.color || tintOf(d)}">${pimg(d, "big")}<small>${imgMode}</small></div>
-      <div class="pe-imgb"><button class="btn sec sm" data-a="imgpick">Elegir imagen</button><label class="btn sec sm">${svg("cam", "bi")}Foto<input type="file" accept="image/*" capture="environment" data-in="pphoto" hidden></label>${d.img ? `<button class="link" data-a="imgauto">Usar automática</button>` : ""}
-        <div class="colors" role="group" aria-label="Color de la ficha">${["", ...TINTS].map((c) => `<button class="sw ${(d.color || "") === c ? "on" : ""}" data-a="pcolor" data-c="${c}" style="background:${c || "#fff"}" aria-label="${c ? "Color" : "Automático"}">${c ? "" : "A"}</button>`).join("")}</div></div>
+      <div class="pe-img k-${imgKind(d)}" style="--cc:${tintOf(d)}">${pimg(d, "big")}<span class="prc num"><i>S/</i>${num(d.price || 0).toFixed(2)}</span><small>${imgMode}</small></div>
+      <div class="pe-imgb"><button class="btn sec sm" data-a="imgpick">Elegir imagen</button><label class="btn sec sm">${svg("cam", "bi")}Tomar foto<input type="file" accept="image/*" capture="environment" data-in="pphoto" hidden></label>${d.img ? `<button class="link" data-a="imgauto">Usar automática</button>` : ""}
+        <span class="cl-l">Color de la cartulina del precio</span>
+        <div class="colors" role="group" aria-label="Color de la cartulina">${["", ...CARDS].map((c, i) => `<button class="sw ${(d.color || "").toUpperCase() === c ? "on" : ""}" data-a="pcolor" data-c="${c}" style="background:${c || "transparent"}" title="${c ? CARDNAME[i - 1] : "Automático según la categoría"}" aria-label="${c ? CARDNAME[i - 1] : "Automático"}">${c ? "" : "A"}</button>`).join("")}</div></div>
     </div>
     <label class="fld"><span>Nombre</span><input class="inp" data-f="name" value="${esc(d.name)}" ${id ? "" : "autofocus"} autocomplete="off" maxlength="60" placeholder="Ej: Tomate italiano"></label>
     <div class="two"><label class="fld"><span>Se vende</span><select class="inp" data-f="unit" data-a2="repaint"><option value="u" ${!kg ? "selected" : ""}>Por unidad</option><option value="kg" ${kg ? "selected" : ""}>Por kilo (se pesa)</option></select></label>
       <label class="fld"><span>Categoría</span><input class="inp" data-f="cat" list="catlist" value="${esc(d.cat)}" placeholder="Verduras, Bebidas..."><datalist id="catlist">${cats.map((c) => `<option value="${esc(c)}">`).join("")}</datalist></label></div>
     <div class="two"><label class="fld"><span>Precio de venta (S/${kg ? " por kilo" : ""})</span><input class="inp num" data-f="price" inputmode="decimal" value="${esc(d.price)}"></label>
       <label class="fld"><span>Costo (S/${kg ? " por kilo" : ""})</span><input class="inp num" data-f="cost" inputmode="decimal" value="${esc(d.cost)}" placeholder="${(d.recipe || []).length ? "Se calcula de la receta" : "Opcional"}"></label></div>
-    <div class="two"><label class="fld"><span>Código rápido o de barras</span><input class="inp" data-f="code" value="${esc(d.code)}" placeholder="Ej: ${nextCode()}" autocomplete="off"></label>
+    <div class="two"><label class="fld"><span>Código rápido o de barras</span><span class="codein"><input class="inp" data-f="code" value="${esc(d.code)}" placeholder="Ej: ${nextCode()}" autocomplete="off"><button type="button" class="scanb" data-a="camcode" title="Leer el código con la cámara" aria-label="Leer el código con la cámara">${svg("scan")}</button></span></label>
       <label class="fld"><span>Stock actual${kg ? " (kg)" : ""}</span><input class="inp num" data-f="stock" inputmode="decimal" value="${d.stock == null ? "" : esc(d.stock)}" placeholder="Vacío = sin control"></label></div>
     <div class="two"><label class="fld"><span>Avisar si baja de</span><input class="inp num" data-f="min" inputmode="decimal" value="${esc(d.min)}"></label>
       <div class="checks"><label class="ck"><input type="checkbox" data-f="igv" ${d.igv !== false ? "checked" : ""}> Afecto a IGV</label><label class="ck"><input type="checkbox" data-f="fav" ${d.fav ? "checked" : ""}> Favorito (sale primero)</label><label class="ck"><input type="checkbox" data-f="on" ${d.on !== false ? "checked" : ""}> Mostrar en venta</label></div></div>
@@ -1430,11 +1637,14 @@ function saveProduct() {
 }
 function imgPicker() {
   readPE();
-  const keys = Object.keys(window.CF_IMG || {});
-  const draw = (q) => keys.filter((k) => !q || norm(IMGNAME[k] || k).includes(norm(q))).map((k) => `<button class="imgc" data-a="imgset" data-k="${k}"><img src="${window.CF_IMG[k]}" alt=""><span>${esc(IMGNAME[k] || k)}</span></button>`).join("");
+  const F = FOTO(), I = window.CF_IMG || {};
+  const fk = Object.keys(F).filter((k) => k[0] !== "_"), ik = Object.keys(I);
+  const ok = (q, k) => !q || norm(IMGNAME[k] || k).includes(norm(q));
+  const cell = (pre, k, src) => `<button class="imgc ${pre}" data-a="imgset" data-k="${pre}:${k}"><img src="${src}" alt=""><span>${esc(IMGNAME[k] || k)}</span></button>`;
+  const draw = (q) => { const a = fk.filter((k) => ok(q, k)), b = ik.filter((k) => ok(q, k)); return (a.length ? `<p class="igh">Fotos reales</p>` + a.map((k) => cell("foto", k, F[k])).join("") : "") + (b.length ? `<p class="igh">Ilustraciones</p>` + b.map((k) => cell("lib", k, I[k])).join("") : "") || `<p class="muted">No hay imágenes con ese nombre. Toma una foto de tu producto.</p>`; };
   openModal(`<h2>Elige una imagen</h2><input class="inp" id="imgq" type="search" placeholder="Buscar: tomate, gaseosa, pan…" autofocus style="margin-bottom:10px"><div class="imggrid" id="imggrid">${draw("")}</div>
     <div class="btns"><button class="btn sec" data-a="imgback">Volver</button></div>
-    <p class="muted sm" style="margin-top:8px">Imágenes Fluent Emoji de Microsoft (licencia MIT).</p>`, "wide");
+    <p class="muted sm" style="margin-top:8px">Fotos: Grocery Store Dataset de Marcus Klasson (MIT). Ilustraciones: Fluent Emoji de Microsoft (MIT). Para tus productos envasados, lo mejor es una foto tuya.</p>`, "wide");
   ui.mk = "imgpick"; ui.imgdraw = draw;
 }
 
@@ -1592,7 +1802,7 @@ act({
   recdel: (el) => { readPE(); ui.pe.d.recipe.splice(+el.dataset.i, 1); paintPE(); },
   pcolor: (el) => { readPE(); ui.pe.d.color = el.dataset.c; paintPE(); },
   imgpick: imgPicker,
-  imgset: (el) => { ui.pe.d.img = "lib:" + el.dataset.k; paintPE(); },
+  imgset: (el) => { const k = el.dataset.k; ui.pe.d.img = k.includes(":") ? k : "lib:" + k; paintPE(); },
   imgback: () => paintPE(),
   imgauto: () => { readPE(); ui.pe.d.img = ""; paintPE(); },
   restock: (el) => { if (!can("stock")) return need("stock", () => openRestock(el.dataset.id, el.dataset.back === "1"), "Ingreso de mercadería"); openRestock(el.dataset.id, el.dataset.back === "1"); },
@@ -1815,6 +2025,13 @@ function openShift(after) {
     if (after) after(); else render();
   };
 }
+// Sin rodeos: la caja se abre sola en el primer cobro; el sencillo inicial se anota cuando quieras desde Caja.
+function autoShift() {
+  const u = me(); if (!u || curShift()) return;
+  const sh = { id: uid(), u: u.id, un: u.name, t0: Date.now(), d0: dkey(), open: 0, t1: 0, auto: true };
+  DB.shifts.push(sh); log("Apertura de caja", `${u.name}: automática al primer cobro`); save(); paintNav();
+  toast("Caja abierta. Tu sencillo inicial lo anotas en Caja");
+}
 function closeShiftUI(id) {
   const sh = DB.shifts.find((s) => s.id === id); if (!sh) return;
   ui.cnt = ui.cnt && ui.cnt.id === id ? ui.cnt : { id, q: {}, direct: "" };
@@ -1878,7 +2095,7 @@ VIEWS.caja = function viewCash(v) {
   const MS = mine ? shiftSummary(mine) : null;
   v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="mv" data-t="proveedor">Proveedor</button><button class="btn sec sm" data-a="mv" data-t="ingreso">Ingreso</button><button class="btn sec sm" data-a="mv" data-t="retiro">Retiro</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button></div>` : ""}</div>
     <div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>
-    ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
+    ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
       <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="shcount" data-id="${mine.id}">Cerrar mi caja (arqueo)</button><button class="btn sec" data-a="liqprint" data-id="${mine.id}">${svg("print", "bi")}Corte parcial</button></div>`
       : `<div class="row sp wrap"><div><h2>Tu caja está cerrada</h2><p class="muted">Ábrela con el sencillo del cajón para empezar a cobrar.</p></div><button class="btn" data-a="shopen">Abrir caja</button></div>`}</div>` : ""}
     <div class="cols stack"><div class="stack">
@@ -1912,6 +2129,12 @@ function closePeriodUI() {
 act({
   dstep: (el) => { const k = addD(ui.date, +el.dataset.d); if (k <= dkey()) { ui.date = k; render(); } },
   shopen: () => openShift(),
+  shopenedit: (el) => {
+    const sh = DB.shifts.find((x) => x.id === el.dataset.id); if (!sh || sh.t1) return;
+    promptBox({ title: "Sencillo inicial", text: "¿Con cuánto efectivo empezaste en el cajón? Sirve para que el arqueo cuadre.", label: "Monto (S/)", num: true, value: sh.open ? sh.open.toFixed(2) : "", ph: "0.00", ok: "Guardar" }, (v) => {
+      const n = Math.max(0, r2(num(v))); log("Sencillo inicial", `${sh.un}: ${money(sh.open)} → ${money(n)}`); sh.open = n; save(); toast("Guardado"); render();
+    });
+  },
   shcount: (el) => { ui.cnt = null; closeShiftUI(el.dataset.id); },
   liq: (el) => {
     const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (!sh) return;
@@ -2219,10 +2442,11 @@ VIEWS.aj = function viewSettings(v) {
   else if (t === "venta") body = `<div class="card"><h2>Pantalla de venta</h2>
       ${fld("Tamaño de las fichas de productos", `<div class="seg">${[["s", "Pequeñas"], ["m", "Medianas"], ["l", "Grandes (táctil)"]].map(([k, n]) => `<button class="${C.tile === k ? "on" : ""}" data-a="setv" data-k="cfg.tile" data-v="${k}">${n}</button>`).join("")}</div>`)}
       ${fld("Mesas o cuentas abiertas", inp("cfg.tables", C.tables, { num: true, ph: "0 = no uso mesas", max: 3 }), "Para restaurantes, juguerías o cuentas que se van sumando")}
-      ${tog("cfg.needShift", C.needShift, "Pedir abrir caja antes de cobrar", "Cada cajero declara con cuánto sencillo empieza")}
+      ${tog("cfg.needShift", C.needShift, "Preguntar el sencillo antes del primer cobro", "Apagado: la caja se abre sola al primer cobro y el sencillo se anota después en Caja")}
       ${tog("cfg.negStock", C.negStock, "Permitir vender sin stock", "Si está apagado, avisa cuando no queda")}
       ${tog("cfg.mute", !C.mute, "Sonidos", "Pitido al agregar y cobrar")}
-      ${fld("Bloquear tras minutos sin uso", inp("cfg.lock", C.lock, { num: true, max: 3 }), "0 = nunca. Solo si los usuarios tienen clave")}</div>`;
+      ${fld("Bloquear tras minutos sin uso", inp("cfg.lock", C.lock, { num: true, max: 3 }), "0 = nunca. Solo si los usuarios tienen clave")}</div>
+      <div class="card" style="margin-top:14px"><h2>Códigos de barras</h2><p class="muted">Con lector USB o Bluetooth no hay nada que configurar: escanea y el producto entra solo al ticket. Sin lector, toca <b>Cámara</b> en la pantalla de venta y apunta con el celular o la webcam.</p><p class="muted" style="margin-top:8px">Para que un producto se reconozca, escribe su código en Productos, en «Código rápido o de barras».</p></div>`;
   else if (t === "balanza") body = `<div class="card"><h2>Balanza USB o serial</h2><p class="muted" style="margin-bottom:10px">Con Chrome o Edge en la computadora, Caja Fácil lee el peso directo de la balanza. Si no tienes balanza conectada, igual puedes escribir los gramos al vender.</p>
       <div class="set"><div><b>${scaleState.on ? "Balanza conectada" : "Balanza sin conectar"}</b><small>${serialOk() ? "Tu navegador permite balanzas" : "Este navegador no permite balanzas USB"}</small></div><div class="row">${scaleState.on ? `<button class="btn sec sm" data-a="scaletest">Probar</button><button class="btn red sec sm" data-a="scaleoff">Desconectar</button>` : `<button class="btn sm" data-a="scaleconnect" ${serialOk() ? "" : "disabled"}>Conectar</button>`}</div></div>
       <div class="two">${fld("Velocidad (baudios)", `<select class="inp" data-set="cfg.scale.baud">${[1200, 2400, 4800, 9600, 19200, 38400].map((b) => `<option ${+C.scale.baud === b ? "selected" : ""}>${b}</option>`).join("")}</select>`, "Casi todas usan 9600")}${fld("Formato", `<select class="inp" data-set="cfg.scale.fmt">${["8N1", "7E1", "7O1", "8E1"].map((f) => `<option ${C.scale.fmt === f ? "selected" : ""}>${f}</option>`).join("")}</select>`)}</div>
@@ -2378,7 +2602,7 @@ act({
 
 /* ===================== 99 · EVENTOS, TECLADO E INICIO ===================== */
 document.addEventListener("click", (e) => {
-  if (e.target === $("#modal")) { if (ui.mk === "pay" || ui.mk === "weigh" || ui.mk === "count") return; return closeModal(); }
+  if (e.target === $("#modal")) { if (ui.mk === "pay" || ui.mk === "weigh" || ui.mk === "count") return; if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   const el = e.target.closest("[data-a]");
   if (el && A[el.dataset.a] && !el.disabled) { e.preventDefault(); A[el.dataset.a](el); }
 });
@@ -2448,7 +2672,8 @@ function moveSel(d) {
 document.addEventListener("keydown", (e) => {
   if (ui.locked) { if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === "Backspace") pinKey("del"); else if (e.key === "Escape" && !$("#lockCancel").hidden) $("#lockCancel").click(); return; }
   const open = modalOpen(), field = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName), inQ = e.target.id === "q";
-  if (e.key === "Escape" && open) { e.preventDefault(); return closeModal(); }
+  if (e.key === "Escape" && open) { e.preventDefault(); if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
+  if (e.key === "Escape" && !open && ui.tab === "venta" && ui.done) { e.preventDefault(); return A.newsale(); }
   if (open && ui.mk === "weigh" && !field) {
     if (/^\d$/.test(e.key)) { e.preventDefault(); return weighKey(e.key); }
     if (e.key === "Backspace") { e.preventDefault(); return weighKey("del"); }
@@ -2484,7 +2709,13 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "Enter") {
     const id = e.target.id;
-    if (id === "q" && !open) { e.preventDefault(); submitCode(e.target.value); }
+    if (id === "q" && !open) {
+      e.preventDefault();
+      if (e.target.value.trim()) submitCode(e.target.value);
+      else if (ui.done) A.newsale();
+      else if (cartLines().length) { if (can("cobrar")) startPay("efectivo"); else savePrev(); }
+    }
+    else if (!open && !field && ui.tab === "venta" && ui.done) { e.preventDefault(); A.newsale(); }
     else if (open && (id === "recv" || id === "pref") && $("#payok")) { e.preventDefault(); if (!$("#payok").disabled) confirmPay(); }
     else if (open && id === "pamt") { e.preventDefault(); const ok = $("#payok"); if (ok && !ok.disabled && !e.target.value.trim()) confirmPay(); else A.partadd({ dataset: { m: "efectivo" } }); }
     else if (id === "qv") { e.preventDefault(); A.qok(); }
@@ -2503,7 +2734,14 @@ document.addEventListener("keydown", (e) => {
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
 window.CF = { get DB() { return DB; }, ui, flush, save, dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash };
+// Fondo: foto del puesto (nítida en la pantalla de ingreso, suave detrás de la app).
+function paintBg() {
+  const F = window.CF_FOTO || {}; if (!F._puesto) return;
+  const st = document.documentElement.style;
+  st.setProperty("--puesto", `url("${F._puesto}")`); st.setProperty("--puesto-suave", `url("${F._puesto_suave}")`);
+}
 async function boot() {
+  paintBg();
   await loadDB();
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; a.on = true; a.role = "admin"; }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
