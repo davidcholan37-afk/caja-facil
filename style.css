@@ -937,3 +937,84 @@ html,body{background:var(--wood-1)}
 .wtot span{font-weight:700;color:var(--ink-2)}
 .wtot b{font-size:2.2rem;font-weight:800;line-height:1}
 .sumrow.two{grid-template-columns:1fr 1fr}
+
+/* =====================================================================
+   v7 · MODERNO. Mismo orden de caja (ticket a la izquierda, búsqueda arriba, teclas F abajo),
+   superficies más limpias y movimiento sutil: rápido, con curvas propias, solo transform/opacity.
+   ===================================================================== */
+:root{
+ --ease-out:cubic-bezier(.23,1,.32,1);
+ --ease-drawer:cubic-bezier(.32,.72,0,1);
+ --ink-deep:#1E2B33;
+ --r-lg:16px;--r-md:12px;
+}
+/* --- todo lo que se toca responde al presionar --- */
+.btn,.cobrar,.cb-pay,.cb-open,.fk,.bill,.pm,.mth,.chip,.tool,.it,.sum,.pres,.mesa,.ptsbtn,.mi,.tab .ic,.sb,.qv{
+ transition:transform 160ms var(--ease-out),background-color 150ms ease,border-color 150ms ease,color 150ms ease,box-shadow 150ms ease}
+.pt{transition:transform 160ms var(--ease-out),box-shadow 150ms ease}
+.btn:active:not(:disabled),.cobrar:active:not(:disabled),.cb-pay:active,.cb-open:active,.fk:active,.bill:active,.pm:active:not(:disabled),.mth:active,.chip:active,.tool:active,.it:active,.sum:active,.pres:active,.mesa:active,.ptsbtn:active,.mi:active,.pt:active,.tab:active .ic{transform:scale(.97)}
+.sb:active,.qv:active{transform:scale(.94)}
+/* hover solo con mouse: en celular el toque no deja estados pegados */
+@media (hover:none){.pt:hover{box-shadow:var(--sh-tile)}.pt.in:hover{box-shadow:0 0 0 2px var(--amarillo)}}
+/* --- ventanas: en PC aparecen al centro con un leve zoom; en celular suben como cajón --- */
+#modal{animation:fadeBg 180ms ease}
+@keyframes fadeBg{from{opacity:0}}
+.sheet{animation:sheetUp 320ms var(--ease-drawer)}
+@keyframes sheetUp{from{transform:translateY(100%)}}
+@media (min-width:960px){.sheet{animation:sheetIn 180ms var(--ease-out);transform-origin:center}}
+@keyframes sheetIn{from{opacity:0;transform:scale(.97)}}
+html[data-input=kbd] #modal,html[data-input=kbd] .sheet{animation:none}
+/* --- pequeños avisos de cambio, cortos y sin rebotes exagerados --- */
+.qty.bump{animation:pop 220ms var(--ease-out)}
+.cb-open.bump .cbt b{animation:pop 220ms var(--ease-out)}
+@keyframes pop{from{transform:scale(.85)}60%{transform:scale(1.06)}to{transform:scale(1)}}
+.ln.fresh{animation:lnIn 220ms var(--ease-out)}
+@keyframes lnIn{from{opacity:0;transform:translateY(-4px)}}
+.paper.done{animation:doneIn 260ms var(--ease-out)}
+@keyframes doneIn{from{opacity:0;transform:translateY(-10px)}}
+.stamp{animation:stampIn 240ms var(--ease-out) both;transform:none}
+@keyframes stampIn{from{opacity:0;transform:scale(1.12)}}
+.camlog p.new{animation:lnIn 220ms var(--ease-out)}
+@media (prefers-reduced-motion:reduce){.sheet,#modal,.paper.done,.stamp,.ln.fresh{animation:fadeBg 150ms ease!important}}
+
+/* --- estética moderna --- */
+.stamp{border:0;background:var(--ok-t);color:var(--ok);border-radius:99px;padding:8px 18px;font-weight:800;letter-spacing:-.01em}
+.vu b{letter-spacing:-.03em}
+.cart-empty b{font-weight:750;letter-spacing:-.01em}
+.sheet{border-radius:22px 22px 0 0}
+.paytot b{letter-spacing:-.03em}
+.bill{border-radius:var(--r-md)}
+.mth{border-width:1px}
+.mth.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+@media (min-width:960px){
+  .sheet{border-radius:20px;box-shadow:0 24px 60px -24px rgba(30,43,51,.45),0 0 0 1px rgba(30,43,51,.06)}
+  /* búsqueda: barra oscura moderna, sin efecto LED */
+  body[data-tab="venta"] .sbox{background:var(--ink-deep);border:1px solid var(--ink-deep);border-radius:var(--r-md);box-shadow:none;min-height:60px}
+  body[data-tab="venta"] .sbox svg{color:#8FA6B2}
+  body[data-tab="venta"] .sbox input{color:#F4F1EA;font:550 1.22rem/1 var(--f);letter-spacing:-.005em;text-transform:none;text-shadow:none;caret-color:#9FD3C7}
+  body[data-tab="venta"] .sbox input::placeholder{color:#7E95A1;font-weight:450}
+  body[data-tab="venta"] .sbox:focus-within{border-color:#4D7C8C;box-shadow:0 0 0 3px rgba(77,124,140,.28)}
+  body[data-tab="venta"] .tool{border-radius:var(--r-md);min-height:60px}
+  body[data-tab="venta"] .chip{border-radius:99px;font-family:var(--f);font-weight:600;font-size:.88rem}
+  /* productos sin marco hundido */
+  body[data-tab="venta"] .grid{background:transparent;border:0;box-shadow:none;padding:2px 4px 14px;gap:12px}
+  body[data-tab="venta"] .pt{border-radius:var(--r-lg);background:var(--wood-2)}
+  body[data-tab="venta"] .pbox{border-radius:12px}
+  /* marca: nombre limpio, sin serifa ni sombra */
+  .brandrow{padding:10px 4px 0;margin-top:2px;border-top:1px solid var(--line)}
+  .brandrow b{font:800 1.25rem/1 var(--f);letter-spacing:-.02em;color:var(--tiza);text-transform:none;text-shadow:none}
+  .brandrow span{font:500 .82rem var(--f);color:var(--tiza-3)}
+  /* teclas F: planas, claras, con la tecla en una pastilla */
+  .fkeys{gap:8px;margin-top:8px}
+  .fk{min-height:68px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--wood-2);box-shadow:none;justify-content:center;gap:5px;padding:8px 4px}
+  .fk span{font:600 .8rem/1.15 var(--f);text-transform:none;letter-spacing:0;color:var(--tiza-2)}
+  .fk svg{width:22px;height:22px;stroke-width:1.8}
+  .fk kbd{top:6px;left:6px;padding:2px 5px;border-radius:6px;background:var(--wood-3);font:700 .62rem/1 var(--f);color:var(--tiza-3)}
+  @media (hover:hover) and (pointer:fine){.fk:hover{border-color:var(--k);background:#fff}}
+  .fk:active{box-shadow:none}
+  /* ticket */
+  body[data-tab="venta"] .paper{border-radius:var(--r-lg)}
+  body[data-tab="venta"] .bigtot b{font-family:var(--f);font-weight:800;letter-spacing:-.035em}
+  body[data-tab="venta"] .cobrar{border-radius:var(--r-lg)}
+  body[data-tab="venta"] .pm{border-radius:var(--r-md)}
+}

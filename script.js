@@ -766,7 +766,7 @@ VIEWS.venta = function viewSale(v) {
   v.innerHTML = `<div class="pos">
     <section class="left">
       <div class="searchbar">
-        <label class="sbox">${svg("search")}<input id="q" type="search" enterkeyhint="go" placeholder="${DESK() ? "Ingresar producto ?" : "Busca o escribe el código"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
+        <label class="sbox">${svg("search")}<input id="q" type="search" enterkeyhint="go" placeholder="${DESK() ? "Escanea o escribe un producto" : "Busca o escanea"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
         <button class="tool cam" data-a="camscan" title="Escanear códigos con la cámara">${svg("scan")}<span>Cámara</span></button>
         <button class="tool xtra ${scaleState.on ? "live" : ""}" data-a="scaletool" id="scaleTool" title="Balanza">${svg("scale")}<span>${scaleState.on ? "Balanza lista" : "Balanza"}</span></button>
         ${tables ? `<button class="tool xtra" data-a="mesas" title="Mesas">${svg("mesa")}<span>Mesas</span></button>` : ""}
@@ -827,7 +827,7 @@ function tileHtml(p, qn) {
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
-    el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Tu puesto está vacío</h2><p>Agrega tus productos uno por uno, impórtalos desde Excel o carga una lista de ejemplo para probar.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
+    el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Empecemos por tus productos</h2><p>Agrégalos uno por uno, súbelos desde Excel o prueba primero con una lista de ejemplo.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
     return;
   }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
@@ -873,7 +873,7 @@ function paintCart() {
         <span class="nm">${r.p ? pimg(r.p, "lim") : ""}<span><b>${esc(r.name)}</b>${r.code ? `<small>Cód. ${esc(r.code)}</small>` : ""}</span></span>
         <button class="pu num ${l.pr != null ? "chg" : ""}" data-a="lprice" data-k="${k}" title="Cambiar precio">${money(r.price)}${r.unit === "kg" ? "<small>/kg</small>" : ""}</button>
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
-        <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Ticket vacío</b>Escanea un código, escríbelo arriba o toca un producto.</p></div>`}</div>
+        <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Todo listo para vender</b>Escanea, busca o toca un producto para empezar.</p></div>`}</div>
       <div class="tot">
         ${lines.length ? `<div class="trow">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}
           <div class="sumx"><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
@@ -897,7 +897,7 @@ function doneHtml(s) {
   const pays = paysOf(s), cash = s.recv > 0 && pays.some((p) => p.m === "efectivo"), c = cli(s.client);
   return `<div class="cart-in"><div class="paper done" role="status">
     <div class="rtop"><span class="bizl">${esc(DB.biz.name || "Caja Fácil")}</span><span class="rtime num">${hhmm(s.t)}</span><button class="cart-x" data-a="newsale" aria-label="Cerrar">${svg("close")}</button></div>
-    <div class="stamp">${svg("check")}<span>Venta lista</span></div>
+    <div class="stamp">${svg("check")}<span>¡Vendido!</span></div>
     <p class="dno">${DOCS[s.doc ? s.doc.type : "NV"]} ${docNo(s)}${s.cname ? ` · ${esc(s.cname)}` : ""}</p>
     ${cash ? `<div class="vu"><span>Vuelto</span><b class="num" id="doneChange">${money(s.change)}</b><small>Pagó con ${money(s.recv)} · total ${money(s.total)}</small></div>`
       : `<div class="vu paid"><span>${esc(methodLabel(s))}</span><b class="num">${money(s.total)}</b><small>${s.ref ? "Operación " + esc(s.ref) : pays.some((p) => p.m === "credito") ? "Anotado en la cuenta del cliente" : "Pago completo"}</small></div>`}
@@ -905,7 +905,7 @@ function doneHtml(s) {
     <div class="dacts"><button class="btn sec" data-a="print" data-id="${s.id}">${svg("print", "bi")}Imprimir</button><button class="btn sec" data-a="wa" data-id="${s.id}">${svg("wa", "bi")}WhatsApp${c && c.phone ? "" : ""}</button></div>
     <button class="link" data-a="seercpt" data-id="${s.id}">Ver comprobante</button>
   </div>
-  <div class="paybox"><button class="cobrar next" data-a="newsale">Nueva venta<span class="kbd">Enter</span></button><p class="phint">O escanea el siguiente producto: se abre solo.</p></div></div>`;
+  <div class="paybox"><button class="cobrar next" data-a="newsale">Nueva venta<span class="kbd">Enter</span></button><p class="phint">O escanea el siguiente producto y seguimos.</p></div></div>`;
 }
 
 /* ---------- cliente y comprobante del ticket ---------- */
@@ -936,7 +936,7 @@ function docCheck() {
 
 /* ---------- cobro ---------- */
 function startPay(method, split) {
-  if (!cartLines().length) return toast("Agrega productos al ticket");
+  if (!cartLines().length) return toast("Primero agrega algo al ticket");
   if (!can("cobrar")) return need("cobrar", () => openPay(method, split), "Cobrar esta venta");
   const chk = docCheck(); if (chk) { toast(chk, true); beep(false); return; }
   if (can("caja") && !curShift()) { if (DB.cfg.needShift) return openShift(() => openPay(method, split)); autoShift(); }
@@ -982,16 +982,16 @@ function paintPay() {
   if (p.method === "efectivo" && due <= 0) body = `<button class="btn lg" id="payok" data-a="payok" data-enter>Cobrar ${money(due)}</button>`;
   else if (p.method === "efectivo") body = `<div class="bills"><button class="bill exact" data-a="cashgo" data-v="${due}" data-enter><small>Exacto</small><b class="num">${money(due)}</b><em>Sin vuelto</em></button>${cashOpts(due).map((v) => `<button class="bill ${billCls(v)}" data-a="cashgo" data-v="${v}"><small>${BILLS.includes(v) ? "Billete" : "Paga con"}</small><b class="num">S/ ${v}</b><em class="num">Vuelto ${money(r2(v - due))}</em></button>`).join("")}</div>
       ${p.other ? `<div class="other"><label class="fld"><span>Otro monto</span><input class="inp num big" id="recv" data-in="recv" inputmode="decimal" enterkeyhint="done" placeholder="${due.toFixed(2)}" value="${esc(p.recv)}" ${p.recv === "" ? "autofocus" : ""}></label><div class="vuelto" id="vuelto"></div></div>
-      <button class="btn lg" id="payok" data-a="payok">Cobrar en efectivo</button>` : `<button class="link" data-a="payother" style="margin:0 0 6px">Otro monto</button>`}`;
+      <button class="btn lg" id="payok" data-a="payok">Cobrar en efectivo</button>` : `<button class="link" data-a="payother" style="margin:0 0 6px">Paga con otro monto</button>`}`;
   else if (p.method === "yape" || p.method === "plin") body = `${payTo(p.method)}<button class="btn lg go ${p.method}" id="payok" data-a="payok">Ya llegó el ${METHODS[p.method]}: cobrar ${money(due)}</button>`;
   else if (p.method === "credito") body = `${creditBlock()}<button class="btn lg" id="payok" data-a="payok" ${c ? "" : "disabled"}>Anotar ${money(due)} al crédito</button>`;
   else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
       <button class="btn lg" id="payok" data-a="payok">Cobrar ${money(due)} con ${METHODS[p.method].toLowerCase()}</button>`;
-  openModal(`<div class="payhead"><div class="paytot"><span>Total a pagar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
+  openModal(`<div class="payhead"><div class="paytot"><span>A cobrar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
     ${ptsBlock()}
     <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}">${METHODS[k]}</button>`).join("")}</div>
     <div class="paybody">${body}</div>
-    <div class="payfoot"><button class="link" data-a="close">Volver al ticket</button><button class="link" data-a="split">Dividir el pago <span class="kbd">F7</span></button></div>`, "paym");
+    <div class="payfoot"><button class="link" data-a="close">Volver</button><button class="link" data-a="split">Dividir pago <span class="kbd">F7</span></button></div>`, "paym");
   ui.mk = "pay"; updPay();
 }
 function splitCalc() {
@@ -1171,7 +1171,7 @@ function submitCode(raw) {
   if (!p) { for (const x of DB.products) { const ps = (x.pres || []).find((y) => y.code && y.code === code); if (ps) { p = x; pres = ps.id; break; } } }
   const exact = !!p;
   if (!p) { const k = norm(code), list = DB.products.filter((x) => norm(x.name).includes(k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { toast("Hay varios productos así: toca el que quieras"); return; } }
-  if (!p) { toast("No encontré «" + code + "»"); beep(false); return; }
+  if (!p) { toast("No encontramos «" + code + "»"); beep(false); return; }
   clear();
   if (pres) addToCart(p, qty || 1, pres);
   else if (qty != null) addToCart(p, qty);
@@ -1255,7 +1255,7 @@ act({
   },
   print: (el) => { const s = saleById(el.dataset.id); if (s) printHtml(receiptHtml(s)); },
   wa: (el) => { const s = saleById(el.dataset.id); if (!s) return; const c = cli(s.client), ph = c && c.phone ? "51" + c.phone.replace(/\D/g, "").slice(-9) : ""; window.open(`https://wa.me/${ph}?text=` + encodeURIComponent(receiptText(s)), "_blank", "noopener"); },
-  sample: () => { loadSample(); toast("Productos de ejemplo cargados"); render(); }
+  sample: () => { loadSample(); toast("Listo: cargamos productos de prueba"); render(); }
 });
 
 /* ===================== 32 · BALANZA: pesar productos, balanza USB y etiquetas con código ===================== */
@@ -2035,7 +2035,7 @@ function autoShift() {
   const u = me(); if (!u || curShift()) return;
   const sh = { id: uid(), u: u.id, un: u.name, t0: Date.now(), d0: dkey(), open: 0, t1: 0, auto: true };
   DB.shifts.push(sh); log("Apertura de caja", `${u.name}: automática al primer cobro`); save(); paintNav();
-  toast("Caja abierta. Tu sencillo inicial lo anotas en Caja");
+  toast("Abrimos tu caja. Anota tu sencillo en Caja");
 }
 function closeShiftUI(id) {
   const sh = DB.shifts.find((s) => s.id === id); if (!sh) return;
@@ -2762,7 +2762,11 @@ function moveSel(d) {
   const s = $(".ln.sel"); if (s) s.scrollIntoView({ block: "nearest" });
 }
 // Teclado: lector de códigos de barras (escribe el código + Enter) y atajos para PC.
+// Si la acción vino del teclado, las ventanas abren sin animación (se usan cientos de veces al día).
+const setInput = (k) => { if (document.documentElement.dataset.input !== k) document.documentElement.dataset.input = k; };
+document.addEventListener("pointerdown", () => setInput("ptr"), true);
 document.addEventListener("keydown", (e) => {
+  if (e.key.length > 1 || e.ctrlKey || e.altKey) setInput("kbd");
   if (ui.locked) { if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === "Backspace") pinKey("del"); else if (e.key === "Escape" && !$("#lockCancel").hidden) $("#lockCancel").click(); return; }
   const open = modalOpen(), field = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName), inQ = e.target.id === "q";
   if (e.key === "Escape" && open) { e.preventDefault(); if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
