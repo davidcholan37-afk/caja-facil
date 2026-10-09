@@ -824,12 +824,29 @@ function tileHtml(p, qn) {
     <b class="nm">${esc(p.name)}</b>
     <small class="st">${st || (out ? "Sin stock" : "&nbsp;")}</small></button>`;
 }
+// Modo escáner (minimarket): sin fotos; lo último que pasaste en grande, accesos para lo que no tiene código y búsqueda en lista.
+const scanMode = () => DB.cfg.view === "scan";
+function rowHtml(p, qn) {
+  const kg = p.unit === "kg", out = p.stock != null && p.stock <= 0;
+  return `<button class="prow ${qn ? "in" : ""} ${out ? "out" : ""}" data-a="add" data-id="${p.id}"><span class="pn"><b>${esc(p.name)}</b><small>${p.code ? "Cód. " + esc(p.code) : "Sin código"}${p.stock != null ? ` · ${out ? "sin stock" : "stock " + fmtQ(p.stock) + (kg ? " kg" : "")}` : ""}</small></span>${qn ? `<span class="pq num">${fmtQ(qn)}${kg ? " kg" : ""}</span>` : ""}<span class="pp num">${money(p.price)}${kg ? "<small>/kg</small>" : ""}</span></button>`;
+}
+function scanHome() {
+  const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
+  const tops = topIds();
+  const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 18);
+  const last = cur ? `<div class="lastp ${ui.bump ? "fresh" : ""}"><small>Lo último que pasaste</small><b class="ln1">${esc(cur.r.name)}</b><span class="ln2 num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><b class="ln3 num">${money(r2(cur.r.price * cur.l.qty))}</b></div>`
+    : `<div class="lastp idle">${svg("scan")}<b class="ln1">Pasa el primer producto</b><small>Escanea el código o escribe el nombre para buscar.</small></div>`;
+  return `${last}${quick.length ? `<div class="quick"><h3>Sin código de barras</h3><div class="qgrid">${quick.map((p) => `<button class="qk" data-a="add" data-id="${p.id}">${p.code ? `<i class="num">${esc(p.code)}</i>` : ""}<b>${esc(p.name)}</b><span class="num">${money(p.price)}${p.unit === "kg" ? "/kg" : ""}</span></button>`).join("")}</div></div>` : ""}`;
+}
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
     el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Empecemos por tus productos</h2><p>Agrégalos uno por uno, súbelos desde Excel o prueba primero con una lista de ejemplo.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
     return;
   }
+  const sm = scanMode(); document.body.classList.toggle("scanmode", sm); el.classList.toggle("scanlist", sm);
+  if (sm && !ui.q.trim()) { el.innerHTML = scanHome(); ui.bump = null; return; }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
@@ -837,7 +854,7 @@ function paintGrid() {
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»</h2><p>Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto.</p></div>`; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
-  el.innerHTML = list.map((p) => tileHtml(p, inCart[p.id])).join("");
+  el.innerHTML = list.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("");
   ui.bump = null;
 }
 function paintTickets() {
