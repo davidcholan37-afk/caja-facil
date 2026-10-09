@@ -930,3 +930,10 @@ html,body{background:var(--wood-1)}
   body[data-tab="venta"] .pm.yape,body[data-tab="venta"] .pm.plin,body[data-tab="venta"] .pm.tarjeta{display:none}
   body[data-tab="venta"] .paybox{margin-top:8px}
 }
+
+/* ===== pesar por kilo (cajita simple) y proveedores ===== */
+.weigh.simple .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wtot{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 4px 14px;border-top:1.5px dashed var(--perf);margin-top:4px}
+.wtot span{font-weight:700;color:var(--ink-2)}
+.wtot b{font-size:2.2rem;font-weight:800;line-height:1}
+.sumrow.two{grid-template-columns:1fr 1fr}
