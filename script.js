@@ -104,7 +104,7 @@ const SENSITIVE = { limite: "Pasar el límite de crédito", anular: "Anular vent
 const newTicket = (n) => ({ n, name: "", items: [], disc: 0, client: "", doc: "", mesa: 0, prev: 0 });
 const defCfg = () => ({
   mute: false, yapeNum: "", plinNum: "", payName: "", igv: 18, igvOn: true, paper: 80, autoPrint: false, tables: 0,
-  pts: { on: false, per: 1, val: 0.02, min: 100 }, lock: 3, tile: "m", showImg: true, needShift: false, negStock: false,
+  pts: { on: false, per: 1, val: 0.02, min: 100 }, lock: 3, tile: "m", view: "scan", showImg: true, needShift: false, negStock: false,
   scale: { baud: 9600, cmd: "", unit: "auto", fmt: "8N1" }, labels: { on: true, pre: 2, len: 5, kind: "peso" },
   series: { NV: { s: "NV01", n: 0 }, B: { s: "B001", n: 0 }, F: { s: "F001", n: 0 } }, docDef: "NV", lastBackup: 0
 });
@@ -825,7 +825,7 @@ function tileHtml(p, qn) {
     <small class="st">${st || (out ? "Sin stock" : "&nbsp;")}</small></button>`;
 }
 // Modo escáner (minimarket): sin fotos; lo último que pasaste en grande, accesos para lo que no tiene código y búsqueda en lista.
-const scanMode = () => DB.cfg.view === "scan";
+const scanMode = () => DB.cfg.view !== "tiles";
 function rowHtml(p, qn) {
   const kg = p.unit === "kg", out = p.stock != null && p.stock <= 0;
   return `<button class="prow ${qn ? "in" : ""} ${out ? "out" : ""}" data-a="add" data-id="${p.id}"><span class="pn"><b>${esc(p.name)}</b><small>${p.code ? "Cód. " + esc(p.code) : "Sin código"}${p.stock != null ? ` · ${out ? "sin stock" : "stock " + fmtQ(p.stock) + (kg ? " kg" : "")}` : ""}</small></span>${qn ? `<span class="pq num">${fmtQ(qn)}${kg ? " kg" : ""}</span>` : ""}<span class="pp num">${money(p.price)}${kg ? "<small>/kg</small>" : ""}</span></button>`;
@@ -2549,6 +2549,7 @@ VIEWS.aj = function viewSettings(v) {
       <div class="card"><h2>Programa de puntos</h2>${tog("cfg.pts.on", C.pts.on, "Dar puntos a clientes registrados", "Acumulan al comprar y los canjean como descuento")}
       ${C.pts.on ? `<div class="two">${fld("Puntos por cada S/ 1", inp("cfg.pts.per", C.pts.per, { num: true }))}${fld("Valor de 1 punto (S/)", inp("cfg.pts.val", C.pts.val, { num: true }), `100 puntos = ${money(100 * C.pts.val)}`)}</div>${fld("Puntos mínimos para canjear", inp("cfg.pts.min", C.pts.min, { num: true }))}` : ""}</div>`;
   else if (t === "venta") body = `<div class="card"><h2>Pantalla de venta</h2>
+      ${fld("Cómo se ve la venta", `<div class="seg">${[["scan", "Escáner (minimarket)"], ["tiles", "Fichas con fotos"]].map(([k, n]) => `<button class="${(C.view === "tiles" ? "tiles" : "scan") === k ? "on" : ""}" data-a="setv" data-k="cfg.view" data-v="${k}">${n}</button>`).join("")}</div>`, "Escáner: sin fotos, muestra lo último que pasaste. Fichas: productos con foto para tocar")}
       ${fld("Tamaño de las fichas de productos", `<div class="seg">${[["s", "Pequeñas"], ["m", "Medianas"], ["l", "Grandes (táctil)"]].map(([k, n]) => `<button class="${C.tile === k ? "on" : ""}" data-a="setv" data-k="cfg.tile" data-v="${k}">${n}</button>`).join("")}</div>`)}
       ${fld("Mesas o cuentas abiertas", inp("cfg.tables", C.tables, { num: true, ph: "0 = no uso mesas", max: 3 }), "Para restaurantes, juguerías o cuentas que se van sumando")}
       ${tog("cfg.needShift", C.needShift, "Preguntar el sencillo antes del primer cobro", "Apagado: la caja se abre sola al primer cobro y el sencillo se anota después en Caja")}

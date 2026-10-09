@@ -67,7 +67,7 @@ function tileHtml(p, qn) {
     <small class="st">${st || (out ? "Sin stock" : "&nbsp;")}</small></button>`;
 }
 // Modo escáner (minimarket): sin fotos; lo último que pasaste en grande, accesos para lo que no tiene código y búsqueda en lista.
-const scanMode = () => DB.cfg.view === "scan";
+const scanMode = () => DB.cfg.view !== "tiles";
 function rowHtml(p, qn) {
   const kg = p.unit === "kg", out = p.stock != null && p.stock <= 0;
   return `<button class="prow ${qn ? "in" : ""} ${out ? "out" : ""}" data-a="add" data-id="${p.id}"><span class="pn"><b>${esc(p.name)}</b><small>${p.code ? "Cód. " + esc(p.code) : "Sin código"}${p.stock != null ? ` · ${out ? "sin stock" : "stock " + fmtQ(p.stock) + (kg ? " kg" : "")}` : ""}</small></span>${qn ? `<span class="pq num">${fmtQ(qn)}${kg ? " kg" : ""}</span>` : ""}<span class="pp num">${money(p.price)}${kg ? "<small>/kg</small>" : ""}</span></button>`;

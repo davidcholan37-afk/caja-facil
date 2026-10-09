@@ -100,7 +100,7 @@ const SENSITIVE = { limite: "Pasar el límite de crédito", anular: "Anular vent
 const newTicket = (n) => ({ n, name: "", items: [], disc: 0, client: "", doc: "", mesa: 0, prev: 0 });
 const defCfg = () => ({
   mute: false, yapeNum: "", plinNum: "", payName: "", igv: 18, igvOn: true, paper: 80, autoPrint: false, tables: 0,
-  pts: { on: false, per: 1, val: 0.02, min: 100 }, lock: 3, tile: "m", showImg: true, needShift: false, negStock: false,
+  pts: { on: false, per: 1, val: 0.02, min: 100 }, lock: 3, tile: "m", view: "scan", showImg: true, needShift: false, negStock: false,
   scale: { baud: 9600, cmd: "", unit: "auto", fmt: "8N1" }, labels: { on: true, pre: 2, len: 5, kind: "peso" },
   series: { NV: { s: "NV01", n: 0 }, B: { s: "B001", n: 0 }, F: { s: "F001", n: 0 } }, docDef: "NV", lastBackup: 0
 });
