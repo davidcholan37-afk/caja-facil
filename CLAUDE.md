@@ -19,6 +19,11 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Textos cortos, modernos y en español peruano (S/, Yape, Plin).
 - No agregar funciones que David no pidió.
 
+## Skills de diseño
+- Para rediseños usa `.claude/skills/redesign-skill` (de taste-skill, MIT) junto con emil-design-eng y frontend-design.
+- Esta app es HTML/CSS/JS sin frameworks: NO instales Tailwind, React, npm ni librerías de íconos aunque una skill lo sugiera. Todo se hace en `src/style.css` y `src/*.js`.
+- Un rediseño cambia solo la apariencia; las funciones no se tocan.
+
 ## En preparación
 - «Modo escáner» para minimarkets (`DB.cfg.view = "scan"`): sin fotos, muestra lo último que pasaste, accesos para productos sin código y búsqueda en lista. El código ya existe en `src/31-sale.js` pero falta el interruptor en Ajustes; por ahora está apagado.
 
