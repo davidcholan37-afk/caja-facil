@@ -764,7 +764,7 @@ VIEWS.venta = function viewSale(v) {
   v.innerHTML = `<div class="pos">
     <section class="left">
       <div class="searchbar">
-        <label class="sbox">${svg("search")}<input id="q" type="search" enterkeyhint="go" placeholder="${DESK() ? "Escanea o busca un producto" : "Busca o escribe el código"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
+        <label class="sbox">${svg("search")}<input id="q" type="search" enterkeyhint="go" placeholder="${DESK() ? "Ingresar producto ?" : "Busca o escribe el código"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
         <button class="tool cam" data-a="camscan" title="Escanear códigos con la cámara">${svg("scan")}<span>Cámara</span></button>
         <button class="tool xtra ${scaleState.on ? "live" : ""}" data-a="scaletool" id="scaleTool" title="Balanza">${svg("scale")}<span>${scaleState.on ? "Balanza lista" : "Balanza"}</span></button>
         ${tables ? `<button class="tool xtra" data-a="mesas" title="Mesas">${svg("mesa")}<span>Mesas</span></button>` : ""}
@@ -774,17 +774,24 @@ VIEWS.venta = function viewSale(v) {
       </div>
       <div class="chips cats" id="cats"></div>
       <div class="grid t-${DB.cfg.tile}" id="grid"></div>
+      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b><span>Caja Fácil · ${esc((me() || {}).name || "")}</span></div>
+      <div class="fkeys" aria-label="Teclas rápidas">
+    ${cobra ? `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>
+    <button class="fk c-verde" data-a="pay" data-m="efectivo"><kbd>F2</kbd>${svg("money")}<span>Cobrar</span></button>` : `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>
+    <button class="fk c-verde" data-a="prevsave"><kbd>F2</kbd>${svg("prev")}<span>Guardar preventa</span></button>`}
+    <button class="fk c-azul" data-a="focusq"><kbd>F3</kbd>${svg("search")}<span>Buscar</span></button>
+    <button class="fk c-ambar" data-a="tknew"><kbd>F4</kbd>${svg("hold")}<span>En espera</span></button>
+    <button class="fk c-azul" data-a="qeditsel"><kbd>F6</kbd>${svg("edit")}<span>Cantidad</span></button>
+    ${cobra ? `<button class="fk c-azul" data-a="split"><kbd>F7</kbd>${svg("ventas")}<span>Dividir pago</span></button>
+    <button class="fk c-lila" data-a="pay" data-m="yape"><kbd>F8</kbd>${svg("money")}<span>Yape</span></button>
+    <button class="fk c-azul" data-a="pay" data-m="tarjeta"><kbd>F9</kbd>${svg("caja")}<span>Tarjeta</span></button>
+    <button class="fk c-celeste" data-a="pay" data-m="plin"><kbd>F10</kbd>${svg("money")}<span>Plin</span></button>` : ""}
+    <button class="fk c-rojo" data-a="rmsel"><kbd>Supr</kbd>${svg("trash")}<span>Quitar</span></button>
+    ${cobra ? `<button class="fk c-ambar" data-a="pay" data-m="credito">${svg("cli")}<span>Crédito</span></button>` : ""}
+    <button class="fk c-azul" data-a="showdisc">${svg("plus")}<span>Descuento</span></button>
+    </div>
     </section>
     <aside class="cart" id="cart" aria-label="Ticket actual"></aside>
-  </div>
-  <div class="fbar" aria-label="Atajos de teclado">
-    ${cobra ? `<button data-a="pay" data-m="efectivo"><kbd>F2</kbd>Cobrar</button>` : `<button data-a="prevsave"><kbd>F2</kbd>Guardar preventa</button>`}
-    <button data-a="focusq"><kbd>F3</kbd>Buscar</button>
-    <button data-a="pickcli"><kbd>F1</kbd>Cliente</button>
-    <button data-a="tknew"><kbd>F4</kbd>Poner en espera</button>
-    <button data-a="qeditsel"><kbd>F6</kbd>Cantidad o peso</button>
-    ${cobra ? `<button data-a="split"><kbd>F7</kbd>Dividir pago</button><button data-a="pay" data-m="yape"><kbd>F8</kbd>Yape</button><button data-a="pay" data-m="tarjeta"><kbd>F9</kbd>Tarjeta</button><button data-a="pay" data-m="plin"><kbd>F10</kbd>Plin</button>` : ""}
-    <button data-a="rmsel"><kbd>Supr</kbd>Quitar línea</button>
   </div>
   <div class="cartbar" id="cartbar" hidden></div>`;
   paintSale(); focusQ();
