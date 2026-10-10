@@ -134,7 +134,7 @@ document.addEventListener("keydown", (e) => {
 /* ---------- inicio ---------- */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
-window.CF = { get DB() { return DB; }, ui, flush, save, dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift };
+window.CF = { get DB() { return DB; }, ui, flush, save, dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot };
 // Fondo: foto del puesto (nítida en la pantalla de ingreso, suave detrás de la app).
 function paintBg() {
   const F = window.CF_FOTO || {}; if (!F._puesto) return;
@@ -150,7 +150,8 @@ async function boot() {
   if (needLogin()) { ui.user = null; render(); loginScreen(); }
   else { ui.user = activeUsers()[0].id; render(); }
   if (serialOk() && DESK()) connectScale(false);
-  if (DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
+  if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");
+  cloudBoot();
 }
 boot();

@@ -29,5 +29,12 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - «Escáner (minimarket)» es el modo por defecto (`DB.cfg.view` distinto de "tiles"): sin fotos, lo último que pasaste, accesos para productos sin código y búsqueda en lista.
 - «Fichas con fotos» (`DB.cfg.view = "tiles"`) se elige en Ajustes › Pantalla de venta.
 
+## Nube (Supabase)
+- `src/67-cloud.js`: respaldo automático, recuperar una tienda en otro equipo y panel «Mis tiendas hoy» (Ajustes › Nube). Sin librerías: usa fetch a la API REST y a Auth de Supabase.
+- Proyecto `caja-facil` (São Paulo). URL y clave **publishable** están en el código (son públicas); NUNCA pongas la clave secret/service_role en la app.
+- Tablas: `negocios`, `miembros`, `registros` (cada elemento de DB.products/sales/... es una fila; `tienda` = DB.biz.sid). Seguridad con RLS: cada usuario solo ve los negocios donde es miembro (`privado.es_miembro`).
+- La caja siempre vende con sus datos locales; la nube solo copia cuando hay internet. Una tienda (sid) se usa en un solo equipo a la vez.
+- Solo el dueño entra con Google; los cajeros siguen con PIN.
+
 ## Probar
 Sirve la carpeta con `python3 -m http.server 8765` y abre http://localhost:8765. Botón «Cargar ejemplos» para tener productos de prueba.
