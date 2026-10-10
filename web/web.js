@@ -72,3 +72,14 @@
   if (!nav || !hero || !("IntersectionObserver" in window)) return;
   new IntersectionObserver(function (es) { nav.classList.toggle("on-dark", es[0].isIntersecting); }, { rootMargin: "-70px 0px -88% 0px" }).observe(hero);
 })();
+
+/* Al entrar a la página siempre se empieza arriba (el navegador no debe devolverte a donde te quedaste antes).
+   Si el enlace trae una sección (#precio, #preguntas...), sí se respeta. */
+(function () {
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  if (!location.hash) {
+    window.scrollTo(0, 0);
+    window.addEventListener("load", function () { window.scrollTo(0, 0); });
+    window.addEventListener("pageshow", function (e) { if (e.persisted) window.scrollTo(0, 0); });
+  }
+})();

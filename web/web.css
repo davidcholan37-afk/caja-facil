@@ -319,3 +319,21 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
 
 /* sin internet ahora es claro: el teléfono con marco gris oscuro */
 .offline .phone img{outline-color:#1D1D1F}
+
+/* ---------- v4.1: título más dramático y la caja en 3D que se endereza al bajar ---------- */
+.hero h1{font-size:clamp(3rem,8.6vw,6.25rem);line-height:1.02;letter-spacing:-.045em;max-width:12ch}
+.hero .product{font-size:clamp(1.25rem,2vw,1.625rem);color:#A1A1A6}
+.showcase{perspective:1800px}
+.hero .frames{transform-origin:50% 100%}
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline: view()){
+    .hero .frames{animation:hero-tilt linear both;animation-timeline:view();animation-range:cover 15% cover 48%}
+    @keyframes hero-tilt{
+      from{transform:rotateX(26deg) scale(.86) translateY(30px);opacity:.55}
+      to{transform:none;opacity:1}
+    }
+    @media (max-width:640px){
+      @keyframes hero-tilt{from{transform:rotateX(16deg) scale(.9) translateY(20px);opacity:.6}to{transform:none;opacity:1}}
+    }
+  }
+}
