@@ -39,7 +39,7 @@
 <body>
 <a class="skip" href="#contenido">Saltar al contenido</a>
 
-<header class="nav">
+<header class="nav on-dark">
   <div class="navin">
     <a class="brand" href="./" aria-label="Caja Fácil, inicio"><span class="mark" aria-hidden="true">S/</span><span>Caja Fácil</span></a>
     <nav class="links" aria-label="Secciones">
@@ -56,7 +56,7 @@
 
 <main id="contenido">
 
-  <!-- Portada: nombre, una idea, el precio y el producto -->
+  <!-- Portada oscura y cinematográfica: la caja iluminada -->
   <section class="hero" aria-labelledby="h-hero">
     <div class="hero-copy">
       <p class="product">Caja Fácil</p>
@@ -67,98 +67,148 @@
         <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
       </div>
     </div>
-    <div class="hero-shot showcase">
+    <div class="showcase">
       <div class="frames">
-      <div class="frame on" id="f-escaner" role="tabpanel" aria-labelledby="t-escaner">
+        <div class="frame on" id="f-escaner" role="tabpanel" aria-labelledby="t-escaner">
         <picture>
-          <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_escaner-dark-780.webp" width="780" height="1688">
           <source media="(max-width: 640px)" srcset="img/cel_escaner-light-780.webp" width="780" height="1688">
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_escaner-dark-1280.webp 1280w, img/pc_escaner-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
           <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" fetchpriority="high" alt="Modo escáner: sin fotos, muestra lo último que pasaste y accesos para productos sin código de barras">
         </picture>
-      </div>
-      <div class="frame" id="f-fichas" role="tabpanel" aria-labelledby="t-fichas" aria-hidden="true">
+        </div>
+        <div class="frame" id="f-fichas" role="tabpanel" aria-labelledby="t-fichas" aria-hidden="true">
         <picture>
-          <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_fichas-dark-780.webp" width="780" height="1688">
           <source media="(max-width: 640px)" srcset="img/cel_fichas-light-780.webp" width="780" height="1688">
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_fichas-dark-1280.webp 1280w, img/pc_fichas-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
           <img class="shot" src="img/pc_fichas-light-1280.webp" srcset="img/pc_fichas-light-1280.webp 1280w, img/pc_fichas-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Modo fichas con fotos: productos con su foto, precio y stock para tocar, con filtros por categoría">
         </picture>
-      </div>
-      <div class="frame" id="f-grandes" role="tabpanel" aria-labelledby="t-grandes" aria-hidden="true">
+        </div>
+        <div class="frame" id="f-grandes" role="tabpanel" aria-labelledby="t-grandes" aria-hidden="true">
         <picture>
-          <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_grandes-dark-780.webp" width="780" height="1688">
           <source media="(max-width: 640px)" srcset="img/cel_grandes-light-780.webp" width="780" height="1688">
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_grandes-dark-1280.webp 1280w, img/pc_grandes-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
           <img class="shot" src="img/pc_grandes-light-1280.webp" srcset="img/pc_grandes-light-1280.webp 1280w, img/pc_grandes-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Fichas grandes para pantallas táctiles: productos con fotos más grandes, fáciles de tocar">
         </picture>
-      </div>
+        </div>
       </div>
       <div class="tabs" role="tablist" aria-label="Formas de ver la pantalla de venta">
-      <button type="button" role="tab" id="t-escaner" aria-controls="f-escaner" aria-selected="true" tabindex="0" data-cap="Para minimarkets: pasas el código y ves lo último que pasaste.">Escáner</button>
-      <button type="button" role="tab" id="t-fichas" aria-controls="f-fichas" aria-selected="false" tabindex="-1" data-cap="Para bodegas y fruterías: tocas la foto del producto.">Fichas con fotos</button>
-      <button type="button" role="tab" id="t-grandes" aria-controls="f-grandes" aria-selected="false" tabindex="-1" data-cap="Para pantallas táctiles: fichas grandes, fáciles de tocar.">Fichas grandes</button>
+        <button type="button" role="tab" id="t-escaner" aria-controls="f-escaner" aria-selected="true" tabindex="0" data-cap="Para minimarkets: pasas el código y ves lo último que pasaste.">Escáner</button>
+        <button type="button" role="tab" id="t-fichas" aria-controls="f-fichas" aria-selected="false" tabindex="-1" data-cap="Para bodegas y fruterías: tocas la foto del producto.">Fichas con fotos</button>
+        <button type="button" role="tab" id="t-grandes" aria-controls="f-grandes" aria-selected="false" tabindex="-1" data-cap="Para pantallas táctiles: fichas grandes, fáciles de tocar.">Fichas grandes</button>
       </div>
       <p class="tabcap" aria-live="polite">Para minimarkets: pasas el código y ves lo último que pasaste.</p>
     </div>
-    <p class="hero-say"><strong>Lector o cámara, Yape o efectivo, y el cierre del día cuadrado.</strong> Todo en una caja que sigue vendiendo aunque se vaya el internet.</p>
   </section>
 
-  <!-- Funciones: franja gris, el producto flota sin cajas -->
-  <section id="funciones" class="band gray" aria-labelledby="h-fun">
-    <div class="wrap">
-      <h2 id="h-fun" class="center">Todo lo que pasa en tu mostrador.</h2>
-
-      <div class="chapter split">
-        <p class="say"><strong>Por kilo, sin calculadora.</strong> Arroz suelto, verduras o fruta. Escribes el peso en kilos o en gramos y la caja saca el precio.</p>
-        <picture class="win reveal">
-          <source media="(prefers-color-scheme: dark)" srcset="img/kilo-dark-960.webp">
-          <img src="img/kilo-light-960.webp" width="960" height="748" loading="lazy" alt="Ventana para pesar Arroz Costeño suelto: S/ 4.20 el kilo por 1.5 kg, a pagar S/ 6.30">
-        </picture>
+  <!-- La historia: un día con Caja Fácil (pantalla fija en PC, lista en celular) -->
+  <section id="funciones" class="story" aria-labelledby="h-dia">
+    <div class="wrap story-head">
+      <h2 id="h-dia">Un día en tu bodega.</h2>
+      <p class="say center">De la primera venta al cierre, <strong>sin cuaderno y sin calculadora.</strong></p>
+    </div>
+    <div class="wrap story-grid">
+      <div class="story-steps">
+        <article class="step on" data-i="0">
+          <p class="time"><time>7:00</time></p>
+          <p class="say"><strong>Abres la caja.</strong> Anotas con cuánto sencillo empiezas y ya puedes vender.</p>
+          <div class="step-img"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/dia_abrir-dark-1280.webp 1280w, img/dia_abrir-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
+          <img class="shot" src="img/dia_abrir-light-1280.webp" srcset="img/dia_abrir-light-1280.webp 1280w, img/dia_abrir-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Ventana Abrir caja: con cuánto efectivo empiezas, S/ 50 de sencillo">
+        </picture></div>
+        </article>
+        <article class="step" data-i="1">
+          <p class="time"><time>10:00</time></p>
+          <p class="say"><strong>Vendes sin hacer cuentas.</strong> Pasas el código con el lector o la cámara. El arroz suelto va por kilo: pones el peso y la caja saca el precio.</p>
+          <div class="step-img"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/pc_escaner-dark-1280.webp 1280w, img/pc_escaner-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
+          <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Pantalla de venta con Inca Kola, arroz por kilo a S/ 4.20 y total de S/ 16.80">
+        </picture></div>
+        </article>
+        <article class="step" data-i="2">
+          <p class="time"><time>13:00</time></p>
+          <p class="say"><strong>Cobras como te paguen.</strong> Efectivo con el vuelto exacto, o Yape y Plin con tu número a la vista del cliente.</p>
+          <div class="step-img"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/dia_yape-dark-1280.webp 1280w, img/dia_yape-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
+          <img class="shot" src="img/dia_yape-light-1280.webp" srcset="img/dia_yape-light-1280.webp 1280w, img/dia_yape-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Ventana de cobro con Yape: S/ 16.80 y el número para yapear">
+        </picture></div>
+        </article>
+        <article class="step" data-i="3">
+          <p class="time"><time>21:00</time></p>
+          <p class="say"><strong>Cierras y la caja cuadra.</strong> Cuentas billetes y monedas. La caja te dice si falta o sobra, al centavo.</p>
+          <div class="step-img"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/dia_arqueo-dark-1280.webp 1280w, img/dia_arqueo-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
+          <img class="shot" src="img/dia_arqueo-light-1280.webp" srcset="img/dia_arqueo-light-1280.webp 1280w, img/dia_arqueo-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Arqueo de caja: caja inicial S/ 50, ventas en efectivo S/ 16.80, debe haber S/ 66.80 y la caja cuadra">
+        </picture></div>
+        </article>
       </div>
-
-      <div class="chapter stacked">
-        <p class="say center"><strong>El vuelto, exacto.</strong> Efectivo, Yape, Plin o tarjeta. Tocas el billete que te dieron y la caja te dice cuánto devolver.</p>
-        <picture class="win wide reveal">
-          <source media="(prefers-color-scheme: dark)" srcset="img/cobro-dark-1200.webp">
-          <img src="img/cobro-light-1200.webp" width="1200" height="784" loading="lazy" alt="Pantalla de cobro: S/ 16.80 a cobrar, con billetes de 20, 50 y 100 y el vuelto de cada uno">
-        </picture>
-      </div>
-
-      <div class="chapter split flip">
-        <p class="say"><strong>Cierras el día cuadrado.</strong> Gastos, retiros y arqueo con el efectivo que debe haber. Las ventas por medio de pago, listas para revisar.</p>
-        <picture class="screen reveal">
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_caja-dark-1000.webp 1000w, img/pc_caja-dark-1640.webp 1640w" sizes="(min-width: 960px) 760px, 92vw">
-          <img src="img/pc_caja-light-1000.webp" srcset="img/pc_caja-light-1000.webp 1000w, img/pc_caja-light-1640.webp 1640w" sizes="(min-width: 960px) 760px, 92vw" width="1000" height="457" alt="Pantalla Caja: tu caja está abierta, efectivo que debe haber S/ 16.80, ventas del día por medio de pago y botones de gasto, ingreso y retiro">
-        </picture>
+      <div class="story-screen" aria-hidden="true">
+        <div class="sframes">
+        <div class="sframe on" data-i="0"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/dia_abrir-dark-1280.webp 1280w, img/dia_abrir-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
+          <img class="shot" src="img/dia_abrir-light-1280.webp" srcset="img/dia_abrir-light-1280.webp 1280w, img/dia_abrir-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
+        </picture></div>
+        <div class="sframe" data-i="1"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/pc_escaner-dark-1280.webp 1280w, img/pc_escaner-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
+          <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
+        </picture></div>
+        <div class="sframe" data-i="2"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/dia_yape-dark-1280.webp 1280w, img/dia_yape-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
+          <img class="shot" src="img/dia_yape-light-1280.webp" srcset="img/dia_yape-light-1280.webp 1280w, img/dia_yape-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
+        </picture></div>
+        <div class="sframe" data-i="3"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/dia_arqueo-dark-1280.webp 1280w, img/dia_arqueo-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
+          <img class="shot" src="img/dia_arqueo-light-1280.webp" srcset="img/dia_arqueo-light-1280.webp 1280w, img/dia_arqueo-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
+        </picture></div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Y además: solo tipografía -->
-  <section class="band" aria-labelledby="h-mas">
+  <!-- Y también: solo tipografía -->
+  <section class="band gray" aria-labelledby="h-mas">
     <div class="wrap">
       <h2 id="h-mas">Y también.</h2>
       <div class="more">
-        <p class="say sm"><strong>Lector o cámara.</strong> Conecta tu lector USB o usa la cámara del celular para pasar los códigos.</p>
         <p class="say sm"><strong>El fiado, bajo control.</strong> Lo que te debe cada cliente y sus abonos, sin cuaderno.</p>
         <p class="say sm"><strong>Proveedores al día.</strong> Lo que les debes, lo que ya abonaste y cuánto queda.</p>
         <p class="say sm"><strong>Un PIN por cajero.</strong> Cada cajero entra con su PIN y tú decides qué puede hacer.</p>
+        <p class="say sm"><strong>Varias tiendas.</strong> Mira desde el celular cuánto vendió hoy cada una.</p>
       </div>
     </div>
   </section>
 
-  <!-- Un solo momento oscuro: sin internet -->
-  <section class="band night" aria-labelledby="h-off">
+  <!-- Sin internet -->
+  <section class="band" aria-labelledby="h-off">
     <div class="wrap offline">
       <div class="off-copy">
         <h2 id="h-off">Se va el internet.<br>La caja sigue.</h2>
         <p class="say"><strong>Todo queda en tu equipo.</strong> Cada venta se guarda al instante en tu computadora o celular.</p>
         <p class="say"><strong>Copia en la nube.</strong> Cuando vuelve la señal se respalda sola. Si se malogra tu equipo, recuperas todo.</p>
-        <p class="say"><strong>Tus tiendas en el bolsillo.</strong> Mira desde el celular cuánto vendió hoy cada tienda.</p>
       </div>
       <div class="phone reveal">
-        <img src="img/cel_venta-dark-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular: lo último que pasaste, productos sin código de barras y el botón Cobrar">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/cel_escaner-dark-780.webp">
+          <img src="img/cel_escaner-light-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular: lo último que pasaste, productos sin código de barras y el botón Cobrar">
+        </picture>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dónde funciona -->
+  <section class="band gray where" aria-labelledby="h-donde">
+    <div class="wrap">
+      <h2 id="h-donde" class="center">Donde la necesites.</h2>
+      <div class="duo reveal">
+        <div class="duo-pc"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/pc_fichas-dark-1280.webp 1280w, img/pc_fichas-dark-2400.webp 2400w" sizes="(min-width: 1024px) 860px, 92vw">
+          <img class="shot" src="img/pc_fichas-light-1280.webp" srcset="img/pc_fichas-light-1280.webp 1280w, img/pc_fichas-light-2400.webp 2400w" sizes="(min-width: 1024px) 860px, 92vw" width="1280" height="720" loading="lazy" alt="Caja Fácil en la computadora, con fichas con fotos">
+        </picture></div>
+        <div class="duo-cel"><picture>
+          <source media="(prefers-color-scheme: dark)" srcset="img/cel_fichas-dark-780.webp">
+          <img src="img/cel_fichas-light-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular, con fichas con fotos">
+        </picture></div>
+      </div>
+      <div class="three">
+        <p class="say sm"><strong>En tu computadora.</strong> Con lector de códigos USB, teclas rápidas y balanza.</p>
+        <p class="say sm"><strong>En tu celular o tablet.</strong> La cámara hace de lector.</p>
+        <p class="say sm"><strong>Como app.</strong> La instalas y queda con su ícono, en su propia ventana.</p>
       </div>
     </div>
   </section>

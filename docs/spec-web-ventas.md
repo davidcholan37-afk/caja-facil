@@ -67,3 +67,19 @@ Página de producto de consumo para dueños de bodegas de Lima, con el refinamie
 - Letra del sistema de Apple (SF Pro) en iPhone y Mac; Geist en Windows y Android.
 - Precio en la portada («Desde S/ 50 al mes. Los primeros 15 días, gratis.»), como Apple muestra «Desde…».
 - La plantilla de Figma del usuario era genérica (fotos de comida y textos de relleno); no se usó como base.
+
+# v4: «Un día en la bodega» (aprobado por David)
+
+## Auditoría de la v3 (redesign-skill + taste-skill)
+| En la v3 | Problema | En la v4 |
+| --- | --- | --- |
+| Funciones sueltas (kilo, vuelto, caja) | Muestra piezas, no cuenta cómo ayuda en el día | Historia con hora: 7:00 abres, 10:00 vendes, 13:00 cobras con Yape, 21:00 cierras y la caja cuadra |
+| Portada clara | Correcta pero sin impacto | Portada oscura y cinematográfica: la caja iluminada sobre negro, se acerca al bajar |
+| Dos bloques oscuros posibles | Rompería el tema | Un solo cambio deliberado: portada oscura → resto claro; «Se va el internet» pasa a claro |
+| Sin dónde funciona | El cliente no sabe si sirve en su equipo | Sección PC + celular + app instalada, con capturas reales |
+
+## Lectura de diseño (taste-skill 0.B)
+Página de producto para dueños de bodegas de Lima, con lenguaje de lanzamiento de Apple (portada cinematográfica, narrativa con pantalla fija, mucho aire), identidad propia por el ticket impreso y el «S/». HTML y CSS nativos (sin React, GSAP ni Tailwind: el proyecto lo prohíbe), Geist / SF Pro.
+- Diales: DESIGN_VARIANCE 6 · MOTION_INTENSITY 6 · VISUAL_DENSITY 3.
+- Movimiento (emil-design-eng): scroll-driven CSS (`animation-timeline: view()`) con respaldo estático; cambios de pantalla de la historia con IntersectionObserver (sin escuchar el scroll); fundido + blur suave; nada con teclado ni con «reducir movimiento».
+- Solo se edita `web/`. El POS (`src/`, `index.html`, `script.js`, `style.css`, `sw.js`) no se toca.

@@ -249,4 +249,73 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
 @media (hover:hover) and (pointer:fine){.tabs button[aria-selected="false"]:hover{color:var(--t1)}}
 @media (max-width:420px){.tabs button{padding:0 12px;font-size:.875rem}}
 .tabcap{margin-top:14px;color:var(--t2);font-size:1rem;min-height:1.5em}
-@media (prefers-reduced-motion:no-preference){.hero-shot .frame .shot{animation:none}.hero-shot .frames{animation:rise-far 1100ms var(--ease-out) 240ms both}}
+
+
+/* =====================================================================
+   v4 · «Un día en la bodega»
+   Portada oscura y cinematográfica (único cambio de tema de la página) → historia con pantalla fija → resto claro.
+   ===================================================================== */
+
+/* ---------- barra sobre la portada oscura ---------- */
+.nav.on-dark{background:rgba(10,10,12,.72);border-bottom-color:rgba(255,255,255,.08)}
+.nav.on-dark .brand,.nav.on-dark .links a,.nav.on-dark .wa-link{color:#F5F5F7}
+.nav{transition:background-color 300ms ease,border-color 300ms ease}
+.nav .brand,.nav .links a,.nav .wa-link{transition:color 300ms ease,opacity 200ms ease}
+
+/* ---------- portada oscura ---------- */
+.hero{background:#050507;color:#F5F5F7;--t1:#F5F5F7;--t2:#A1A1A6;--rule:rgba(255,255,255,.12);--ac-ink:#5EA2FF;padding-bottom:112px;position:relative;isolation:isolate}
+.hero::before{content:"";position:absolute;left:50%;bottom:6%;width:min(1100px,90vw);height:46%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(10,102,255,.22),transparent 70%);filter:blur(30px);z-index:-1;pointer-events:none}
+.hero .from{color:#E8E8ED}
+.showcase{max-width:1240px;margin:56px auto 0;padding:0 var(--gut)}
+.showcase .shot{margin:0 auto;border-radius:16px;box-shadow:0 40px 120px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.10)}
+@media (max-width:640px){.showcase{margin-top:40px}.showcase .shot{width:74%;border-radius:38px;box-shadow:0 0 0 6px #2C2C2E,0 40px 90px -30px rgba(0,0,0,.9)}}
+.hero .tabs{background:rgba(255,255,255,.08)}
+.hero .tabs button{color:#A1A1A6}
+.hero .tabs button[aria-selected="true"]{background:#F5F5F7;color:#1D1D1F;box-shadow:none}
+@media (hover:hover) and (pointer:fine){.hero .tabs button[aria-selected="false"]:hover{color:#F5F5F7}}
+.hero .tabcap{color:#A1A1A6}
+/* la caja se acerca al bajar (scroll-driven, sin JavaScript); estática si el navegador no lo soporta */
+@media (prefers-reduced-motion:no-preference){
+  .hero .frames{animation:rise-far 1100ms var(--ease-out) 240ms both}
+  @supports (animation-timeline: view()){
+    .hero .frames{animation:hero-zoom linear both;animation-timeline:view();animation-range:entry 10% cover 40%}
+    @keyframes hero-zoom{from{transform:scale(.86) translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+  }
+}
+
+/* ---------- historia: un día en tu bodega ---------- */
+.story{padding:120px 0 40px}
+@media (min-width:1024px){.story{padding:160px 0 80px}}
+.story-head{text-align:center}
+.story-head .say{margin:18px auto 0}
+.story-grid{margin-top:64px}
+.time{font:600 1.0625rem/1 var(--f);color:var(--ac-ink);letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-bottom:12px}
+.step{padding:24px 0 56px}
+.step .say{max-width:26ch}
+.step-img{margin-top:28px}
+.step-img .shot{border-radius:12px;box-shadow:var(--lift);outline:1px solid var(--rule);outline-offset:-1px}
+.story-screen{display:none}
+@media (min-width:1024px){
+  .story-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:64px;align-items:start}
+  .step{min-height:78vh;display:flex;flex-direction:column;justify-content:center;padding:0;opacity:.32;transition:opacity 400ms ease}
+  .step.on{opacity:1}
+  .step-img{display:none}
+  .story-screen{display:block;position:sticky;top:calc(50vh - 220px)}
+  .sframes{display:grid}
+  .sframe{grid-area:1/1;opacity:0;transform:scale(.985);filter:blur(6px);transition:opacity 450ms ease,transform 600ms var(--ease-out),filter 450ms ease}
+  .sframe.on{opacity:1;transform:none;filter:none}
+  .sframe .shot{border-radius:14px;box-shadow:var(--lift);outline:1px solid var(--rule);outline-offset:-1px}
+}
+@media (prefers-reduced-motion:reduce){.step,.sframe{transition:none}}
+
+/* ---------- dónde funciona ---------- */
+.where h2{margin-bottom:56px}
+.duo{position:relative;max-width:920px;margin:0 auto;padding-right:clamp(40px,12%,140px)}
+.duo-pc .shot{border-radius:14px;box-shadow:var(--lift);outline:1px solid var(--rule);outline-offset:-1px}
+.duo-cel{position:absolute;right:0;bottom:-8%;width:clamp(110px,22%,210px)}
+.duo-cel img{border-radius:28px;outline:5px solid #1D1D1F;outline-offset:-1px;box-shadow:var(--lift)}
+.three{margin:96px auto 0;max-width:920px;display:grid;gap:36px 48px;grid-template-columns:1fr}
+@media (min-width:760px){.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* sin internet ahora es claro: el teléfono con marco gris oscuro */
+.offline .phone img{outline-color:#1D1D1F}
