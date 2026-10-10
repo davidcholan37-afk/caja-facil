@@ -60,3 +60,10 @@ Página de producto de consumo para dueños de bodegas de Lima, con el refinamie
 - Color: blanco #FFFFFF y escenarios #F4F5F7, tinta #111418, gris #5B6270, acento único #0A66FF (el de la caja). Oscuro automático.
 - Forma: botones en píldora, escenarios de imagen 28 px, capturas 14 px. Nada más.
 - Movimiento (Emil): entrada única de la portada; las imágenes se descubren con clip-path una sola vez al aparecer; el ticket sale de la ranura. Todo con ease-out fuerte, solo transform/opacity/clip-path, y nada si el sistema pide menos movimiento.
+
+# v3 (más Apple, menos IA)
+- Sin paneles grises alrededor de las imágenes: franjas a todo lo ancho (blanco, gris #F5F5F7 y un único momento oscuro en «Se va el internet»).
+- Frases de Apple: la idea en negrita y la explicación en gris en el mismo párrafo.
+- Letra del sistema de Apple (SF Pro) en iPhone y Mac; Geist en Windows y Android.
+- Precio en la portada («Desde S/ 50 al mes. Los primeros 15 días, gratis.»), como Apple muestra «Desde…».
+- La plantilla de Figma del usuario era genérica (fotos de comida y textos de relleno); no se usó como base.

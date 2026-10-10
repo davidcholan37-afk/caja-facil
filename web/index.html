@@ -56,171 +56,168 @@
 
 <main id="contenido">
 
-  <!-- Portada: una sola idea y el producto en grande -->
+  <!-- Portada: nombre, una idea, el precio y el producto -->
   <section class="hero" aria-labelledby="h-hero">
     <div class="hero-copy">
-      <p class="kicker">Caja Fácil</p>
+      <p class="product">Caja Fácil</p>
       <h1 id="h-hero">Tu bodega, al centavo.</h1>
-      <p class="lead">Lector o cámara, Yape o efectivo, y el cierre del día cuadrado. Todo en una caja que funciona sin internet.</p>
+      <p class="from">Desde S/ 50 al mes. Los primeros 15 días, gratis.</p>
       <div class="ctas">
         <a class="pill" href="../">Pruébala gratis</a>
         <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
       </div>
     </div>
-    <div class="stage hero-stage">
+    <div class="hero-shot">
       <picture>
         <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_venta-dark-780.webp" width="780" height="1688">
         <source media="(max-width: 640px)" srcset="img/cel_venta-light-780.webp" width="780" height="1688">
-        <source media="(prefers-color-scheme: dark)" srcset="img/pc_venta-dark-1280.webp 1280w, img/pc_venta-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1120px, 90vw" width="1280" height="720">
-        <img class="shot" src="img/pc_venta-light-1280.webp" srcset="img/pc_venta-light-1280.webp 1280w, img/pc_venta-light-2400.webp 2400w" sizes="(min-width: 1280px) 1120px, 90vw" width="1280" height="720" fetchpriority="high" alt="Pantalla de venta de Caja Fácil: ticket con Inca Kola, arroz por kilo y total de S/ 16.80, con los productos sin código de barras a la derecha">
+        <source media="(prefers-color-scheme: dark)" srcset="img/pc_venta-dark-1280.webp 1280w, img/pc_venta-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
+        <img class="shot" src="img/pc_venta-light-1280.webp" srcset="img/pc_venta-light-1280.webp 1280w, img/pc_venta-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" fetchpriority="high" alt="Pantalla de venta de Caja Fácil: ticket con Inca Kola, arroz por kilo y total de S/ 16.80, con los productos sin código de barras a la derecha">
       </picture>
     </div>
+    <p class="hero-say"><strong>Lector o cámara, Yape o efectivo, y el cierre del día cuadrado.</strong> Todo en una caja que sigue vendiendo aunque se vaya el internet.</p>
   </section>
 
-  <!-- Funciones -->
-  <section id="funciones" class="block" aria-labelledby="h-fun">
-    <div class="intro">
-      <h2 id="h-fun">Todo lo que pasa en tu mostrador.</h2>
-      <p class="lead">Hecha para cómo se vende en el Perú: a granel, con Yape y con fiado.</p>
-    </div>
+  <!-- Funciones: franja gris, el producto flota sin cajas -->
+  <section id="funciones" class="band gray" aria-labelledby="h-fun">
+    <div class="wrap">
+      <h2 id="h-fun" class="center">Todo lo que pasa en tu mostrador.</h2>
 
-    <article class="chapter split">
-      <div class="ch-copy">
-        <h3>Por kilo, sin calculadora.</h3>
-        <p>Arroz suelto, verduras o fruta. Escribes el peso en kilos o en gramos y la caja saca el precio.</p>
-      </div>
-      <div class="stage float reveal">
-        <picture>
+      <div class="chapter split">
+        <p class="say"><strong>Por kilo, sin calculadora.</strong> Arroz suelto, verduras o fruta. Escribes el peso en kilos o en gramos y la caja saca el precio.</p>
+        <picture class="win reveal">
           <source media="(prefers-color-scheme: dark)" srcset="img/kilo-dark-960.webp">
-          <img class="win" src="img/kilo-light-960.webp" width="960" height="748" loading="lazy" alt="Ventana para pesar Arroz Costeño suelto: S/ 4.20 el kilo por 1.5 kg, a pagar S/ 6.30">
+          <img src="img/kilo-light-960.webp" width="960" height="748" loading="lazy" alt="Ventana para pesar Arroz Costeño suelto: S/ 4.20 el kilo por 1.5 kg, a pagar S/ 6.30">
         </picture>
       </div>
-    </article>
 
-    <article class="chapter stacked">
-      <div class="ch-copy center">
-        <h3>El vuelto, exacto.</h3>
-        <p>Efectivo, Yape, Plin o tarjeta. Tocas el billete que te dieron y la caja te dice cuánto devolver.</p>
-      </div>
-      <div class="stage float wide reveal">
-        <picture>
+      <div class="chapter stacked">
+        <p class="say center"><strong>El vuelto, exacto.</strong> Efectivo, Yape, Plin o tarjeta. Tocas el billete que te dieron y la caja te dice cuánto devolver.</p>
+        <picture class="win wide reveal">
           <source media="(prefers-color-scheme: dark)" srcset="img/cobro-dark-1200.webp">
-          <img class="win" src="img/cobro-light-1200.webp" width="1200" height="784" loading="lazy" alt="Pantalla de cobro: S/ 16.80 a cobrar, con billetes de 20, 50 y 100 y el vuelto de cada uno">
+          <img src="img/cobro-light-1200.webp" width="1200" height="784" loading="lazy" alt="Pantalla de cobro: S/ 16.80 a cobrar, con billetes de 20, 50 y 100 y el vuelto de cada uno">
         </picture>
       </div>
-    </article>
 
-    <article class="chapter split flip">
-      <div class="ch-copy">
-        <h3>Cierras el día cuadrado.</h3>
-        <p>Gastos, retiros y arqueo con el efectivo que debe haber. Las ventas por medio de pago y tu cierre del día, listos para revisar.</p>
-      </div>
-      <div class="stage bleed reveal">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_caja-dark-1000.webp 1000w, img/pc_caja-dark-1640.webp 1640w" sizes="(min-width: 960px) 820px, 150vw">
-          <img class="shot" src="img/pc_caja-light-1000.webp" srcset="img/pc_caja-light-1000.webp 1000w, img/pc_caja-light-1640.webp 1640w" sizes="(min-width: 960px) 820px, 150vw" width="1000" height="457" loading="lazy" alt="Pantalla Caja: tu caja está abierta, efectivo que debe haber S/ 16.80, ventas del día por medio de pago y botones de gasto, ingreso y retiro">
+      <div class="chapter split flip">
+        <p class="say"><strong>Cierras el día cuadrado.</strong> Gastos, retiros y arqueo con el efectivo que debe haber. Las ventas por medio de pago, listas para revisar.</p>
+        <picture class="screen reveal">
+          <source media="(prefers-color-scheme: dark)" srcset="img/pc_caja-dark-1000.webp 1000w, img/pc_caja-dark-1640.webp 1640w" sizes="(min-width: 960px) 760px, 92vw">
+          <img src="img/pc_caja-light-1000.webp" srcset="img/pc_caja-light-1000.webp 1000w, img/pc_caja-light-1640.webp 1640w" sizes="(min-width: 960px) 760px, 92vw" width="1000" height="457" alt="Pantalla Caja: tu caja está abierta, efectivo que debe haber S/ 16.80, ventas del día por medio de pago y botones de gasto, ingreso y retiro">
         </picture>
       </div>
-    </article>
-
-    <div class="more">
-      <div><h3>Lector o cámara</h3><p>Conecta tu lector USB o usa la cámara del celular para pasar los códigos.</p></div>
-      <div><h3>El fiado, bajo control</h3><p>Lo que te debe cada cliente y sus abonos, sin cuaderno.</p></div>
-      <div><h3>Proveedores al día</h3><p>Lo que les debes, lo que ya abonaste y cuánto queda.</p></div>
-      <div><h3>Un PIN por cajero</h3><p>Cada cajero entra con su PIN y tú decides qué puede hacer.</p></div>
     </div>
   </section>
 
-  <!-- Sin internet y en el celular -->
-  <section class="block offline" aria-labelledby="h-off">
-    <div class="off-copy">
-      <h2 id="h-off">Se va el internet. La caja sigue.</h2>
-      <dl class="facts">
-        <div><dt>Todo queda en tu equipo</dt><dd>Cada venta se guarda al instante en tu computadora o celular.</dd></div>
-        <div><dt>Copia en la nube</dt><dd>Cuando vuelve la señal se respalda sola. Si se malogra tu equipo, recuperas todo.</dd></div>
-        <div><dt>Tus tiendas en el bolsillo</dt><dd>Mira desde el celular cuánto vendió hoy cada tienda.</dd></div>
-      </dl>
+  <!-- Y además: solo tipografía -->
+  <section class="band" aria-labelledby="h-mas">
+    <div class="wrap">
+      <h2 id="h-mas">Y también.</h2>
+      <div class="more">
+        <p class="say sm"><strong>Lector o cámara.</strong> Conecta tu lector USB o usa la cámara del celular para pasar los códigos.</p>
+        <p class="say sm"><strong>El fiado, bajo control.</strong> Lo que te debe cada cliente y sus abonos, sin cuaderno.</p>
+        <p class="say sm"><strong>Proveedores al día.</strong> Lo que les debes, lo que ya abonaste y cuánto queda.</p>
+        <p class="say sm"><strong>Un PIN por cajero.</strong> Cada cajero entra con su PIN y tú decides qué puede hacer.</p>
+      </div>
     </div>
-    <div class="phone reveal">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="img/cel_venta-dark-780.webp">
-        <img src="img/cel_venta-light-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular: lo último que pasaste, productos sin código de barras y el botón Cobrar">
-      </picture>
+  </section>
+
+  <!-- Un solo momento oscuro: sin internet -->
+  <section class="band night" aria-labelledby="h-off">
+    <div class="wrap offline">
+      <div class="off-copy">
+        <h2 id="h-off">Se va el internet.<br>La caja sigue.</h2>
+        <p class="say"><strong>Todo queda en tu equipo.</strong> Cada venta se guarda al instante en tu computadora o celular.</p>
+        <p class="say"><strong>Copia en la nube.</strong> Cuando vuelve la señal se respalda sola. Si se malogra tu equipo, recuperas todo.</p>
+        <p class="say"><strong>Tus tiendas en el bolsillo.</strong> Mira desde el celular cuánto vendió hoy cada tienda.</p>
+      </div>
+      <div class="phone reveal">
+        <img src="img/cel_venta-dark-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular: lo último que pasaste, productos sin código de barras y el botón Cobrar">
+      </div>
     </div>
   </section>
 
   <!-- Cómo empiezas -->
-  <section class="block start" aria-labelledby="h-pasos">
-    <h2 id="h-pasos">Empiezas hoy.</h2>
-    <ol class="steps">
-      <li><span class="num" aria-hidden="true">1</span><h3>Actívala</h3><p>Abre Caja Fácil y entra con tu cuenta de Google. Solo el dueño, una sola vez.</p></li>
-      <li><span class="num" aria-hidden="true">2</span><h3>Carga tus productos</h3><p>Uno por uno, desde Excel, o practica primero con productos de ejemplo.</p></li>
-      <li><span class="num" aria-hidden="true">3</span><h3>Vende</h3><p>Tus cajeros entran con su PIN. Tienes 15 días para probarla con calma.</p></li>
-    </ol>
+  <section class="band" aria-labelledby="h-pasos">
+    <div class="wrap">
+      <h2 id="h-pasos">Empiezas hoy.</h2>
+      <ol class="steps">
+        <li><span class="num" aria-hidden="true">1</span><p class="say sm"><strong>Actívala.</strong> Abre Caja Fácil y entra con tu cuenta de Google. Solo el dueño, una sola vez.</p></li>
+        <li><span class="num" aria-hidden="true">2</span><p class="say sm"><strong>Carga tus productos.</strong> Uno por uno, desde Excel, o practica primero con productos de ejemplo.</p></li>
+        <li><span class="num" aria-hidden="true">3</span><p class="say sm"><strong>Vende.</strong> Tus cajeros entran con su PIN. Tienes 15 días para probarla con calma.</p></li>
+      </ol>
+    </div>
   </section>
 
   <!-- Precio: el ticket -->
-  <section id="precio" class="block price" aria-labelledby="h-precio">
-    <div class="price-copy">
-      <h2 id="h-precio"><span class="amount">S/ 50</span> al mes.</h2>
-      <p class="lead">Todo incluido. Los primeros 15 días son gratis, sin contrato y sin tarjeta.</p>
-      <div class="ctas">
-        <a class="pill" href="../">Pruébala gratis</a>
-        <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
+  <section id="precio" class="band gray" aria-labelledby="h-precio">
+    <div class="wrap price">
+      <div class="price-copy">
+        <h2 id="h-precio"><span class="amount">S/ 50</span> al mes.</h2>
+        <p class="say"><strong>Todo incluido.</strong> Los primeros 15 días son gratis, sin contrato y sin tarjeta.</p>
+        <div class="ctas">
+          <a class="pill" href="../">Pruébala gratis</a>
+          <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
+        </div>
       </div>
-    </div>
-    <div class="printer">
-      <div class="slot" aria-hidden="true"></div>
-      <div class="paper">
-        <div class="ticket" role="img" aria-label="Ticket del plan mensual: ventas e inventario, caja y cierre del día, clientes y fiado, proveedores, copia en la nube y soporte por WhatsApp incluidos. Precio al mes S/ 50.00. Primeros 15 días S/ 0.00. Hoy pagas S/ 0.00.">
-          <p class="c b">CAJA FÁCIL</p>
-          <p class="c">Punto de venta</p>
-          <p class="c dim">Plan mensual</p>
-          <hr>
-          <p class="r"><span>Ventas e inventario</span><span>incl.</span></p>
-          <p class="r"><span>Caja y cierre del día</span><span>incl.</span></p>
-          <p class="r"><span>Clientes y fiado</span><span>incl.</span></p>
-          <p class="r"><span>Proveedores</span><span>incl.</span></p>
-          <p class="r"><span>Copia en la nube</span><span>incl.</span></p>
-          <p class="r"><span>Soporte por WhatsApp</span><span>incl.</span></p>
-          <hr>
-          <p class="r"><span>Precio al mes</span><span>S/ 50.00</span></p>
-          <p class="r"><span>Primeros 15 días</span><span>S/ 0.00</span></p>
-          <hr class="dbl">
-          <p class="r b big"><span>HOY PAGAS</span><span>S/ 0.00</span></p>
-          <hr>
-          <p class="c">¡Gracias por su compra!</p>
+      <div class="printer">
+        <div class="slot" aria-hidden="true"></div>
+        <div class="paper">
+          <div class="ticket" role="img" aria-label="Ticket del plan mensual: ventas e inventario, caja y cierre del día, clientes y fiado, proveedores, copia en la nube y soporte por WhatsApp incluidos. Precio al mes S/ 50.00. Primeros 15 días S/ 0.00. Hoy pagas S/ 0.00.">
+            <p class="c b">CAJA FÁCIL</p>
+            <p class="c">Punto de venta</p>
+            <p class="c dim">Plan mensual</p>
+            <hr>
+            <p class="r"><span>Ventas e inventario</span><span>incl.</span></p>
+            <p class="r"><span>Caja y cierre del día</span><span>incl.</span></p>
+            <p class="r"><span>Clientes y fiado</span><span>incl.</span></p>
+            <p class="r"><span>Proveedores</span><span>incl.</span></p>
+            <p class="r"><span>Copia en la nube</span><span>incl.</span></p>
+            <p class="r"><span>Soporte por WhatsApp</span><span>incl.</span></p>
+            <hr>
+            <p class="r"><span>Precio al mes</span><span>S/ 50.00</span></p>
+            <p class="r"><span>Primeros 15 días</span><span>S/ 0.00</span></p>
+            <hr class="dbl">
+            <p class="r b big"><span>HOY PAGAS</span><span>S/ 0.00</span></p>
+            <hr>
+            <p class="c">¡Gracias por su compra!</p>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Preguntas -->
-  <section id="preguntas" class="block faq" aria-labelledby="h-faq">
-    <div class="faq-head">
-      <h2 id="h-faq">Preguntas frecuentes</h2>
-      <p>¿Tienes otra duda? <a href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>.</p>
+  <section id="preguntas" class="band" aria-labelledby="h-faq">
+    <div class="wrap faq">
+      <div class="faq-head">
+        <h2 id="h-faq">Preguntas frecuentes</h2>
+        <p>¿Tienes otra duda? <a href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>.</p>
+      </div>
+      <dl class="qa">
+        <div><dt>¿Necesito internet para vender?</dt><dd>No. Necesitas internet para activarla, para la copia en la nube y una vez cada 15 días para revisar tu licencia. El resto del tiempo vende sin señal.</dd></div>
+        <div><dt>¿Funciona en mi celular?</dt><dd>Sí. Funciona en computadora, laptop, tablet o celular. Puedes abrirla en el navegador o instalarla como app.</dd></div>
+        <div><dt>¿Tengo que comprar un lector o una balanza?</dt><dd>No. Puedes usar la cámara del celular o escribir el código. Si ya tienes un lector USB, funciona apenas lo conectas.</dd></div>
+        <div><dt>¿Emite boletas o facturas electrónicas?</dt><dd>Todavía no. Caja Fácil emite notas de venta internas. Las boletas y facturas de SUNAT las sigues emitiendo con tu sistema de siempre.</dd></div>
+        <div><dt>¿Qué pasa si se malogra mi computadora?</dt><dd>Entras con tu cuenta de Google en otro equipo y recuperas tus productos, ventas, clientes y caja desde la nube.</dd></div>
+        <div><dt>¿Quién puede ver mis ventas?</dt><dd>Solo tú. Si necesitas soporte, tú das permiso por 24 horas o 7 días, y solo para mirar. Más detalles en la <a href="../privacidad.html">política de privacidad</a>.</dd></div>
+        <div><dt>¿Qué pasa cuando terminan los 15 días?</dt><dd>Te escribo por WhatsApp para coordinar el pago de S/ 50 al mes. Si decides no seguir, la caja se pausa y tus datos no se borran.</dd></div>
+      </dl>
     </div>
-    <dl class="qa">
-      <div><dt>¿Necesito internet para vender?</dt><dd>No. Necesitas internet para activarla, para la copia en la nube y una vez cada 15 días para revisar tu licencia. El resto del tiempo vende sin señal.</dd></div>
-      <div><dt>¿Funciona en mi celular?</dt><dd>Sí. Funciona en computadora, laptop, tablet o celular. Puedes abrirla en el navegador o instalarla como app.</dd></div>
-      <div><dt>¿Tengo que comprar un lector o una balanza?</dt><dd>No. Puedes usar la cámara del celular o escribir el código. Si ya tienes un lector USB, funciona apenas lo conectas.</dd></div>
-      <div><dt>¿Emite boletas o facturas electrónicas?</dt><dd>Todavía no. Caja Fácil emite notas de venta internas. Las boletas y facturas de SUNAT las sigues emitiendo con tu sistema de siempre.</dd></div>
-      <div><dt>¿Qué pasa si se malogra mi computadora?</dt><dd>Entras con tu cuenta de Google en otro equipo y recuperas tus productos, ventas, clientes y caja desde la nube.</dd></div>
-      <div><dt>¿Quién puede ver mis ventas?</dt><dd>Solo tú. Si necesitas soporte, tú das permiso por 24 horas o 7 días, y solo para mirar. Más detalles en la <a href="../privacidad.html">política de privacidad</a>.</dd></div>
-      <div><dt>¿Qué pasa cuando terminan los 15 días?</dt><dd>Te escribo por WhatsApp para coordinar el pago de S/ 50 al mes. Si decides no seguir, la caja se pausa y tus datos no se borran.</dd></div>
-    </dl>
   </section>
 
   <!-- Cierre -->
   <section class="end" aria-labelledby="h-end">
+    <p class="product">Caja Fácil</p>
     <h2 id="h-end">Tu caja, lista hoy.</h2>
+    <p class="from">Desde S/ 50 al mes. Los primeros 15 días, gratis.</p>
     <div class="ctas">
       <a class="pill" href="../">Pruébala gratis</a>
       <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
     </div>
   </section>
 </main>
+
 
 <footer class="foot">
   <div class="footin">
