@@ -21,5 +21,4 @@ li+li{margin-top:6px}
 a{color:var(--ac-ink)}
 .card{background:var(--s1);border:1px solid var(--hl);border-radius:16px;padding:14px 18px;margin-top:10px}
 .card p+p{margin-top:4px}
-.fill{background:var(--fill);color:var(--fill-t);border-radius:6px;padding:1px 6px;font-weight:600}
 .foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--hl)}
