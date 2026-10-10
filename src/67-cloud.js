@@ -12,7 +12,7 @@ const cloud = { st: null, busy: false, timer: 0, err: "", last: 0, pending: 0, p
 function cloudLoad() {
   if (cloud.st) return cloud.st;
   let o = null; try { o = JSON.parse(localStorage.getItem(CLOUD_KEY) || "null"); } catch (e) {}
-  cloud.st = Object.assign({ ses: null, neg: "", negName: "", dev: "", h: {}, last: 0 }, o || {});
+  cloud.st = Object.assign({ ses: null, neg: "", negName: "", dev: "", h: {}, last: 0, ver: false }, o || {});
   if (!cloud.st.dev) cloud.st.dev = "D" + uid().slice(-6).toUpperCase();
   return cloud.st;
 }
@@ -50,7 +50,7 @@ async function cloudToken() {
   cloudSetSession(await r.json()); return cloud.st.ses.at;
 }
 function cloudLogout() {
-  const s = cloudLoad(); s.ses = null; s.neg = ""; s.negName = ""; s.h = {}; s.last = 0; cloudStore();
+  const s = cloudLoad(); s.ses = null; s.neg = ""; s.negName = ""; s.h = {}; s.last = 0; s.ver = false; cloudStore();
   cloud.panel = null; toast("Cerraste sesión en la nube. Esta caja sigue funcionando igual.");
 }
 
@@ -83,7 +83,7 @@ function cloudSnapshot() {
   return out;
 }
 async function cloudPush(force) {
-  if (!cloudOn() || cloud.busy) return;
+  if (!cloudOn() || cloud.busy || cloud.st.ver) return; // «solo ver»: este equipo no sube nada
   if (!navigator.onLine) { cloud.err = "Sin internet: se sube solo cuando vuelva la señal."; cloudPaint(); return; }
   cloud.busy = true; cloud.err = "";
   try {
@@ -125,7 +125,7 @@ function openRecover(tiendas) {
   openModal(`<h2>Recuperar una tienda</h2><p class="muted" style="margin-bottom:12px">Trae a este equipo todos los datos de una tienda guardada en la nube: productos, ventas, clientes, caja y proveedores.</p>
     <div class="list">${tiendas.map((t) => `<button class="it" data-a="cloudrec" data-s="${esc(t.tienda)}"><div class="t"><b>${esc(t.nombre || t.tienda)}</b><small>Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}</small></div></button>`).join("")}</div>
     <p class="muted sm" style="margin-top:10px">Usa una tienda en un solo equipo a la vez. Para otra caja, deja esta como tienda nueva.</p>
-    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn sec" data-a="cloudnew">Usar como tienda nueva</button></div>`);
+    <div class="btns h"><button class="btn sec" data-a="cloudview">Solo ver mis tiendas</button><button class="btn sec" data-a="cloudnew">Usar como tienda nueva</button></div>`);
 }
 async function cloudRecover(sid) {
   const s = cloudLoad(); toast("Trayendo los datos de la nube…");
@@ -138,7 +138,7 @@ async function cloudRecover(sid) {
     const cfg = rows.find((r) => r.tipo === "config");
     const o = Object.assign({}, cfg ? cfg.datos : {}); CLOUD_TYPES.forEach((t) => { o[t] = []; });
     rows.forEach((r) => { if (r.tipo !== "config" && o[r.tipo]) o[r.tipo].push(r.datos); });
-    DB = normalize(o); DB.biz.sid = sid;
+    DB = normalize(o); DB.biz.sid = sid; s.ver = false;
     s.h = {}; cloudSnapshot().forEach((r, k) => { s.h[k] = cloudHash(JSON.stringify(r.datos)); }); s.last = Date.now(); cloudStore();
     saveAll(); await flush(); closeModal(); toast(`Listo: recuperaste ${o.sales.length} ventas y ${o.products.length} productos`, true); render();
   } catch (e) { toast("No se pudo traer la tienda. Revisa tu internet e inténtalo otra vez.", true); }
@@ -169,7 +169,7 @@ function panelHtml() {
   if (p.err) return `<p class="muted">No se pudo traer el resumen. Revisa tu internet.</p>`;
   const list = Object.entries(p.by), tot = r2(list.reduce((a, [, b]) => a + b.total, 0));
   if (!list.length) return `<p class="muted">Aún no hay tiendas en la nube.</p>`;
-  return `<div class="kv strong"><span>Todas las tiendas hoy</span><span class="num">${money(tot)}</span></div>` + list.map(([sid, b]) => `<div class="kv"><span><b>${esc(b.name)}</b><small class="muted"> · ${b.n} ${b.n === 1 ? "venta" : "ventas"}${b.m.efectivo ? " · efectivo " + money(b.m.efectivo) : ""}${b.m.yape ? " · Yape " + money(b.m.yape) : ""}${b.act ? " · copia " + hhmm(Date.parse(b.act)) : ""}${sid === DB.biz.sid ? " · esta caja" : ""}</small></span><span class="num">${money(b.total)}</span></div>`).join("") + `<p class="muted sm" style="margin-top:8px">Actualizado ${hhmm(p.t)}.</p>`;
+  return `<div class="kv strong"><span>Todas las tiendas hoy</span><span class="num">${money(tot)}</span></div>` + list.map(([sid, b]) => `<div class="kv"><span><b>${esc(b.name)}</b><small class="muted"> · ${b.n} ${b.n === 1 ? "venta" : "ventas"}${b.m.efectivo ? " · efectivo " + money(b.m.efectivo) : ""}${b.m.yape ? " · Yape " + money(b.m.yape) : ""}${b.act ? " · copia " + hhmm(Date.parse(b.act)) : ""}${sid === DB.biz.sid ? " · esta caja" : ""}</small></span><span class="num">${money(b.total)}</span></div>`).join("") + `<p class="muted sm" style="margin-top:8px">Actualizado a las ${hhmm(p.t)}</p>`;
 }
 
 /* ---------- pantalla en Ajustes › Nube ---------- */
@@ -185,13 +185,14 @@ function cloudSettingsHtml() {
       <div class="kv"><span>Negocio</span><b>${esc(s.negName || "—")}</b></div>
       <div class="kv"><span>Esta caja</span><b>${esc(DB.biz.store)} <small class="muted">(${esc(DB.biz.sid)})</small></b></div>
       <div class="kv"><span>Copia en la nube</span><b id="cloudst">${cloudStatus()}</b></div>
-      <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="cloudpush">Subir ahora</button><button class="btn sec" data-a="cloudrecover">Recuperar una tienda</button><button class="btn sec" data-a="cloudout">Cerrar sesión</button></div></div>
+      <div class="row wrap" style="margin-top:12px">${s.ver ? `<button class="btn" data-a="cloudnew">Usar este equipo como caja</button>` : `<button class="btn" data-a="cloudpush">Subir ahora</button>`}<button class="btn sec" data-a="cloudrecover">Recuperar una tienda</button><button class="btn sec" data-a="cloudout">Cerrar sesión</button></div></div>
     <div class="card"><div class="row sp"><h2>Mis tiendas hoy</h2><button class="btn sec sm" data-a="cloudpanel">Ver mis tiendas</button></div>${panelHtml()}</div>`;
 }
 function cloudStatus() {
   const s = cloudLoad();
   if (cloud.busy) return cloud.pending ? `Subiendo… faltan ${cloud.pending}` : "Subiendo…";
   if (cloud.err) return esc(cloud.err);
+  if (s.ver) return "Solo ver: este equipo no sube datos";
   return s.last ? `Al día · ${hhmm(s.last)}` : "Aún no se sube nada";
 }
 function cloudPaint() { const el = $("#cloudst"); if (el) el.innerHTML = cloudStatus(); else if (ui.tab === "aj" && ui.atab === "nube" && !modalOpen()) render(); }
@@ -203,7 +204,8 @@ act({
   cloudpanel: () => { cloud.panel = null; cloudPanel(); toast("Trayendo las ventas de hoy…"); },
   cloudrecover: async () => { try { const t = await cloudTiendas(); if (!t.length) return toast("Aún no hay tiendas en la nube"); openRecover(t); } catch (e) { toast("Sin conexión con la nube", true); } },
   cloudrec: (el) => { const sid = el.dataset.s; closeModal(); confirmBox("¿Traer esta tienda a este equipo?", "Traer datos", () => cloudRecover(sid), false, "Lo que hay ahora en este equipo se reemplaza por lo de la nube."); },
-  cloudnew: async () => { closeModal(); await cloudPush(true); toast("Listo: esta caja se guarda como tienda nueva"); }
+  cloudnew: async () => { closeModal(); cloud.st.ver = false; cloudStore(); await cloudPush(true); toast("Listo: esta caja se guarda como tienda nueva"); },
+  cloudview: () => { cloud.st.ver = true; cloudStore(); closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); cloudPanel(); toast("Este equipo solo mira tus tiendas"); }
 });
 
 /* ---------- arranque: sesión que vuelve de Google, subida automática ---------- */
