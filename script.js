@@ -2504,7 +2504,7 @@ function gateState() {
 function gateHtml(g) {
   const s = cloudLoad(), name = esc(s.negName || DB.biz.name || "tu negocio");
   const err = cloud.err ? `<p class="dpts">${esc(cloud.err)}</p>` : "";
-  if (g === "activar") return `<b>Activa tu Caja Fácil</b><p>Para empezar, el <b>dueño</b> entra una sola vez con su cuenta de Google. Después la caja vende normal, también sin internet, y los cajeros usan su PIN.</p>${err}<button class="btn lg" data-a="cloudlogin" style="width:100%">Entrar con Google</button><p class="muted sm" style="margin-top:10px">Así tu información queda respaldada y tu licencia activa.</p>`;
+  if (g === "activar") return `<b>Activa tu Caja Fácil</b><p>Para empezar, el <b>dueño</b> entra una sola vez con su cuenta de Google. Después la caja vende normal, también sin internet, y los cajeros usan su PIN.</p>${err}<button class="btn lg" data-a="cloudlogin" style="width:100%">Entrar con Google</button><p class="muted sm" style="margin-top:10px">Así tu información queda respaldada y tu licencia activa. Al entrar aceptas los <a href="terminos.html" target="_blank" rel="noopener">Términos</a> y la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>.</p>`;
   if (g === "sesion") return `<b>Vuelve a entrar con Google</b><p>Para seguir usando <b>${name}</b>, el dueño debe entrar otra vez con su cuenta de Google. Tus datos están seguros.</p>${err}<button class="btn lg" data-a="cloudlogin" style="width:100%">Entrar con Google</button>`;
   if (g === "conectando") return `<b>Conectando tu caja…</b><p>Estamos activando <b>${name}</b>. Necesitas internet solo para este paso.</p>${err}<div class="btns h"><button class="btn" data-a="gateretry">Reintentar</button><button class="btn sec" data-a="gateout">Usar otra cuenta</button></div>`;
   if (g === "suspendido") return `<b>Sistema suspendido</b><p>La licencia de Caja Fácil de <b>${name}</b> está suspendida. Tus datos siguen guardados y seguros.</p><p class="muted">Comunícate con tu proveedor de Caja Fácil para reactivarla.</p><button class="btn sec" data-a="suspcheck">Ya pagué, volver a revisar</button>`;
@@ -2581,7 +2581,7 @@ function cloudSettingsHtml() {
       <div class="kv"><span>Ves las ventas de todas tus tiendas desde tu celular</span></div><div class="kv"><span>Si se malogra la computadora, recuperas todo</span></div><div class="kv"><span>La caja sigue vendiendo sin internet y sube los cambios cuando vuelve la señal</span></div>
       ${cloud.err ? `<p class="dpts" style="margin-top:10px">${esc(cloud.err)}</p>` : ""}
       <button class="btn lg" data-a="cloudlogin" style="margin-top:14px;width:100%">Entrar con Google</button>
-      <p class="muted sm" style="margin-top:8px">Solo el dueño entra con Google. Los cajeros siguen usando su PIN.</p></div>`;
+      <p class="muted sm" style="margin-top:8px">Solo el dueño entra con Google. Los cajeros siguen usando su PIN. Al entrar aceptas los <a href="terminos.html" target="_blank" rel="noopener">Términos</a> y la <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>.</p></div>`;
   return `<div class="card"><h2>Tu negocio en la nube</h2>
       <div class="kv"><span>Cuenta</span><b>${esc((s.ses.user || {}).email || "Google")}</b></div>
       <div class="kv"><span>Negocio</span><b>${esc(s.negName || "—")}</b></div>
@@ -2589,7 +2589,8 @@ function cloudSettingsHtml() {
       <div class="kv"><span>Copia en la nube</span><b id="cloudst">${cloudStatus()}</b></div>
       <div class="row wrap" style="margin-top:12px">${s.ver ? `<button class="btn" data-a="cloudnew">Usar este equipo como caja</button>` : `<button class="btn" data-a="cloudpush">Subir ahora</button>`}<button class="btn sec" data-a="cloudrecover">Recuperar una tienda</button><button class="btn sec" data-a="cloudout">Cerrar sesión</button></div></div>
     ${s.ver ? "" : soporteHtml()}${s.admin ? adminHtml() : ""}
-    <div class="card"><div class="row sp"><h2>Mis tiendas hoy</h2><button class="btn sec sm" data-a="cloudpanel">Ver mis tiendas</button></div>${panelHtml()}</div>`;
+    <div class="card"><div class="row sp"><h2>Mis tiendas hoy</h2><button class="btn sec sm" data-a="cloudpanel">Ver mis tiendas</button></div>${panelHtml()}</div>
+    <p class="muted sm" style="text-align:center">${'<a href="terminos.html" target="_blank" rel="noopener">Términos de uso</a> · <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>'}</p>`;
 }
 function cloudStatus() {
   const s = cloudLoad();

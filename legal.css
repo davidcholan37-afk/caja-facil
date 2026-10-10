@@ -1,0 +1,25 @@
+/* Páginas legales de Caja Fácil: livianas, sin fuentes incrustadas */
+:root{--bg:#F3F4F7;--s1:#FFFFFF;--t1:#0B1220;--t2:#4B5565;--t3:#667085;--hl:rgba(15,23,42,.10);--ac:#0A66FF;--ac-ink:#0757D9;--fill:#FFF3C4;--fill-t:#7A5200;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B0F17;--s1:#121826;--t1:#EEF2F8;--t2:#B4BDCB;--t3:#8A94A6;--hl:rgba(255,255,255,.10);--ac:#5B9BFF;--ac-ink:#8AB6FF;--fill:#3A2E0A;--fill-t:#FFD970;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0B0F17;--s1:#121826;--t1:#EEF2F8;--t2:#B4BDCB;--t3:#8A94A6;--hl:rgba(255,255,255,.10);--ac:#5B9BFF;--ac-ink:#8AB6FF;--fill:#3A2E0A;--fill-t:#FFD970;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--t1);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:28px 16px 64px}
+.back{display:inline-block;margin-bottom:24px;color:var(--ac-ink);text-decoration:none;font-weight:600;padding:8px 0}
+.back:hover{text-decoration:underline}
+h1{font-size:clamp(1.8rem,5vw,2.4rem);line-height:1.15;letter-spacing:-.02em;font-weight:800}
+.upd{color:var(--t3);font-size:.9rem;margin:6px 0 24px}
+.lead{font-size:1.08rem;background:var(--s1);border:1px solid var(--hl);border-radius:16px;padding:16px 18px;margin-bottom:8px}
+h2{font-size:1.2rem;letter-spacing:-.01em;margin:32px 0 8px;font-weight:750}
+h3{font-size:1rem;margin:16px 0 4px;font-weight:700}
+p,li{color:var(--t2)}
+p+p{margin-top:10px}
+b{color:var(--t1)}
+ul{padding-left:20px;margin-top:6px}
+li+li{margin-top:6px}
+a{color:var(--ac-ink)}
+.card{background:var(--s1);border:1px solid var(--hl);border-radius:16px;padding:14px 18px;margin-top:10px}
+.card p+p{margin-top:4px}
+.fill{background:var(--fill);color:var(--fill-t);border-radius:6px;padding:1px 6px;font-weight:600}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--hl)}

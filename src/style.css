@@ -1603,3 +1603,4 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 .clit{display:flex;flex-direction:column;gap:3px;min-width:0}
 .clit small{color:var(--ink-2)}
 .clia{display:flex;gap:6px;flex-wrap:wrap}
+.suspc a{color:var(--ac-ink);font-weight:600}
