@@ -235,3 +235,18 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
 .steps{max-width:920px;margin-inline:auto}
 .steps li{text-align:center}
 .steps .say{margin-inline:auto}
+
+/* ---------- vitrina: 3 formas de ver la venta, con pestañas ---------- */
+.frames{display:grid}
+.frame{grid-area:1/1;opacity:0;filter:blur(8px);transform:scale(.985);pointer-events:none;transition:opacity 320ms ease,filter 320ms ease,transform 520ms var(--ease-out)}
+.frame.on{opacity:1;filter:none;transform:none;pointer-events:auto}
+.instant .frame{transition:none}
+.tabs{display:inline-flex;margin-top:32px;padding:4px;border-radius:999px;background:var(--gray);gap:2px;max-width:100%}
+.tabs button{appearance:none;border:0;background:transparent;color:var(--t2);font:400 .9375rem/1 var(--f);letter-spacing:-.016em;min-height:40px;padding:0 18px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:background-color 200ms ease,color 200ms ease,transform 160ms var(--ease-out)}
+.tabs button:active{transform:scale(.97)}
+.tabs button[aria-selected="true"]{background:var(--bg);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.08),0 2px 8px -2px rgba(0,0,0,.12)}
+@media (prefers-color-scheme:dark){.tabs button[aria-selected="true"]{background:#2C2C2E}}
+@media (hover:hover) and (pointer:fine){.tabs button[aria-selected="false"]:hover{color:var(--t1)}}
+@media (max-width:420px){.tabs button{padding:0 12px;font-size:.875rem}}
+.tabcap{margin-top:14px;color:var(--t2);font-size:1rem;min-height:1.5em}
+@media (prefers-reduced-motion:no-preference){.hero-shot .frame .shot{animation:none}.hero-shot .frames{animation:rise-far 1100ms var(--ease-out) 240ms both}}

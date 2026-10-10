@@ -67,13 +67,39 @@
         <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
       </div>
     </div>
-    <div class="hero-shot">
-      <picture>
-        <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_venta-dark-780.webp" width="780" height="1688">
-        <source media="(max-width: 640px)" srcset="img/cel_venta-light-780.webp" width="780" height="1688">
-        <source media="(prefers-color-scheme: dark)" srcset="img/pc_venta-dark-1280.webp 1280w, img/pc_venta-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
-        <img class="shot" src="img/pc_venta-light-1280.webp" srcset="img/pc_venta-light-1280.webp 1280w, img/pc_venta-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" fetchpriority="high" alt="Pantalla de venta de Caja Fácil: ticket con Inca Kola, arroz por kilo y total de S/ 16.80, con los productos sin código de barras a la derecha">
-      </picture>
+    <div class="hero-shot showcase">
+      <div class="frames">
+      <div class="frame on" id="f-escaner" role="tabpanel" aria-labelledby="t-escaner">
+        <picture>
+          <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_escaner-dark-780.webp" width="780" height="1688">
+          <source media="(max-width: 640px)" srcset="img/cel_escaner-light-780.webp" width="780" height="1688">
+          <source media="(prefers-color-scheme: dark)" srcset="img/pc_escaner-dark-1280.webp 1280w, img/pc_escaner-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
+          <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" fetchpriority="high" alt="Modo escáner: sin fotos, muestra lo último que pasaste y accesos para productos sin código de barras">
+        </picture>
+      </div>
+      <div class="frame" id="f-fichas" role="tabpanel" aria-labelledby="t-fichas" aria-hidden="true">
+        <picture>
+          <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_fichas-dark-780.webp" width="780" height="1688">
+          <source media="(max-width: 640px)" srcset="img/cel_fichas-light-780.webp" width="780" height="1688">
+          <source media="(prefers-color-scheme: dark)" srcset="img/pc_fichas-dark-1280.webp 1280w, img/pc_fichas-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
+          <img class="shot" src="img/pc_fichas-light-1280.webp" srcset="img/pc_fichas-light-1280.webp 1280w, img/pc_fichas-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Modo fichas con fotos: productos con su foto, precio y stock para tocar, con filtros por categoría">
+        </picture>
+      </div>
+      <div class="frame" id="f-grandes" role="tabpanel" aria-labelledby="t-grandes" aria-hidden="true">
+        <picture>
+          <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="img/cel_grandes-dark-780.webp" width="780" height="1688">
+          <source media="(max-width: 640px)" srcset="img/cel_grandes-light-780.webp" width="780" height="1688">
+          <source media="(prefers-color-scheme: dark)" srcset="img/pc_grandes-dark-1280.webp 1280w, img/pc_grandes-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720">
+          <img class="shot" src="img/pc_grandes-light-1280.webp" srcset="img/pc_grandes-light-1280.webp 1280w, img/pc_grandes-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Fichas grandes para pantallas táctiles: productos con fotos más grandes, fáciles de tocar">
+        </picture>
+      </div>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Formas de ver la pantalla de venta">
+      <button type="button" role="tab" id="t-escaner" aria-controls="f-escaner" aria-selected="true" tabindex="0" data-cap="Para minimarkets: pasas el código y ves lo último que pasaste.">Escáner</button>
+      <button type="button" role="tab" id="t-fichas" aria-controls="f-fichas" aria-selected="false" tabindex="-1" data-cap="Para bodegas y fruterías: tocas la foto del producto.">Fichas con fotos</button>
+      <button type="button" role="tab" id="t-grandes" aria-controls="f-grandes" aria-selected="false" tabindex="-1" data-cap="Para pantallas táctiles: fichas grandes, fáciles de tocar.">Fichas grandes</button>
+      </div>
+      <p class="tabcap" aria-live="polite">Para minimarkets: pasas el código y ves lo último que pasaste.</p>
     </div>
     <p class="hero-say"><strong>Lector o cámara, Yape o efectivo, y el cierre del día cuadrado.</strong> Todo en una caja que sigue vendiendo aunque se vaya el internet.</p>
   </section>
