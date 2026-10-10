@@ -4,7 +4,7 @@
 let installEvt = null;
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; if (ui.tab === "aj") render(); });
 window.addEventListener("appinstalled", () => { installEvt = null; toast("Listo: Caja Fácil quedó instalada"); if (ui.tab === "aj") render(); });
-const isApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true || /Electron|CajaFacilEscritorio/.test(navigator.userAgent);
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 function installHtml() {

@@ -30,9 +30,28 @@ function cloudCatchRedirect() {
   const err = h.get("error_description") || q.get("error_description");
   if (err) { cloud.err = err.replace(/\+/g, " "); history.replaceState(null, "", location.pathname); return "error"; }
   const at = h.get("access_token"); if (!at) return "";
+  // Entrada pedida por el programa de Windows: la sesión no se queda en este navegador, vuelve al programa.
+  let desk = 0; try { desk = +localStorage.getItem(DESK_KEY) || 0; } catch (e) {}
+  if (desk && Date.now() - desk < 15 * 60e3) {
+    try { localStorage.removeItem(DESK_KEY); } catch (e) {}
+    const link = "cajafacil://auth" + location.hash;
+    history.replaceState(null, "", location.pathname);
+    deskReturn(link); return "escritorio";
+  }
   const s = cloudLoad();
   s.ses = { at, rt: h.get("refresh_token") || "", exp: Date.now() + (+h.get("expires_in") || 3600) * 1000, user: cloudUserFromJwt(at) };
   cloudStore(); history.replaceState(null, "", location.pathname); return "ok";
+}
+/* ---------- programa de Windows (desktop/) ---------- */
+// Google no deja iniciar sesión dentro de programas de escritorio. El programa abre el navegador normal en
+// «#login-escritorio»; aquí se entra con Google y, al volver, se devuelve la sesión al programa con cajafacil://auth#...
+const DESK_KEY = "cf-escritorio";
+const isDesktopApp = () => /Electron|CajaFacilEscritorio/.test(navigator.userAgent);
+function deskReturn(link) {
+  const el = document.createElement("div"); el.id = "deskret"; el.setAttribute("role", "dialog");
+  el.innerHTML = `<div class="suspc"><b>Listo, ya entraste</b><p>Vuelve al programa <b>Caja Fácil</b> en tu computadora. Si no se abrió solo, toca el botón.</p><a class="btn" href="${link}" style="width:100%">Abrir Caja Fácil</a><p class="muted sm" style="margin-top:10px">Puedes cerrar esta pestaña.</p></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { location.href = link; }, 300);
 }
 function cloudUserFromJwt(at) {
   try { const p = JSON.parse(atob(at.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return { id: p.sub, email: p.email || "" }; } catch (e) { return { id: "", email: "" }; }
@@ -325,7 +344,12 @@ act({
 
 /* ---------- arranque: sesión que vuelve de Google, subida automática ---------- */
 function cloudBoot() {
+  if (location.hash === "#login-escritorio") { // lo abre el programa de Windows para entrar con Google
+    try { localStorage.setItem(DESK_KEY, String(Date.now())); } catch (e) {}
+    history.replaceState(null, "", location.pathname); cloudLoginGoogle(); return;
+  }
   const r = cloudCatchRedirect();
+  if (r === "escritorio") return;
   if (r === "ok") { ui.tab = "aj"; ui.atab = "nube"; render(); toast("Entraste con Google. Conectando tu caja…"); cloudStart(); }
   else if (r === "error") { ui.tab = "aj"; ui.atab = "nube"; render(); toast("No se pudo entrar con Google: " + cloud.err, true); }
   else if (cloudOn()) { const s = cloudLoad(); if (!s.chk) { s.chk = Date.now(); cloudStore(); } cloudSchedule(3000); applySusp(); cloudRefreshNeg(); cloudCheckAdmin(); }

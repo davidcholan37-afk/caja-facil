@@ -1595,7 +1595,7 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 @media (prefers-reduced-motion:reduce){.sheet,.paper.done,.stamp{animation:fadeBg 150ms ease!important}}
 
 /* ===== licencia suspendida y panel del proveedor ===== */
-#susp{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:20px;background:rgba(14,15,18,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#susp,#deskret{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:20px;background:rgba(14,15,18,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .suspc{max-width:420px;width:100%;padding:24px;border-radius:20px;background:var(--paper);color:var(--ink);text-align:center;box-shadow:0 24px 60px -20px rgba(0,0,0,.5)}
 .suspc>b:first-child{display:block;font-size:1.4rem;font-weight:800;margin-bottom:8px}
 .suspc p{margin-bottom:10px;line-height:1.45}
@@ -1609,3 +1609,4 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 /* pasos para instalar la app */
 .steps-ins{margin:6px 0 0 20px;display:grid;gap:8px;line-height:1.45}
 .steps-ins li::marker{color:var(--t3, #667085);font-weight:600}
+.suspc a.btn{color:#fff;text-decoration:none;display:flex;justify-content:center}

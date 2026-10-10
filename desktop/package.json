@@ -1,0 +1,39 @@
+{
+  "name": "caja-facil-escritorio",
+  "productName": "Caja Fácil",
+  "version": "1.0.0",
+  "description": "Caja Fácil: punto de venta para bodegas, minimarkets y fruterías",
+  "author": "Caja Fácil",
+  "homepage": "https://davidcholan37-afk.github.io/caja-facil/web/",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "pe.cajafacil.escritorio",
+    "productName": "Caja Fácil",
+    "copyright": "© 2026 Caja Fácil",
+    "files": ["main.js", "build/icon.png"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "protocols": [{ "name": "Caja Fácil", "schemes": ["cajafacil"] }],
+    "win": { "target": "nsis", "icon": "build/icon.ico", "artifactName": "CajaFacil-Setup.exe" },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Caja Fácil",
+      "uninstallDisplayName": "Caja Fácil",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

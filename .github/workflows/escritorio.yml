@@ -1,0 +1,59 @@
+# Fabrica el instalador de Windows (CajaFacil-Setup.exe) en una computadora Windows de GitHub
+# y lo publica en «Releases» del repositorio. Se ejecuta solo cuando cambia la carpeta desktop/,
+# o a mano desde la pestaña «Actions» › «Programa de Windows» › «Run workflow».
+name: Programa de Windows
+
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/escritorio.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar herramientas
+        run: npm install --no-audit --no-fund
+
+      - name: Fabricar el instalador .exe
+        run: npm run dist
+
+      - name: Leer la versión
+        id: ver
+        shell: bash
+        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Guardar el .exe (copia en Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CajaFacil-Setup
+          path: desktop/dist/CajaFacil-Setup.exe
+
+      - name: Publicar para descargar
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: escritorio-v${{ steps.ver.outputs.v }}
+          name: Caja Fácil para Windows ${{ steps.ver.outputs.v }}
+          body: |
+            Instalador de Caja Fácil para Windows 10 y 11.
+
+            1. Descarga **CajaFacil-Setup.exe**.
+            2. Ábrelo. Si Windows muestra «Windows protegió su PC», toca **Más información** y luego **Ejecutar de todas formas** (el instalador aún no tiene firma digital).
+            3. Se instala solo y deja el ícono **Caja Fácil** en el escritorio.
+
+            El programa se actualiza solo: cada mejora del sistema llega sin reinstalar.
+          files: desktop/dist/CajaFacil-Setup.exe
+          make_latest: true
