@@ -50,7 +50,7 @@ async function cloudToken() {
   cloudSetSession(await r.json()); return cloud.st.ses.at;
 }
 function cloudLogout() {
-  const s = cloudLoad(); s.ses = null; s.neg = ""; s.negName = ""; s.h = {}; s.last = 0; s.ver = false; cloudStore();
+  const s = cloudLoad(); s.ses = null; s.neg = ""; s.negName = ""; s.h = {}; s.last = 0; s.ver = false; s.estado = ""; s.sop = null; s.admin = false; cloudStore(); applySusp(); cloud.cli = null;
   cloud.panel = null; toast("Cerraste sesión en la nube. Esta caja sigue funcionando igual.");
 }
 
@@ -65,8 +65,10 @@ async function sb(path, opt = {}) {
 // La primera vez que el dueño entra, se crea su negocio en la nube.
 async function cloudEnsureNegocio() {
   const s = cloudLoad(); if (s.neg) return s.neg;
-  const list = await sb("negocios?select=id,nombre&order=creado.asc");
-  if (list.length) { s.neg = list[0].id; s.negName = list[0].nombre; }
+  const uidMe = (s.ses && s.ses.user && s.ses.user.id) || "";
+  // Solo los negocios propios (el proveedor también puede ver negocios de clientes que le dieron permiso de soporte)
+  const list = await sb(`negocios?select=id,nombre,estado,soporte_hasta&dueno=eq.${uidMe}&order=creado.asc`);
+  if (list.length) { s.neg = list[0].id; s.negName = list[0].nombre; s.estado = list[0].estado; s.sop = list[0].soporte_hasta; }
   else { const n = await sb("negocios", { method: "POST", headers: { Prefer: "return=representation" }, body: { nombre: DB.biz.name || "Mi negocio" } }); s.neg = n[0].id; s.negName = n[0].nombre; }
   cloudStore(); return s.neg;
 }
@@ -107,7 +109,7 @@ function cloudSchedule(ms = 5000) { if (!cloudOn()) return; clearTimeout(cloud.t
 /* ---------- conectar esta caja / recuperar una tienda ---------- */
 async function cloudStart() {
   try {
-    await cloudEnsureNegocio();
+    await cloudEnsureNegocio(); await cloudCheckAdmin(); applySusp();
     const tiendas = await cloudTiendas();
     const mine = tiendas.find((t) => t.tienda === DB.biz.sid);
     if (!mine && tiendas.length && !DB.sales.length && !DB.products.length) { cloudPaint(); openRecover(tiendas); return; }
@@ -172,6 +174,85 @@ function panelHtml() {
   return `<div class="kv strong"><span>Todas las tiendas hoy</span><span class="num">${money(tot)}</span></div>` + list.map(([sid, b]) => `<div class="kv"><span><b>${esc(b.name)}</b><small class="muted"> · ${b.n} ${b.n === 1 ? "venta" : "ventas"}${b.m.efectivo ? " · efectivo " + money(b.m.efectivo) : ""}${b.m.yape ? " · Yape " + money(b.m.yape) : ""}${b.act ? " · copia " + hhmm(Date.parse(b.act)) : ""}${sid === DB.biz.sid ? " · esta caja" : ""}</small></span><span class="num">${money(b.total)}</span></div>`).join("") + `<p class="muted sm" style="margin-top:8px">Actualizado a las ${hhmm(p.t)}</p>`;
 }
 
+/* ---------- licencia, soporte con permiso y panel del proveedor ---------- */
+// Estado del negocio en la nube (activo / suspendido) y permiso de soporte.
+async function cloudRefreshNeg() {
+  const s = cloudLoad(); if (!s.ses || !s.neg) return;
+  try {
+    const r = await sb(`negocios?select=nombre,estado,soporte_hasta&id=eq.${s.neg}`);
+    if (r && r[0]) { s.negName = r[0].nombre; s.estado = r[0].estado; s.sop = r[0].soporte_hasta; cloudStore(); }
+  } catch (e) {}
+  applySusp();
+}
+async function cloudCheckAdmin() {
+  const s = cloudLoad(); if (!s.ses) return;
+  try { s.admin = !!(await sb("rpc/soy_admin", { method: "POST", body: {} })); cloudStore(); } catch (e) {}
+}
+// Si el proveedor suspende la licencia, la caja se bloquea mientras siga conectada a la nube.
+function applySusp() {
+  const s = cloudLoad(), on = !!(s.ses && s.estado === "suspendido");
+  let el = $("#susp");
+  if (!on) { if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement("div"); el.id = "susp"; el.setAttribute("role", "alertdialog");
+  el.innerHTML = `<div class="suspc"><b>Sistema suspendido</b><p>La licencia de Caja Fácil de <b>${esc(s.negName || "tu negocio")}</b> está suspendida. Tus datos siguen guardados y seguros.</p><p class="muted">Comunícate con tu proveedor de Caja Fácil para reactivarla.</p><button class="btn sec" data-a="suspcheck">Ya pagué, volver a revisar</button></div>`;
+  document.body.appendChild(el);
+}
+const sopActivo = () => { const s = cloudLoad(); return !!(s.sop && Date.parse(s.sop) > Date.now()); };
+async function cloudSoporte(horas) {
+  const s = cloudLoad();
+  const hasta = horas ? new Date(Date.now() + horas * 3600e3).toISOString() : null;
+  try {
+    await sb(`negocios?id=eq.${s.neg}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: { soporte_hasta: hasta } });
+    s.sop = hasta; cloudStore(); log(horas ? "Acceso de soporte dado" : "Acceso de soporte quitado", horas ? `${horas} h` : "");
+    toast(horas ? `Listo: soporte puede ver tus datos hasta el ${fmtDT(Date.parse(hasta))}` : "Listo: soporte ya no puede ver tus datos");
+  } catch (e) { toast("No se pudo cambiar el acceso. Revisa tu internet.", true); }
+  render();
+}
+function soporteHtml() {
+  const s = cloudLoad(), on = sopActivo();
+  return `<div class="card"><h2>Soporte técnico</h2><p class="muted" style="margin-bottom:10px">Si tienes un problema, puedes dejar que tu proveedor de Caja Fácil <b>vea</b> (sin cambiar nada) tus ventas, productos y caja por un tiempo.</p>
+    <div class="kv"><span>Acceso de soporte</span><b>${on ? `Activo hasta ${fmtDT(Date.parse(s.sop))}` : "Cerrado"}</b></div>
+    <div class="row wrap" style="margin-top:10px">${on ? `<button class="btn red sec" data-a="sopoff">Quitar acceso ahora</button>` : `<button class="btn sec" data-a="sopon" data-h="24">Dar acceso por 24 horas</button><button class="btn sec" data-a="sopon" data-h="168">Por 7 días</button>`}</div></div>`;
+}
+async function adminLoad() {
+  try { cloud.cli = await sb("rpc/admin_negocios", { method: "POST", body: {} }); } catch (e) { cloud.cli = { err: true }; }
+  if (ui.tab === "aj" && ui.atab === "nube") render();
+}
+function adminHtml() {
+  const c = cloud.cli, me = (cloudLoad().neg || "");
+  const body = !c ? `<p class="muted">Toca «Ver clientes» para traer la lista.</p>` : c.err ? `<p class="muted">No se pudo traer la lista. Revisa tu internet.</p>` : !c.length ? `<p class="muted">Aún no tienes clientes.</p>`
+    : c.map((n) => { const sop = n.soporte_hasta && Date.parse(n.soporte_hasta) > Date.now(), mine = n.id === me;
+      return `<div class="cli"><div class="clit"><b>${esc(n.nombre)}${mine ? " <small class=\"muted\">(tu negocio)</small>" : ""}</b><small>${esc(n.correo || "")} · ${n.tiendas || 0} ${n.tiendas === 1 ? "caja" : "cajas"} · ${n.ultima ? "última copia " + fmtDT(Date.parse(n.ultima)) : "sin copias aún"}</small>
+        <small><span class="tag ${n.estado === "suspendido" ? "out" : ""}">${n.estado === "suspendido" ? "Suspendido" : "Activo"}</span> ${sop ? `<span class="tag">Soporte hasta ${fmtDT(Date.parse(n.soporte_hasta))}</span>` : ""}${n.nota ? " · " + esc(n.nota) : ""}</small></div>
+        <div class="clia">${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
+  return `<div class="card"><div class="row sp"><h2>Mis clientes</h2><button class="btn sec sm" data-a="adminlist">Ver clientes</button></div><p class="muted sm" style="margin-bottom:8px">Solo tú ves esto. Para ver los datos de un cliente, él debe darte acceso en su Ajustes › Nube › Soporte técnico.</p>${body}</div>`;
+}
+// Resumen de solo lectura de un cliente que dio permiso.
+async function adminVer(id) {
+  toast("Trayendo los datos del cliente…");
+  try {
+    const desde = addD(dkey(), -6);
+    const [base, ventas] = await Promise.all([
+      sb(`registros?select=tienda,tipo,datos&negocio_id=eq.${id}&borrado=eq.false&tipo=in.(config,products)&limit=5000`),
+      sb(`registros?select=tienda,datos&negocio_id=eq.${id}&borrado=eq.false&tipo=eq.sales&datos->>date=gte.${desde}&limit=5000`)
+    ]);
+    const tiendas = {};
+    base.filter((r) => r.tipo === "config").forEach((r) => { tiendas[r.tienda] = (r.datos.biz && (r.datos.biz.store || r.datos.biz.name)) || r.tienda; });
+    const prods = base.filter((r) => r.tipo === "products").map((r) => Object.assign({ _t: r.tienda }, r.datos));
+    const vs = ventas.map((r) => Object.assign({ _t: r.tienda }, r.datos)).filter((v) => !v.void);
+    const hoy = vs.filter((v) => v.date === dkey()), tot = (a) => r2(a.reduce((x, v) => x + (+v.total || 0), 0));
+    const bajo = prods.filter((p) => p.stock != null && p.stock <= (p.min || 0)).slice(0, 15);
+    const ult = vs.sort((a, b) => b.t - a.t).slice(0, 12);
+    const negName = ((cloud.cli || []).find && (cloud.cli.find((n) => n.id === id) || {}).nombre) || "Cliente";
+    openModal(`<h2>${esc(negName)}</h2><p class="muted" style="margin-bottom:12px">Solo lectura · ${Object.keys(tiendas).length} ${Object.keys(tiendas).length === 1 ? "caja" : "cajas"}: ${Object.values(tiendas).map(esc).join(", ") || "—"}</p>
+      <div class="sumrow"><div class="sum"><b class="num">${money(tot(hoy))}</b><span>Hoy · ${hoy.length} ventas</span></div><div class="sum"><b class="num">${money(tot(vs))}</b><span>Últimos 7 días · ${vs.length}</span></div><div class="sum ${bajo.length ? "warn" : ""}"><b class="num">${prods.length}</b><span>Productos · ${bajo.length} por acabarse</span></div></div>
+      ${bajo.length ? `<h3 style="margin:10px 0 6px">Por acabarse</h3>${bajo.map((p) => `<div class="kv"><span>${esc(p.name)}<small class="muted"> · ${esc(tiendas[p._t] || p._t)}</small></span><span class="num">${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""}</span></div>`).join("")}` : ""}
+      <h3 style="margin:12px 0 6px">Últimas ventas</h3>${ult.length ? ult.map((v) => `<div class="kv"><span>${dmy(v.date)} ${hhmm(v.t)}<small class="muted"> · ${esc(tiendas[v._t] || v._t)} · ${esc((v.pays || []).map((p) => METHODS[p.m] || p.m).join(" + "))}</small></span><span class="num">${money(v.total)}</span></div>`).join("") : `<p class="muted">Sin ventas en los últimos 7 días.</p>`}
+      <div class="btns"><button class="btn sec" data-a="close">Cerrar</button></div>`, "wide");
+  } catch (e) { toast("No se pudo ver: el cliente debe darte acceso de soporte", true); }
+}
+
 /* ---------- pantalla en Ajustes › Nube ---------- */
 function cloudSettingsHtml() {
   const s = cloudLoad();
@@ -186,6 +267,7 @@ function cloudSettingsHtml() {
       <div class="kv"><span>Esta caja</span><b>${esc(DB.biz.store)} <small class="muted">(${esc(DB.biz.sid)})</small></b></div>
       <div class="kv"><span>Copia en la nube</span><b id="cloudst">${cloudStatus()}</b></div>
       <div class="row wrap" style="margin-top:12px">${s.ver ? `<button class="btn" data-a="cloudnew">Usar este equipo como caja</button>` : `<button class="btn" data-a="cloudpush">Subir ahora</button>`}<button class="btn sec" data-a="cloudrecover">Recuperar una tienda</button><button class="btn sec" data-a="cloudout">Cerrar sesión</button></div></div>
+    ${s.ver ? "" : soporteHtml()}${s.admin ? adminHtml() : ""}
     <div class="card"><div class="row sp"><h2>Mis tiendas hoy</h2><button class="btn sec sm" data-a="cloudpanel">Ver mis tiendas</button></div>${panelHtml()}</div>`;
 }
 function cloudStatus() {
@@ -205,6 +287,14 @@ act({
   cloudrecover: async () => { try { const t = await cloudTiendas(); if (!t.length) return toast("Aún no hay tiendas en la nube"); openRecover(t); } catch (e) { toast("Sin conexión con la nube", true); } },
   cloudrec: (el) => { const sid = el.dataset.s; closeModal(); confirmBox("¿Traer esta tienda a este equipo?", "Traer datos", () => cloudRecover(sid), false, "Lo que hay ahora en este equipo se reemplaza por lo de la nube."); },
   cloudnew: async () => { closeModal(); cloud.st.ver = false; cloudStore(); await cloudPush(true); toast("Listo: esta caja se guarda como tienda nueva"); },
+  sopon: (el) => cloudSoporte(+el.dataset.h),
+  sopoff: () => confirmBox("¿Quitar el acceso de soporte?", "Quitar acceso", () => cloudSoporte(0), false),
+  adminlist: () => { cloud.cli = null; adminLoad(); },
+  adminver: (el) => adminVer(el.dataset.id),
+  adminest: (el) => { const id = el.dataset.id, e = el.dataset.e, n = (cloud.cli || []).find((x) => x.id === id) || {};
+    const go = async () => { try { await sb("rpc/admin_estado", { method: "POST", body: { n: id, e } }); toast(e === "suspendido" ? `${n.nombre} quedó suspendido` : `${n.nombre} está activo otra vez`); } catch (er) { toast("No se pudo cambiar el estado", true); } adminLoad(); };
+    if (e === "suspendido") confirmBox(`¿Suspender a ${n.nombre || "este cliente"}?`, "Suspender", go, true, "Su caja se bloquea la próxima vez que se conecte a la nube. Sus datos no se borran."); else go(); },
+  suspcheck: async () => { await cloudRefreshNeg(); toast(cloudLoad().estado === "suspendido" ? "Sigue suspendido. Comunícate con tu proveedor." : "¡Listo! Tu sistema está activo otra vez."); },
   cloudview: () => { cloud.st.ver = true; cloudStore(); closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); cloudPanel(); toast("Este equipo solo mira tus tiendas"); }
 });
 
@@ -213,9 +303,9 @@ function cloudBoot() {
   const r = cloudCatchRedirect();
   if (r === "ok") { ui.tab = "aj"; ui.atab = "nube"; render(); toast("Entraste con Google. Conectando tu caja…"); cloudStart(); }
   else if (r === "error") { ui.tab = "aj"; ui.atab = "nube"; render(); toast("No se pudo entrar con Google: " + cloud.err, true); }
-  else if (cloudOn()) cloudSchedule(3000);
+  else if (cloudOn()) { cloudSchedule(3000); applySusp(); cloudRefreshNeg(); cloudCheckAdmin(); }
   // Cada vez que la app guarda algo, se programa una subida (agrupa los cambios de varios segundos).
   const _save = save; save = function () { const out = _save.apply(this, arguments); cloudSchedule(); return out; };
   window.addEventListener("online", () => cloudSchedule(1000));
-  setInterval(() => { if (cloudOn() && !document.hidden) cloudPush(); }, 120000);
+  setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } }, 120000);
 }
