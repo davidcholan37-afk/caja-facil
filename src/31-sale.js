@@ -18,7 +18,7 @@ VIEWS.venta = function viewSale(v) {
       </div>
       <div class="chips cats" id="cats"></div>
       <div class="grid t-${DB.cfg.tile}" id="grid"></div>
-      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b><span>Caja Fácil · ${esc((me() || {}).name || "")}</span></div>
+      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b>${curShift() ? `<i class="cstat">Caja abierta</i>` : ""}<span>Caja Fácil · ${esc((me() || {}).name || "")}</span></div>
       <div class="fkeys" aria-label="Teclas rápidas">
     ${cobra ? `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>
     <button class="fk c-verde" data-a="pay" data-m="efectivo"><kbd>F2</kbd>${svg("money")}<span>Cobrar</span></button>` : `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>

@@ -510,6 +510,7 @@ const IC = {
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   torch: '<path d="M9 3h6v4l-1.5 3v10h-3V10L9 7z"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
   money: '<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v.01M18 14.5v.01"/>'
 };
 const svg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k] || ""}</svg>`;
@@ -543,9 +544,18 @@ function render() {
 function moreMenu() {
   const items = [["cli", "Clientes"], ["prov", "Proveedores", "caja"], ["rep", "Reportes", "reportes"], ["aj", "Ajustes", "ajustes"]].filter((x) => !x[2] || can(x[2]));
   openModal(`<h2>Más opciones</h2><div class="menu">${items.map(([t, l]) => `<button class="mi" data-a="tab" data-t="${t}"><span class="ic">${svg(t)}</span>${l}</button>`).join("")}
+    <button class="mi" data-a="theme"><span class="ic">${svg("moon")}</span>${document.documentElement.dataset.theme === "dark" ? "Tema claro" : "Tema oscuro"}</button>
     <button class="mi" data-a="switchuser"><span class="ic">${svg("user")}</span>Cambiar de usuario</button></div>`);
 }
-act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal });
+// Tema claro u oscuro: solo cambia la apariencia y se recuerda en este navegador.
+function toggleTheme() {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  try { localStorage.setItem("cf-theme", dark ? "dark" : "light"); } catch (e) {}
+  const m = $('meta[name="theme-color"]'); if (m) m.content = dark ? "#07090D" : "#F3F4F7";
+  if (modalOpen()) closeModal();
+}
+act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal, theme: toggleTheme });
 
 /* ===================== 20 · USUARIOS, CLAVES Y PERMISOS ===================== */
 const initials = (n) => String(n || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
@@ -776,7 +786,7 @@ VIEWS.venta = function viewSale(v) {
       </div>
       <div class="chips cats" id="cats"></div>
       <div class="grid t-${DB.cfg.tile}" id="grid"></div>
-      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b><span>Caja Fácil · ${esc((me() || {}).name || "")}</span></div>
+      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b>${curShift() ? `<i class="cstat">Caja abierta</i>` : ""}<span>Caja Fácil · ${esc((me() || {}).name || "")}</span></div>
       <div class="fkeys" aria-label="Teclas rápidas">
     ${cobra ? `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>
     <button class="fk c-verde" data-a="pay" data-m="efectivo"><kbd>F2</kbd>${svg("money")}<span>Cobrar</span></button>` : `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>
