@@ -337,3 +337,39 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
     }
   }
 }
+
+/* ---------- v5: portada con la foto real de una bodega y una tarjeta real del sistema flotando ---------- */
+.hero{padding-top:0}
+.hero-photo{position:relative;min-height:calc(100svh - 52px);display:flex;align-items:flex-end;overflow:hidden;isolation:isolate}
+.hero-bg{position:absolute;inset:0;z-index:-2}
+.hero-bg img{width:100%;height:100%;object-fit:cover;object-position:50% 45%}
+/* oscurecido suave para que el texto se lea: más fuerte abajo y a la izquierda, la tienda se sigue viendo */
+.hero-photo::after{content:"";position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(to top,#050507 0%,rgba(5,5,7,.86) 22%,rgba(5,5,7,.45) 55%,rgba(5,5,7,.25) 100%),
+  linear-gradient(to right,rgba(5,5,7,.65) 0%,rgba(5,5,7,0) 60%)}
+.hero-photo .hero-copy{position:relative;width:100%;max-width:var(--wrap);margin:0 auto;padding:0 var(--gut) clamp(48px,9vh,96px);align-items:flex-start;text-align:left}
+.hero-photo h1{max-width:11ch;text-shadow:0 2px 30px rgba(0,0,0,.35)}
+.hero-photo .ctas{justify-content:flex-start}
+.hero-photo .product{color:#E8E8ED;text-shadow:0 1px 16px rgba(0,0,0,.6)}
+.hero-card{position:absolute;right:max(var(--gut),calc((100vw - var(--wrap))/2 + var(--gut)));bottom:clamp(56px,10vh,110px);width:clamp(260px,26vw,360px);border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.12)}
+@media (max-width:900px){
+  .hero-photo{min-height:auto;flex-direction:column;align-items:stretch;padding-top:min(56vw,340px)}
+  .hero-card{position:relative;right:auto;bottom:auto;width:min(78%,330px);margin:0 var(--gut) 40px auto;order:2}
+}
+@media (max-width:640px){
+  .hero-photo{padding-top:48vw}
+  .hero-photo .hero-copy{padding-bottom:32px}
+  .hero-card{margin-bottom:28px}
+  .hero-photo::after{background:linear-gradient(to top,#050507 0%,rgba(5,5,7,.88) 38%,rgba(5,5,7,.35) 70%,rgba(5,5,7,.2) 100%)}
+}
+/* entrada: la tarjeta aparece después del título y se mueve un poco al bajar (profundidad) */
+@media (prefers-reduced-motion:no-preference){
+  .hero-card{animation:rise 900ms var(--ease-out) 420ms both}
+  .hero-bg img{animation:photo-in 1600ms var(--ease-out) both}
+  @keyframes photo-in{from{opacity:0;transform:scale(1.06)}}
+  @supports (animation-timeline: scroll()){
+    .hero-card{animation:rise 900ms var(--ease-out) 420ms both,card-drift linear both;animation-timeline:auto,view();animation-range:normal,exit 0% exit 100%}
+    @keyframes card-drift{to{transform:translateY(-60px)}}
+  }
+}
+.showcase{margin-top:72px}

@@ -11,7 +11,7 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_PE">
 <meta property="og:site_name" content="Caja Fácil">
-<meta property="og:title" content="Caja Fácil: tu bodega, al centavo">
+<meta property="og:title" content="Caja Fácil: tu bodega, al céntimo">
 <meta property="og:description" content="Lector o cámara, venta por kilo, Yape y vuelto exacto, fiado y cierre de caja. S/ 50 al mes, 15 días gratis.">
 <meta property="og:url" content="https://davidcholan37-afk.github.io/caja-facil/web/">
 <meta property="og:image" content="https://davidcholan37-afk.github.io/caja-facil/web/img/compartir.jpg">
@@ -60,21 +60,28 @@
 
   <!-- Portada oscura y cinematográfica: la caja iluminada -->
   <section class="hero" aria-labelledby="h-hero">
+    <div class="hero-photo">
+      <picture class="hero-bg">
+        <source media="(max-width: 640px)" srcset="img/bodega-cel-800.webp" width="800" height="1243">
+        <img src="img/bodega-1280.webp" srcset="img/bodega-1280.webp 1280w, img/bodega-2000.webp 2000w" sizes="100vw" width="1280" height="960" fetchpriority="high" alt="Una bodega de Lima por dentro: estantes con abarrotes, frutas y verduras en canastas, y el mostrador del arroz a granel">
+      </picture>
     <div class="hero-copy">
       <p class="product">Caja Fácil</p>
-      <h1 id="h-hero">Tu bodega, al centavo.</h1>
+      <h1 id="h-hero">Tu bodega, al céntimo.</h1>
       <p class="from">Desde S/ 50 al mes. Los primeros 15 días, gratis.</p>
       <div class="ctas">
         <a class="pill" href="../">Pruébala gratis</a>
         <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
       </div>
     </div>
+      <img class="hero-card" src="img/card-yape-720.webp" width="720" height="492" alt="Tarjeta real de Caja Fácil: cobro de S/ 16.80 con Yape, con el número para yapear y el botón Ya llegó el Yape">
+    </div>
     <div class="showcase">
       <div class="frames">
         <div class="frame on" id="f-escaner" role="tabpanel" aria-labelledby="t-escaner">
         <picture>
           <source media="(max-width: 640px)" srcset="img/cel_escaner-light-780.webp" width="780" height="1688">
-          <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" fetchpriority="high" alt="Modo escáner: sin fotos, muestra lo último que pasaste y accesos para productos sin código de barras">
+          <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" alt="Modo escáner: sin fotos, muestra lo último que pasaste y accesos para productos sin código de barras">
         </picture>
         </div>
         <div class="frame" id="f-fichas" role="tabpanel" aria-labelledby="t-fichas" aria-hidden="true">
@@ -133,7 +140,7 @@
         </article>
         <article class="step" data-i="3">
           <p class="time"><time>21:00</time></p>
-          <p class="say"><strong>Cierras y la caja cuadra.</strong> Cuentas billetes y monedas. La caja te dice si falta o sobra, al centavo.</p>
+          <p class="say"><strong>Cierras y la caja cuadra.</strong> Cuentas billetes y monedas. La caja te dice si falta o sobra, al céntimo.</p>
           <div class="step-img"><picture>
           <source media="(prefers-color-scheme: dark)" srcset="img/dia_arqueo-dark-1280.webp 1280w, img/dia_arqueo-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
           <img class="shot" src="img/dia_arqueo-light-1280.webp" srcset="img/dia_arqueo-light-1280.webp 1280w, img/dia_arqueo-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Arqueo de caja: caja inicial S/ 50, ventas en efectivo S/ 16.80, debe haber S/ 66.80 y la caja cuadra">
