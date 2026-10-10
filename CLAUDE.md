@@ -35,6 +35,8 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Tablas: `negocios`, `miembros`, `registros` (cada elemento de DB.products/sales/... es una fila; `tienda` = DB.biz.sid). Seguridad con RLS: cada usuario solo ve los negocios donde es miembro (`privado.es_miembro`).
 - La caja siempre vende con sus datos locales; la nube solo copia cuando hay internet. Una tienda (sid) se usa en un solo equipo a la vez.
 - Solo el dueño entra con Google; los cajeros siguen con PIN.
+- Licencia: la caja no funciona hasta activarla con Google (pantalla `#susp`). Se bloquea si el proveedor la suspende o si pasan 15 días (`LIC_DIAS`) sin revisar la licencia con internet. Si vence la sesión de Google, sigue vendiendo hasta ese plazo.
+- Soporte: el cliente da permiso por 24 h o 7 días (Ajustes › Nube); el proveedor (tabla `privado.admins`) ve «Mis clientes», mira datos solo con permiso y suspende/activa.
 
 ## Probar
 Sirve la carpeta con `python3 -m http.server 8765` y abre http://localhost:8765. Botón «Cargar ejemplos» para tener productos de prueba.

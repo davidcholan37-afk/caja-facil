@@ -2353,7 +2353,7 @@ async function cloudToken() {
 }
 function cloudLogout() {
   const s = cloudLoad(); s.ses = null; s.neg = ""; s.negName = ""; s.h = {}; s.last = 0; s.ver = false; s.estado = ""; s.sop = null; s.admin = false; cloudStore(); applySusp(); cloud.cli = null;
-  cloud.panel = null; toast("Cerraste sesión en la nube. Esta caja sigue funcionando igual.");
+  cloud.panel = null; toast("Cerraste sesión. Para seguir vendiendo, el dueño debe entrar con Google.");
 }
 
 /* ---------- llamadas a la base (PostgREST) ---------- */
@@ -2372,7 +2372,7 @@ async function cloudEnsureNegocio() {
   const list = await sb(`negocios?select=id,nombre,estado,soporte_hasta&dueno=eq.${uidMe}&order=creado.asc`);
   if (list.length) { s.neg = list[0].id; s.negName = list[0].nombre; s.estado = list[0].estado; s.sop = list[0].soporte_hasta; }
   else { const n = await sb("negocios", { method: "POST", headers: { Prefer: "return=representation" }, body: { nombre: DB.biz.name || "Mi negocio" } }); s.neg = n[0].id; s.negName = n[0].nombre; }
-  cloudStore(); return s.neg;
+  s.chk = Date.now(); cloudStore(); return s.neg;
 }
 
 /* ---------- subir cambios ---------- */
@@ -2417,7 +2417,7 @@ async function cloudStart() {
     if (!mine && tiendas.length && !DB.sales.length && !DB.products.length) { cloudPaint(); openRecover(tiendas); return; }
     await cloudPush(true); toast("Listo: esta caja ya se respalda en la nube");
   } catch (e) { cloud.err = "No se pudo conectar con la nube. Revisa tu internet."; }
-  cloudPaint();
+  applySusp(); cloudPaint();
 }
 async function cloudTiendas() {
   await cloudEnsureNegocio(); // por si la primera conexión no llegó a crear el negocio
@@ -2482,7 +2482,7 @@ async function cloudRefreshNeg() {
   const s = cloudLoad(); if (!s.ses || !s.neg) return;
   try {
     const r = await sb(`negocios?select=nombre,estado,soporte_hasta&id=eq.${s.neg}`);
-    if (r && r[0]) { s.negName = r[0].nombre; s.estado = r[0].estado; s.sop = r[0].soporte_hasta; cloudStore(); }
+    if (r && r[0]) { s.negName = r[0].nombre; s.estado = r[0].estado; s.sop = r[0].soporte_hasta; s.chk = Date.now(); cloudStore(); }
   } catch (e) {}
   applySusp();
 }
@@ -2490,15 +2490,34 @@ async function cloudCheckAdmin() {
   const s = cloudLoad(); if (!s.ses) return;
   try { s.admin = !!(await sb("rpc/soy_admin", { method: "POST", body: {} })); cloudStore(); } catch (e) {}
 }
-// Si el proveedor suspende la licencia, la caja se bloquea mientras siga conectada a la nube.
+// Licencia: cada caja se activa una vez con la cuenta de Google del dueño. Después vende sin internet
+// (los cajeros con su PIN), pero debe revisar su licencia en la nube al menos cada LIC_DIAS días.
+const LIC_DIAS = 15;
+function gateState() {
+  const s = cloudLoad();
+  const viejo = !s.ver && s.chk && Date.now() - s.chk > LIC_DIAS * 864e5;
+  if (!s.ses) return !s.neg ? "activar" : viejo ? "sesion" : ""; // si venció la sesión, sigue vendiendo hasta el plazo
+  if (!s.neg) return "conectando";
+  if (s.estado === "suspendido") return "suspendido";
+  return viejo ? "revisar" : "";
+}
+function gateHtml(g) {
+  const s = cloudLoad(), name = esc(s.negName || DB.biz.name || "tu negocio");
+  const err = cloud.err ? `<p class="dpts">${esc(cloud.err)}</p>` : "";
+  if (g === "activar") return `<b>Activa tu Caja Fácil</b><p>Para empezar, el <b>dueño</b> entra una sola vez con su cuenta de Google. Después la caja vende normal, también sin internet, y los cajeros usan su PIN.</p>${err}<button class="btn lg" data-a="cloudlogin" style="width:100%">Entrar con Google</button><p class="muted sm" style="margin-top:10px">Así tu información queda respaldada y tu licencia activa.</p>`;
+  if (g === "sesion") return `<b>Vuelve a entrar con Google</b><p>Para seguir usando <b>${name}</b>, el dueño debe entrar otra vez con su cuenta de Google. Tus datos están seguros.</p>${err}<button class="btn lg" data-a="cloudlogin" style="width:100%">Entrar con Google</button>`;
+  if (g === "conectando") return `<b>Conectando tu caja…</b><p>Estamos activando <b>${name}</b>. Necesitas internet solo para este paso.</p>${err}<div class="btns h"><button class="btn" data-a="gateretry">Reintentar</button><button class="btn sec" data-a="gateout">Usar otra cuenta</button></div>`;
+  if (g === "suspendido") return `<b>Sistema suspendido</b><p>La licencia de Caja Fácil de <b>${name}</b> está suspendida. Tus datos siguen guardados y seguros.</p><p class="muted">Comunícate con tu proveedor de Caja Fácil para reactivarla.</p><button class="btn sec" data-a="suspcheck">Ya pagué, volver a revisar</button>`;
+  return `<b>Conéctate a internet</b><p>Hace más de ${LIC_DIAS} días que esta caja no revisa su licencia. Conéctala a internet un momento y toca el botón. Tus datos están seguros.</p>${err}<button class="btn" data-a="suspcheck" style="width:100%">Ya tengo internet, revisar</button>`;
+}
+// Pantalla que bloquea la caja si no está activada, si la licencia está suspendida o si pasó mucho sin revisarla.
 function applySusp() {
-  const s = cloudLoad(), on = !!(s.ses && s.estado === "suspendido");
+  const g = gateState();
   let el = $("#susp");
-  if (!on) { if (el) el.remove(); return; }
-  if (el) return;
-  el = document.createElement("div"); el.id = "susp"; el.setAttribute("role", "alertdialog");
-  el.innerHTML = `<div class="suspc"><b>Sistema suspendido</b><p>La licencia de Caja Fácil de <b>${esc(s.negName || "tu negocio")}</b> está suspendida. Tus datos siguen guardados y seguros.</p><p class="muted">Comunícate con tu proveedor de Caja Fácil para reactivarla.</p><button class="btn sec" data-a="suspcheck">Ya pagué, volver a revisar</button></div>`;
-  document.body.appendChild(el);
+  if (!g) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement("div"); el.id = "susp"; el.setAttribute("role", "alertdialog"); el.setAttribute("aria-modal", "true"); document.body.appendChild(el); }
+  const html = `<div class="suspc">${gateHtml(g)}</div>`;
+  if (el.dataset.g !== g || el.innerHTML !== html) { el.dataset.g = g; el.innerHTML = html; }
 }
 const sopActivo = () => { const s = cloudLoad(); return !!(s.sop && Date.parse(s.sop) > Date.now()); };
 async function cloudSoporte(horas) {
@@ -2583,7 +2602,7 @@ function cloudPaint() { const el = $("#cloudst"); if (el) el.innerHTML = cloudSt
 
 act({
   cloudlogin: () => cloudLoginGoogle(),
-  cloudout: () => confirmBox("¿Cerrar sesión en la nube?", "Cerrar sesión", () => { cloudLogout(); render(); }, false, "Esta caja deja de subir copias, pero sigue vendiendo normal."),
+  cloudout: () => confirmBox("¿Cerrar sesión en la nube?", "Cerrar sesión", () => { cloudLogout(); render(); }, false, "La caja se bloquea hasta que el dueño vuelva a entrar con Google. Tus datos no se borran."),
   cloudpush: () => { if (cloudLoad().ses && !cloud.st.neg) { toast("Conectando tu caja…"); cloudStart(); } else { cloudPush(true); cloudPaint(); } },
   cloudpanel: () => { cloud.panel = null; cloudPanel(); toast("Trayendo las ventas de hoy…"); },
   cloudrecover: async () => { try { const t = await cloudTiendas(); if (!t.length) return toast("Aún no hay tiendas en la nube"); openRecover(t); } catch (e) { toast("Sin conexión con la nube", true); } },
@@ -2596,7 +2615,12 @@ act({
   adminest: (el) => { const id = el.dataset.id, e = el.dataset.e, n = (cloud.cli || []).find((x) => x.id === id) || {};
     const go = async () => { try { await sb("rpc/admin_estado", { method: "POST", body: { n: id, e } }); toast(e === "suspendido" ? `${n.nombre} quedó suspendido` : `${n.nombre} está activo otra vez`); } catch (er) { toast("No se pudo cambiar el estado", true); } adminLoad(); };
     if (e === "suspendido") confirmBox(`¿Suspender a ${n.nombre || "este cliente"}?`, "Suspender", go, true, "Su caja se bloquea la próxima vez que se conecte a la nube. Sus datos no se borran."); else go(); },
-  suspcheck: async () => { await cloudRefreshNeg(); toast(cloudLoad().estado === "suspendido" ? "Sigue suspendido. Comunícate con tu proveedor." : "¡Listo! Tu sistema está activo otra vez."); },
+  suspcheck: async () => { const s = cloudLoad(), t0 = s.chk; await cloudRefreshNeg();
+    if (s.estado === "suspendido") toast("Sigue suspendido. Comunícate con tu proveedor.", true);
+    else if (s.chk === t0) toast("No hay conexión con la nube. Revisa tu internet.", true);
+    else toast("¡Listo! Tu caja está activa."); },
+  gateretry: () => { cloud.err = ""; applySusp(); cloudStart(); },
+  gateout: () => { cloudLogout(); cloudLoginGoogle(); },
   cloudview: () => { cloud.st.ver = true; cloudStore(); closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); cloudPanel(); toast("Este equipo solo mira tus tiendas"); }
 });
 
@@ -2605,11 +2629,13 @@ function cloudBoot() {
   const r = cloudCatchRedirect();
   if (r === "ok") { ui.tab = "aj"; ui.atab = "nube"; render(); toast("Entraste con Google. Conectando tu caja…"); cloudStart(); }
   else if (r === "error") { ui.tab = "aj"; ui.atab = "nube"; render(); toast("No se pudo entrar con Google: " + cloud.err, true); }
-  else if (cloudOn()) { cloudSchedule(3000); applySusp(); cloudRefreshNeg(); cloudCheckAdmin(); }
+  else if (cloudOn()) { const s = cloudLoad(); if (!s.chk) { s.chk = Date.now(); cloudStore(); } cloudSchedule(3000); applySusp(); cloudRefreshNeg(); cloudCheckAdmin(); }
+  else if (cloudLoad().ses) { applySusp(); cloudStart(); } // entró con Google pero no terminó de conectar
+  else applySusp();
   // Cada vez que la app guarda algo, se programa una subida (agrupa los cambios de varios segundos).
   const _save = save; save = function () { const out = _save.apply(this, arguments); cloudSchedule(); return out; };
   window.addEventListener("online", () => cloudSchedule(1000));
-  setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } }, 120000);
+  setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } else applySusp(); }, 120000);
 }
 
 /* ===================== 70 · VENTAS: comprobantes, anulaciones, devoluciones, preventas y despacho ===================== */
@@ -3037,6 +3063,7 @@ act({
 document.addEventListener("click", (e) => {
   if (e.target === $("#modal")) { if (ui.mk === "pay" || ui.mk === "weigh" || ui.mk === "count") return; if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   const el = e.target.closest("[data-a]");
+  const gate = $("#susp"); if (gate && !gate.contains(e.target)) return; // caja bloqueada (licencia): solo funciona su aviso
   if (el && A[el.dataset.a] && !el.disabled) { e.preventDefault(); A[el.dataset.a](el); }
 });
 function keepFocus(id, fn) {
@@ -3108,6 +3135,7 @@ const setInput = (k) => { if (document.documentElement.dataset.input !== k) docu
 document.addEventListener("pointerdown", () => setInput("ptr"), true);
 document.addEventListener("keydown", (e) => {
   if (e.key.length > 1 || e.ctrlKey || e.altKey) setInput("kbd");
+  if ($("#susp")) { if (e.key !== "Tab" && e.key !== "Enter" && e.key !== " ") e.preventDefault(); return; } // caja bloqueada: ni teclas ni lector
   if (ui.locked) { if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === "Backspace") pinKey("del"); else if (e.key === "Escape" && !$("#lockCancel").hidden) $("#lockCancel").click(); return; }
   const open = modalOpen(), field = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName), inQ = e.target.id === "q";
   if (e.key === "Escape" && open) { e.preventDefault(); if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }

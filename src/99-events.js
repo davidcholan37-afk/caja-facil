@@ -2,6 +2,7 @@
 document.addEventListener("click", (e) => {
   if (e.target === $("#modal")) { if (ui.mk === "pay" || ui.mk === "weigh" || ui.mk === "count") return; if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   const el = e.target.closest("[data-a]");
+  const gate = $("#susp"); if (gate && !gate.contains(e.target)) return; // caja bloqueada (licencia): solo funciona su aviso
   if (el && A[el.dataset.a] && !el.disabled) { e.preventDefault(); A[el.dataset.a](el); }
 });
 function keepFocus(id, fn) {
@@ -73,6 +74,7 @@ const setInput = (k) => { if (document.documentElement.dataset.input !== k) docu
 document.addEventListener("pointerdown", () => setInput("ptr"), true);
 document.addEventListener("keydown", (e) => {
   if (e.key.length > 1 || e.ctrlKey || e.altKey) setInput("kbd");
+  if ($("#susp")) { if (e.key !== "Tab" && e.key !== "Enter" && e.key !== " ") e.preventDefault(); return; } // caja bloqueada: ni teclas ni lector
   if (ui.locked) { if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === "Backspace") pinKey("del"); else if (e.key === "Escape" && !$("#lockCancel").hidden) $("#lockCancel").click(); return; }
   const open = modalOpen(), field = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName), inQ = e.target.id === "q";
   if (e.key === "Escape" && open) { e.preventDefault(); if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
