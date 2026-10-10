@@ -19,3 +19,13 @@ css = re.sub(r'url\((fonts/[\w.-]+\.woff2)\)', emb, css)
 css = css.replace("/* Caja Fácil v5", "/* Fuentes incluidas: Archivo (Omnibus-Type, OFL) y Caveat Brush (Impallari Type, OFL).\n   Caja Fácil v5", 1)
 open("style.css", "w", encoding="utf-8").write(css)
 PY
+
+# Versión en index.html: el navegador baja script.js y style.css nuevos apenas cambian.
+python3 - <<'PY'
+import hashlib, re
+v = hashlib.md5(open("script.js","rb").read() + open("style.css","rb").read()).hexdigest()[:8]
+h = open("index.html", encoding="utf-8").read()
+h = re.sub(r'href="style\.css(\?v=\w+)?"', 'href="style.css?v=' + v + '"', h)
+h = re.sub(r'src="script\.js(\?v=\w+)?"', 'src="script.js?v=' + v + '"', h)
+open("index.html", "w", encoding="utf-8").write(h)
+PY

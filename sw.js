@@ -1,5 +1,5 @@
 // Service worker: instalar la app y usarla sin internet (red primero, copia como respaldo).
-const CACHE = "cajafacil-v5";
+const CACHE = "cajafacil-v6";
 const ASSETS = ["./", "index.html", "style.css", "script.js", "img.js", "fotos.js", "escaner.js", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -23,7 +23,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: "no-cache" }) // siempre pregunta si hay versión nueva (GitHub guarda 10 min)
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
