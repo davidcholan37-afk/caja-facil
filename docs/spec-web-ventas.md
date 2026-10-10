@@ -36,3 +36,27 @@ Aviso legal y privacidad (enlazados), sin cookies de seguimiento, HTTPS (GitHub)
 
 ## Cómo se prueba
 Playwright en 390 px y 1366 px, modo claro y oscuro: capturas revisadas, sin scroll horizontal, sin errores de consola, enlaces funcionando, cero rayas largas (—) en el texto (regla de taste-skill).
+
+---
+
+# Rediseño v2 (nivel Apple, identidad propia)
+
+## Auditoría de la v1 (redesign-skill, taste-skill, frontend-design, emil-design-eng)
+| Problema en la v1 | Por qué se ve genérico | Cambio en la v2 |
+| --- | --- | --- |
+| Portada dividida: texto a la izquierda, captura chica a la derecha y un celular encima | Es la plantilla de landing más común; el producto se ve pequeño | Titular centrado y corto, y la caja enorme saliendo de un escenario gris claro |
+| Insignia «15 días gratis» y botón relleno + botón con borde repetidos 3 veces | Etiquetas decorativas y la pareja de botones de siempre | Un botón píldora principal y un enlace de texto «Escríbeme por WhatsApp ›» |
+| Mosaico de 6 tarjetas con borde, una azul y una negra | Kit de tarjetas SaaS; el bloque negro rompe el tema claro | Capítulos: pesar (dividido), cobrar (imagen grande apilada), caja (dividido) y una rejilla tipográfica sin tarjetas |
+| Franja «sin internet» de solo texto | Sección plana | Declaración grande con 3 datos y la caja en el celular |
+| Pasos dentro de cajitas numeradas | Plantilla | Numerales grandes y finos en una sola línea |
+| Preguntas en acordeón | Patrón genérico que esconde las respuestas | Lista lado a lado: título fijo a la izquierda, respuestas visibles |
+| Burbuja verde flotante de WhatsApp | Segundo color de acento sobre todo | WhatsApp fijo en la barra superior (siempre visible) |
+| Pesos 700 y titulares gruesos | Se ven pesados | Geist 600 con tracking negativo, cuerpo 17-19 px |
+| Capturas de ventanas con esquinas del fondo borroso | Recortes sucios | Capturas con fondo transparente y en alta resolución (srcset) |
+
+## Lectura de diseño
+Página de producto de consumo para dueños de bodegas de Lima, con el refinamiento de una página de producto de Apple (titular centrado, producto enorme, mucho aire), identidad propia por el ticket impreso y el «S/». HTML y CSS nativos, Geist.
+- Diales: DESIGN_VARIANCE 6 · MOTION_INTENSITY 5 · VISUAL_DENSITY 3.
+- Color: blanco #FFFFFF y escenarios #F4F5F7, tinta #111418, gris #5B6270, acento único #0A66FF (el de la caja). Oscuro automático.
+- Forma: botones en píldora, escenarios de imagen 28 px, capturas 14 px. Nada más.
+- Movimiento (Emil): entrada única de la portada; las imágenes se descubren con clip-path una sola vez al aparecer; el ticket sale de la ranura. Todo con ease-out fuerte, solo transform/opacity/clip-path, y nada si el sistema pide menos movimiento.
