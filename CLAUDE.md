@@ -11,7 +11,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - `sw.js` es el service worker (red primero). Si agregas archivos nuevos, súmalos a su lista.
 
 ## Módulos (src/)
-00-core datos, migraciones y ejemplos · 10-ui navegación, íconos, ventanas · 20-auth usuarios y PIN · 30-cart ticket · 31-sale pantalla de venta y cobro · 32-scale cajita de peso por kilo y balanza · 33-camera escanear con cámara · 40-products · 50-clients (crédito) · 60-cash caja, arqueo, cierres · 65-prov proveedores (deuda y abonos) · 70-sales · 80-reports · 90-settings · 99-events teclado y eventos.
+00-core datos, migraciones y ejemplos · 10-ui navegación, íconos, ventanas · 20-auth usuarios y PIN · 30-cart ticket · 31-sale pantalla de venta y cobro · 32-scale cajita de peso por kilo y balanza · 33-camera escanear con cámara · 40-products · 50-clients (crédito) · 60-cash caja, arqueo, cierres · 65-prov proveedores (deuda y abonos) · 67-cloud nube · 68-install botón «Instalar Caja Fácil» (Ajustes › Negocio) · 70-sales · 80-reports · 90-settings · 99-events teclado y eventos.
 
 ## Reglas de diseño
 - Diseño actual: «caja moderna» (ticket a la izquierda, búsqueda arriba, teclas F1–F12 abajo en PC), crema + azul petróleo.

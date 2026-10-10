@@ -10,7 +10,7 @@ const kb = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, 
 VIEWS.aj = function viewSettings(v) {
   const t = ui.atab, C = DB.cfg, B = DB.biz;
   let body = "";
-  if (t === "negocio") body = `<div class="card"><h2>Datos del negocio</h2><p class="muted" style="margin-bottom:10px">Salen en los comprobantes y reportes.</p>
+  if (t === "negocio") body = `${installHtml()}<div class="card"><h2>Datos del negocio</h2><p class="muted" style="margin-bottom:10px">Salen en los comprobantes y reportes.</p>
       ${fld("Nombre comercial", inp("biz.name", B.name, { max: 50 }))}
       <div class="two">${fld("RUC", inp("biz.ruc", B.ruc, { ph: "Opcional", max: 11 }))}${fld("Teléfono", inp("biz.phone", B.phone, { max: 20 }))}</div>
       ${fld("Dirección", inp("biz.addr", B.addr, { max: 100 }))}

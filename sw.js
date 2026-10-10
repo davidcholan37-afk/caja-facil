@@ -1,5 +1,5 @@
 // Service worker: instalar la app y usarla sin internet (red primero, copia como respaldo).
-const CACHE = "cajafacil-v7";
+const CACHE = "cajafacil-v8";
 const ASSETS = ["./", "index.html", "style.css", "script.js", "img.js", "fotos.js", "escaner.js", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "privacidad.html", "terminos.html", "legal.css"];
 
 self.addEventListener("install", (e) => {

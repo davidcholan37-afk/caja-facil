@@ -2639,6 +2639,40 @@ function cloudBoot() {
   setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } else applySusp(); }, 120000);
 }
 
+/* ===================== 68 · INSTALAR COMO APP (PC, Android, iPhone) ===================== */
+// Caja Fácil ya es una app web instalable (manifest.json + sw.js). Aquí solo se ofrece el botón «Instalar».
+// Chrome y Edge (Windows, Android) avisan con «beforeinstallprompt»; Safari en iPhone no, así que mostramos los pasos.
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; if (ui.tab === "aj") render(); });
+window.addEventListener("appinstalled", () => { installEvt = null; toast("Listo: Caja Fácil quedó instalada"); if (ui.tab === "aj") render(); });
+const isApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+function installHtml() {
+  if (isApp()) return "";
+  return `<div class="card"><h2>Instala Caja Fácil</h2><p class="muted" style="margin-bottom:12px">Ábrela como una app: con su ícono en el escritorio o en tu celular, en su propia ventana y sin la barra del navegador. Sigue funcionando sin internet.</p>
+    <button class="btn" data-a="install">Instalar Caja Fácil</button></div>`;
+}
+function installSteps() {
+  const ios = isIOS();
+  openModal(`<h2>Instalar Caja Fácil</h2>
+    ${ios ? `<ol class="steps-ins"><li>Abre esta página en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li><li>Elige <b>Agregar a inicio</b> y toca <b>Agregar</b>.</li></ol>
+      <p class="muted sm" style="margin-top:10px">Después abre Caja Fácil desde su ícono y, si te lo pide, actívala con Google ahí mismo.</p>`
+    : `<ol class="steps-ins"><li>Abre esta página en <b>Google Chrome</b> o <b>Microsoft Edge</b>.</li><li>Toca el menú <b>⋮</b> (arriba a la derecha).</li><li>Elige <b>Instalar Caja Fácil</b> (en Android: <b>Agregar a la pantalla principal</b>).</li></ol>
+      <p class="muted sm" style="margin-top:10px">Si ya la instalaste, búscala en tu escritorio, en el menú Inicio o entre tus apps.</p>`}
+    <div class="btns"><button class="btn sec" data-a="close">Entendido</button></div>`);
+}
+act({
+  install: async () => {
+    if (!installEvt) return installSteps();
+    const ev = installEvt; installEvt = null;
+    ev.prompt();
+    const r = await ev.userChoice.catch(() => ({ outcome: "dismissed" }));
+    if (r.outcome !== "accepted") toast("No se instaló. Puedes hacerlo cuando quieras desde Ajustes.");
+    if (ui.tab === "aj") render();
+  }
+});
+
 /* ===================== 70 · VENTAS: comprobantes, anulaciones, devoluciones, preventas y despacho ===================== */
 function rangeKeys(r, from, to) {
   const t = dkey();
@@ -2878,7 +2912,7 @@ const kb = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, 
 VIEWS.aj = function viewSettings(v) {
   const t = ui.atab, C = DB.cfg, B = DB.biz;
   let body = "";
-  if (t === "negocio") body = `<div class="card"><h2>Datos del negocio</h2><p class="muted" style="margin-bottom:10px">Salen en los comprobantes y reportes.</p>
+  if (t === "negocio") body = `${installHtml()}<div class="card"><h2>Datos del negocio</h2><p class="muted" style="margin-bottom:10px">Salen en los comprobantes y reportes.</p>
       ${fld("Nombre comercial", inp("biz.name", B.name, { max: 50 }))}
       <div class="two">${fld("RUC", inp("biz.ruc", B.ruc, { ph: "Opcional", max: 11 }))}${fld("Teléfono", inp("biz.phone", B.phone, { max: 20 }))}</div>
       ${fld("Dirección", inp("biz.addr", B.addr, { max: 100 }))}
