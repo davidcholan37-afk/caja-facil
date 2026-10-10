@@ -25,8 +25,9 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Esta app es HTML/CSS/JS sin frameworks: NO instales Tailwind, React, npm ni librerías de íconos aunque una skill lo sugiera. Todo se hace en `src/style.css` y `src/*.js`.
 - Un rediseño cambia solo la apariencia; las funciones no se tocan.
 
-## En preparación
-- «Modo escáner» para minimarkets (`DB.cfg.view = "scan"`): sin fotos, muestra lo último que pasaste, accesos para productos sin código y búsqueda en lista. El código ya existe en `src/31-sale.js` pero falta el interruptor en Ajustes; por ahora está apagado.
+## Modos de la pantalla de venta
+- «Escáner (minimarket)» es el modo por defecto (`DB.cfg.view` distinto de "tiles"): sin fotos, lo último que pasaste, accesos para productos sin código y búsqueda en lista.
+- «Fichas con fotos» (`DB.cfg.view = "tiles"`) se elige en Ajustes › Pantalla de venta.
 
 ## Probar
 Sirve la carpeta con `python3 -m http.server 8765` y abre http://localhost:8765. Botón «Cargar ejemplos» para tener productos de prueba.
