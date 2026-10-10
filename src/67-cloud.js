@@ -116,6 +116,7 @@ async function cloudStart() {
   cloudPaint();
 }
 async function cloudTiendas() {
+  await cloudEnsureNegocio(); // por si la primera conexión no llegó a crear el negocio
   const s = cloudLoad();
   const rows = await sb(`registros?select=tienda,actualizado,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${s.neg}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`);
   return rows;
@@ -147,6 +148,7 @@ async function cloudRecover(sid) {
 async function cloudPanel() {
   const s = cloudLoad(), k = dkey();
   try {
+    await cloudEnsureNegocio();
     const [tiendas, ventas] = await Promise.all([
       cloudTiendas(),
       sb(`registros?select=tienda,total:datos->total,pays:datos->pays,anulada:datos->void&negocio_id=eq.${s.neg}&tipo=eq.sales&borrado=eq.false&datos->>date=eq.${k}&limit=5000`)
