@@ -22,6 +22,8 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 ## Skills de diseño
 - Para rediseños usa `.claude/skills/redesign-skill` (de taste-skill, MIT) junto con emil-design-eng y frontend-design.
 - Para facilidad de uso, accesibilidad y toque usa `.claude/skills/ui-ux-pro-max` (MIT). Su buscador se corre desde la raíz: `python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<consulta>" --domain ux`.
+- Para la página de ventas (landing) usa `.claude/skills/taste-skill` (de taste-skill, MIT) y prueba con Playwright mirando capturas.
+- Forma de trabajo (de addyosmani/agent-skills, MIT): `interview-me` (una pregunta a la vez) → `spec-driven-development` → construir con `frontend-ui-engineering` → probar → `shipping-and-launch`.
 - Esta app es HTML/CSS/JS sin frameworks: NO instales Tailwind, React, npm ni librerías de íconos aunque una skill lo sugiera. Todo se hace en `src/style.css` y `src/*.js`.
 - Un rediseño cambia solo la apariencia; las funciones no se tocan.
 
