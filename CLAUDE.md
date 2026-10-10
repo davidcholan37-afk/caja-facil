@@ -40,5 +40,9 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Licencia: la caja no funciona hasta activarla con Google (pantalla `#susp`). Se bloquea si el proveedor la suspende o si pasan 15 días (`LIC_DIAS`) sin revisar la licencia con internet. Si vence la sesión de Google, sigue vendiendo hasta ese plazo.
 - Soporte: el cliente da permiso por 24 h o 7 días (Ajustes › Nube); el proveedor (tabla `privado.admins`) ve «Mis clientes», mira datos solo con permiso y suspende/activa.
 
+## Página de ventas
+- `web/` es la landing para vender Caja Fácil (HTML/CSS nativo, Geist, capturas reales en `web/img/`). Plan en `docs/spec-web-ventas.md`. Precio S/ 50 al mes, 15 días gratis, WhatsApp 904 623 137. No toques la caja al editarla.
+- `privacidad.html`, `terminos.html` (estilos en `legal.css`), `404.html` y `sitemap.xml` están en la raíz.
+
 ## Probar
 Sirve la carpeta con `python3 -m http.server 8765` y abre http://localhost:8765. Botón «Cargar ejemplos» para tener productos de prueba.
