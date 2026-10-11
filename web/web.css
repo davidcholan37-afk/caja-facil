@@ -384,12 +384,12 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
 /* ===== Escena 3D (v6): pantalla que gira con el scroll + video propio ===== */
 .scene{background:#04060F;color:#F5F5F7;--t1:#F5F5F7;--t2:#A1A1A6}
 .scene-track{height:230vh;view-timeline:--sc block}
-.scene-stick{position:sticky;top:0;height:100vh;height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(20px,4vh,44px);padding:72px var(--gut) 24px;overflow:hidden}
+.scene-stick{position:sticky;top:0;height:100vh;height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(16px,3vh,32px);padding:76px var(--gut) 36px;overflow:hidden}
 .scene-stick::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 58%,rgba(10,102,255,.28),rgba(10,102,255,0) 70%);pointer-events:none}
 .scene-copy{position:relative;text-align:center}
 .scene-copy h2{font-size:clamp(2.25rem,5vw,3.75rem)}
 .scene-copy .say{margin:12px auto 0}
-.stage{position:relative;width:min(100%,960px,calc((100svh - 300px) * 1.6 + 40px));perspective:1700px;perspective-origin:50% 40%}
+.stage{position:relative;width:min(100%,960px,calc((100svh - 400px) * 1.78));perspective:1700px;perspective-origin:50% 40%}
 .rig{position:relative;transform-style:preserve-3d;transform:rotateX(5deg) rotateY(-14deg);transform-origin:50% 60%;will-change:transform}
 .mon{position:relative;padding:clamp(6px,1.2vw,12px);border-radius:clamp(12px,2vw,20px);background:linear-gradient(145deg,#26282E,#0B0C0F 55%);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 40px 90px -30px rgba(10,102,255,.45);transform-style:preserve-3d}
 .mon::before{content:"";position:absolute;inset:0;border-radius:inherit;background:#0A0B0E;transform:translateZ(-22px);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
