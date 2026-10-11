@@ -786,21 +786,8 @@ VIEWS.venta = function viewSale(v) {
       </div>
       <div class="chips cats" id="cats"></div>
       <div class="grid t-${DB.cfg.tile}" id="grid"></div>
-      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b>${curShift() ? `<i class="cstat">Caja abierta</i>` : ""}<span>Caja Fácil · ${esc((me() || {}).name || "")}</span></div>
-      <div class="fkeys" aria-label="Teclas rápidas">
-    ${cobra ? `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>
-    <button class="fk c-verde" data-a="pay" data-m="efectivo"><kbd>F2</kbd>${svg("money")}<span>Cobrar</span></button>` : `<button class="fk c-azul" data-a="pickcli"><kbd>F1</kbd>${svg("cli")}<span>Clientes</span></button>
-    <button class="fk c-verde" data-a="prevsave"><kbd>F2</kbd>${svg("prev")}<span>Guardar preventa</span></button>`}
-    <button class="fk c-azul" data-a="focusq"><kbd>F3</kbd>${svg("search")}<span>Buscar</span></button>
-    <button class="fk c-ambar" data-a="tknew"><kbd>F4</kbd>${svg("hold")}<span>En espera</span></button>
-    <button class="fk c-azul" data-a="qeditsel"><kbd>F6</kbd>${svg("edit")}<span>Cantidad</span></button>
-    ${cobra ? `<button class="fk c-azul" data-a="split"><kbd>F7</kbd>${svg("ventas")}<span>Dividir pago</span></button>
-    <button class="fk c-lila" data-a="pay" data-m="yape"><kbd>F8</kbd>${svg("money")}<span>Yape</span></button>
-    <button class="fk c-azul" data-a="pay" data-m="tarjeta"><kbd>F9</kbd>${svg("caja")}<span>Tarjeta</span></button>
-    <button class="fk c-celeste" data-a="pay" data-m="plin"><kbd>F10</kbd>${svg("money")}<span>Plin</span></button>` : ""}
-    <button class="fk c-rojo" data-a="rmsel"><kbd>Supr</kbd>${svg("trash")}<span>Quitar</span></button>
-    ${cobra ? `<button class="fk c-ambar" data-a="pay" data-m="credito">${svg("cli")}<span>Crédito</span></button>` : ""}
-    <button class="fk c-azul" data-a="showdisc">${svg("plus")}<span>Descuento</span></button>
+      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b>${curShift() ? `<i class="cstat">Caja abierta</i>` : ""}<span>${esc((me() || {}).name || "")}</span></div>
+      <div class="fkeys"><button class="fk fun" data-a="tools" title="Todas las funciones (Ctrl K)">${svg("mas")}<span>Funciones</span><kbd>Ctrl K</kbd></button>
     </div>
     </section>
     <aside class="cart" id="cart" aria-label="Ticket actual"></aside>
@@ -845,9 +832,9 @@ function scanHome() {
   const tops = topIds();
   const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
     .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 18);
-  const last = cur ? `<div class="lastp ${ui.bump ? "fresh" : ""}"><small>Lo último que pasaste</small><b class="ln1">${esc(cur.r.name)}</b><span class="ln2 num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><b class="ln3 num">${money(r2(cur.r.price * cur.l.qty))}</b></div>`
-    : `<div class="lastp idle">${svg("scan")}<b class="ln1">Pasa el primer producto</b><small>Escanea el código o escribe el nombre para buscar.</small></div>`;
-  return `${last}${quick.length ? `<div class="quick"><h3>Sin código de barras</h3><div class="qgrid">${quick.map((p) => `<button class="qk" data-a="add" data-id="${p.id}">${p.code ? `<i class="num">${esc(p.code)}</i>` : ""}<b>${esc(p.name)}</b><span class="num">${money(p.price)}${p.unit === "kg" ? "/kg" : ""}</span></button>`).join("")}</div></div>` : ""}`;
+  const last = cur ? `<div class="lastp ${ui.bump ? "fresh" : ""}"><small>Último</small><b class="ln1">${esc(cur.r.name)}</b><span class="ln2 num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><b class="ln3 num">${money(r2(cur.r.price * cur.l.qty))}</b></div>`
+    : `<div class="lastp idle">${svg("scan")}<b class="ln1">Escanea un producto</b></div>`;
+  return `${last}${quick.length ? `<div class="quick"><h3>Sin código</h3><div class="qgrid">${quick.map((p) => `<button class="qk" data-a="add" data-id="${p.id}">${p.code ? `<i class="num">${esc(p.code)}</i>` : ""}<b>${esc(p.name)}</b><span class="num">${money(p.price)}${p.unit === "kg" ? "/kg" : ""}</span></button>`).join("")}</div></div>` : ""}`;
 }
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
@@ -886,12 +873,12 @@ function paintCart() {
   el.innerHTML = `<div class="cart-in">
     <div class="paper">
       <div class="rhead">
-        <div class="rtop"><span class="bizl">${esc(DB.biz.name || "Caja Fácil")}</span><span class="rtime num">${hhmm(Date.now())}</span><button class="cart-x" data-a="closecart" aria-label="Cerrar ticket">${svg("close")}</button></div>
+        <div class="rtop"><span class="rtime num">${hhmm(Date.now())}</span><button class="cart-x" data-a="closecart" aria-label="Cerrar ticket">${svg("close")}</button></div>
         <div class="rmeta">${t.mesa || t.prev ? `<b class="tkn">${esc(ticketLabel(t))}</b>` : `<button class="tkn" data-a="tkname" title="Ponerle un nombre a este ticket">${esc(ticketLabel(t))}${svg("edit")}</button>`}
           <span class="racts"><button class="ib" data-a="tknew" title="Poner en espera y atender a otro cliente (F4)">${svg("hold")}<span>En espera</span></button>${lines.length || DB.tickets.length > 1 ? `<button class="ib" data-a="clear" title="${DB.tickets.length > 1 ? "Quitar este ticket" : "Vaciar el ticket"}">${svg("trash")}<span>${DB.tickets.length > 1 ? "Quitar" : "Vaciar"}</span></button>` : ""}</span></div>
         ${DB.tickets.length > 1 ? `<div class="tks" id="tks"></div>` : ""}
         <div class="who">
-          <button class="cl ${c ? "set" : ""}" data-a="pickcli">${c ? `<span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span>` : `<span class="av none">${svg("user")}</span>`}<span><b>${c ? esc(c.name) : "Público general"}</b><small>${c ? `${c.doc ? esc(c.dt) + " " + esc(c.doc) : "Sin documento"}${debt > 0 ? " · debe " + money(debt) : ""}${pts ? ` · ${pts} pts` : ""}` : "Elegir cliente (F1)"}</small></span></button>
+          <button class="cl ${c ? "set" : ""}" data-a="pickcli">${c ? `<span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span>` : `<span class="av none">${svg("user")}</span>`}<span><b>${c ? esc(c.name) : "Público general"}</b><small>${c ? `${c.doc ? esc(c.dt) + " " + esc(c.doc) : "Sin documento"}${debt > 0 ? " · debe " + money(debt) : ""}${pts ? ` · ${pts} pts` : ""}` : "Elegir cliente"}</small></span></button>
           <div class="seg" role="group" aria-label="Comprobante">${Object.keys(DOCS).map((d) => `<button class="${doc === d ? "on" : ""}" data-a="doc" data-d="${d}" title="${DOCS[d]}">${d === "NV" ? "Nota" : DOCS[d]}</button>`).join("")}</div>
         </div>
       </div>
@@ -900,16 +887,16 @@ function paintCart() {
         <span class="nm">${r.p ? pimg(r.p, "lim") : ""}<span><b>${esc(r.name)}</b>${r.code ? `<small>Cód. ${esc(r.code)}</small>` : ""}</span></span>
         <button class="pu num ${l.pr != null ? "chg" : ""}" data-a="lprice" data-k="${k}" title="Cambiar precio">${money(r.price)}${r.unit === "kg" ? "<small>/kg</small>" : ""}</button>
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
-        <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Todo listo para vender</b>Escanea, busca o toca un producto para empezar.</p></div>`}</div>
+        <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Escanea o busca un producto</b></p></div>`}</div>
       <div class="tot">
         ${lines.length ? `<div class="trow">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}
-          <div class="sumx"><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
+          <div class="sumx" ${DB.cfg.igvOn || T.disc ? "" : "hidden"}><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
         <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
       </div>
     </div>
     <div class="paybox">
       ${cobra ? `<button class="cobrar" data-a="pay" data-m="efectivo" ${dis}><span>Cobrar</span><b class="num">${money(T.total)}</b><span class="kbd">F2</span></button>
-      <div class="paymini">${["yape", "plin", "tarjeta"].map((m) => `<button class="pm ${m}" data-a="pay" data-m="${m}" ${dis}>${METHODS[m]}<span class="kbd">${FK[m]}</span></button>`).join("")}<button class="pm" data-a="pay" data-m="credito" ${dis}>Crédito</button><button class="pm" data-a="split" ${dis}>Dividir<span class="kbd">F7</span></button><button class="pm" data-a="prevsave" ${dis}>Preventa</button></div>`
+      <div class="paymini">${["yape", "plin", "tarjeta"].map((m) => `<button class="pm ${m}" data-a="pay" data-m="${m}" ${dis}>${METHODS[m]}</button>`).join("")}<button class="pm" data-a="pay" data-m="credito" ${dis}>Crédito</button><button class="pm" data-a="split" ${dis}>Dividir</button><button class="pm" data-a="prevsave" ${dis}>Preventa</button></div>`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();
@@ -923,7 +910,7 @@ function paintCart() {
 function doneHtml(s) {
   const pays = paysOf(s), cash = s.recv > 0 && pays.some((p) => p.m === "efectivo"), c = cli(s.client);
   return `<div class="cart-in"><div class="paper done" role="status">
-    <div class="rtop"><span class="bizl">${esc(DB.biz.name || "Caja Fácil")}</span><span class="rtime num">${hhmm(s.t)}</span><button class="cart-x" data-a="newsale" aria-label="Cerrar">${svg("close")}</button></div>
+    <div class="rtop"><span class="rtime num">${hhmm(s.t)}</span><button class="cart-x" data-a="newsale" aria-label="Cerrar">${svg("close")}</button></div>
     <div class="stamp">${svg("check")}<span>¡Vendido!</span></div>
     <p class="dno">${DOCS[s.doc ? s.doc.type : "NV"]} ${docNo(s)}${s.cname ? ` · ${esc(s.cname)}` : ""}</p>
     ${cash ? `<div class="vu"><span>Vuelto</span><b class="num" id="doneChange">${money(s.change)}</b><small>Pagó con ${money(s.recv)} · total ${money(s.total)}</small></div>`
@@ -1267,13 +1254,20 @@ act({
   seercpt: (el) => { const s = saleById(el.dataset.id); if (s) showReceipt(s, true); },
   tools: () => {
     const cobra = can("cobrar");
-    openModal(`<h2>Herramientas de venta</h2><div class="menu">
-      <button class="mi" data-a="scaletool"><span class="ic">${svg("scale")}</span>Balanza</button>
-      <button class="mi" data-a="quick"><span class="ic">${svg("plus")}</span>Cobrar un monto suelto</button>
-      ${cobra ? `<button class="mi" data-a="prevload"><span class="ic">${svg("prev")}</span>Cobrar una preventa</button>` : ""}
-      ${+DB.cfg.tables ? `<button class="mi" data-a="mesas"><span class="ic">${svg("mesa")}</span>Mesas</button>` : ""}
-      <button class="mi" data-a="tknew"><span class="ic">${svg("hold")}</span>Poner el ticket en espera</button></div>`);
+    const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
+    openModal(`<h2>Funciones</h2>
+      <h3 class="fh">Cobrar</h3><div class="fgrid">
+      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "caja", "Tarjeta", "F9", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
+      ${f("prevsave", "prev", "Guardar preventa", cobra ? "" : "F2")}${cobra ? f("prevload", "prev", "Cobrar preventa") : ""}
+      </div>
+      <h3 class="fh">Ticket</h3><div class="fgrid">
+      ${f("pickcli", "cli", "Cliente", "F1")}${f("focusq", "search", "Buscar", "F3")}${f("tknew", "hold", "En espera", "F4")}${f("qeditsel", "edit", "Cantidad", "F6")}${f("rmsel", "trash", "Quitar línea", "Supr")}${f("showdisc", "plus", "Descuento")}
+      </div>
+      <h3 class="fh">Más</h3><div class="fgrid">
+      ${f("camscan", "scan", "Cámara")}${f("scaletool", "scale", "Balanza")}${f("quick", "plus", "Monto suelto")}${+DB.cfg.tables ? f("mesas", "mesa", "Mesas") : ""}
+      </div>`, "wide");
   },
+  fn: (el) => { const a = el.dataset.f; closeModal(); if (A[a]) A[a]({ dataset: { m: el.dataset.m || "" } }); },
   quick: openQuick,
   quickok: () => {
     const a = num($("#qa").value); if (!(a > 0)) return toast("Escribe un monto mayor a 0");
@@ -3197,6 +3191,7 @@ document.addEventListener("keydown", (e) => {
   if ($("#susp")) { if (e.key !== "Tab" && e.key !== "Enter" && e.key !== " ") e.preventDefault(); return; } // caja bloqueada: ni teclas ni lector
   if (ui.locked) { if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === "Backspace") pinKey("del"); else if (e.key === "Escape" && !$("#lockCancel").hidden) $("#lockCancel").click(); return; }
   const open = modalOpen(), field = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName), inQ = e.target.id === "q";
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k" && ui.tab === "venta") { e.preventDefault(); if (!open) A.tools(); else if ($("#modal .fgrid")) closeModal(); return; }
   if (e.key === "Escape" && open) { e.preventDefault(); if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   if (e.key === "Escape" && !open && ui.tab === "venta" && ui.done) { e.preventDefault(); return A.newsale(); }
   if (open && ui.mk === "pay" && ui.pay && !ui.pay.split && ui.pay.method === "efectivo" && !field && !e.ctrlKey && !e.metaKey && /^[\d.,]$/.test(e.key)) {

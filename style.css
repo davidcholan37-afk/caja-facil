@@ -1645,3 +1645,23 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
   .gate-tx span{display:none}
   .gate-form{justify-content:flex-start;padding:28px 20px 40px}
 }
+
+/* ---------- limpieza: un solo botón «Funciones» ---------- */
+.fh{margin:14px 2px 8px;font:600 12px/1 var(--f);color:var(--t3)}
+.fh:first-of-type{margin-top:4px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
+.fb{position:relative;display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 12px;border:1px solid var(--hl);border-radius:14px;background:var(--s1);color:var(--t1);font:550 14px/1.2 var(--f);text-align:left;transition:transform .16s var(--ease-out),background-color .16s var(--ease-out)}
+.fb svg{flex:none;width:18px;height:18px;stroke-width:1.8;color:var(--ac-ink)}
+.fb span{flex:1;min-width:0}
+.fb kbd{flex:none;padding:0 5px;border-radius:5px;background:var(--s3);font:500 10.5px/16px var(--fm);color:var(--t3)}
+.fb:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){.fb:hover{background:var(--ac-t)}}
+.rtop .rtime{margin-left:auto}
+@media (min-width:960px){
+  .fkeys{display:flex;margin-top:0}
+  .fkeys .fk.fun{flex:1;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;height:48px;min-height:48px;padding:0 14px}
+  .fkeys .fk.fun svg{position:static;width:18px;height:18px}
+  .fkeys .fk.fun span{padding-left:0;flex:1;font:600 14px/1 var(--f)}
+  .fkeys .fk.fun kbd{align-self:center}
+}
+@media (pointer:coarse),(max-width:959px){.fb kbd{display:none}}
