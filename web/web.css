@@ -418,3 +418,23 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
 }
 @media (prefers-reduced-motion:reduce){.rig{transform:none}}
 @media (max-width:640px){.hero{padding-top:40px}.rig{transform:rotateX(3deg) rotateY(-5deg)}.hero-stage{margin-bottom:8px}}
+
+/* ===== Fondo 3D de la historia (v8): puntos azules que cambian de forma al bajar ===== */
+.story{position:relative}
+.story-bg{position:sticky;top:0;display:block;width:100%;height:100vh;height:100svh;margin-bottom:-100vh;margin-bottom:-100svh;z-index:0;pointer-events:none;opacity:.45}
+.story>*:not(.story-bg){position:relative;z-index:1}
+@media (min-width:1024px){.story-bg{opacity:.9}}
+.story-head{margin-top:-4px}
+.step .say{max-width:28ch}
+.story .time{font-size:.9375rem;letter-spacing:0}
+.story-screen .sframe.none{pointer-events:none}
+.step-img.phone{max-width:240px}
+.step-img.phone img{display:block;width:100%;height:auto;border-radius:30px;outline:5px solid #1D1D1F;outline-offset:-1px;box-shadow:var(--lift)}
+@media (min-width:1024px){
+  .story-screen{top:calc(50vh - 230px)}
+  .sframe.ph{display:flex;justify-content:center}
+  .sframe.ph img{display:block;height:min(62vh,560px);width:auto;border-radius:34px;outline:6px solid #1D1D1F;outline-offset:-1px;box-shadow:var(--lift)}
+  .sframe.none{min-height:360px}
+  .story-screen .shot{background:#fff}
+}
+@media (prefers-reduced-motion:reduce){.story-bg{opacity:.18}}

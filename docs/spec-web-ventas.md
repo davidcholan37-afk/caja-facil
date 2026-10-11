@@ -83,3 +83,8 @@ Página de producto para dueños de bodegas de Lima, con lenguaje de lanzamiento
 - Diales: DESIGN_VARIANCE 6 · MOTION_INTENSITY 6 · VISUAL_DENSITY 3.
 - Movimiento (emil-design-eng): scroll-driven CSS (`animation-timeline: view()`) con respaldo estático; cambios de pantalla de la historia con IntersectionObserver (sin escuchar el scroll); fundido + blur suave; nada con teclado ni con «reducir movimiento».
 - Solo se edita `web/`. El POS (`src/`, `index.html`, `script.js`, `style.css`, `sw.js`) no se toca.
+
+## Rediseño claro con fondo 3D (octubre 2026)
+- Toda la página en tema claro (`data-theme="light"` en `<html>`); portada con título, botones y pantalla 3D con el video propio de la caja (`web/video/`).
+- «Tu caja, paso a paso» (`#funciones`): 7 pasos reales (abrir caja, vender, cobrar, cerrar caja, productos, fiado y proveedores, sin internet). Detrás, un `<canvas class="story-bg">` fijo dibuja una nube de puntos 3D que cambia de forma (esfera, malla, anillo, cubo) al pasar de un paso al siguiente. Sin librerías, sin escuchar el scroll: `requestAnimationFrame` solo mientras la sección se ve. Con «menos movimiento» se dibuja una vez, quieta.
+- Pendiente de confirmar: capturas reales con datos de fiado, proveedores y reportes (las pantallas de ejemplo salen vacías).

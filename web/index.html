@@ -116,38 +116,57 @@
 
   <!-- La historia: un día con Caja Fácil (pantalla fija en PC, lista en celular) -->
   <section id="funciones" class="story" aria-labelledby="h-dia">
+    <canvas class="story-bg" aria-hidden="true"></canvas>
     <div class="wrap story-head">
-      <h2 id="h-dia">Un día en tu bodega.</h2>
-      <p class="say center">De la primera venta al cierre, <strong>sin cuaderno y sin calculadora.</strong></p>
+      <h2 id="h-dia">Tu caja, paso a paso.</h2>
+      <p class="say center">De abrir la caja al cierre, <strong>sin cuaderno y sin calculadora.</strong></p>
     </div>
     <div class="wrap story-grid">
       <div class="story-steps">
         <article class="step on" data-i="0">
-          <p class="time"><time>7:00</time></p>
+          <p class="time">Abrir caja</p>
           <p class="say"><strong>Abres la caja.</strong> Anotas con cuánto sencillo empiezas y ya puedes vender.</p>
           <div class="step-img"><picture>
           <img class="shot" src="img/dia_abrir-light-1280.webp" srcset="img/dia_abrir-light-1280.webp 1280w, img/dia_abrir-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Ventana Abrir caja: con cuánto efectivo empiezas, S/ 50 de sencillo">
         </picture></div>
         </article>
         <article class="step" data-i="1">
-          <p class="time"><time>10:00</time></p>
+          <p class="time">Vender</p>
           <p class="say"><strong>Vendes sin hacer cuentas.</strong> Pasas el código con el lector o la cámara. El arroz suelto va por kilo: pones el peso y la caja saca el precio.</p>
           <div class="step-img"><picture>
           <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Pantalla de venta con Inca Kola, arroz por kilo a S/ 4.20 y total de S/ 16.80">
         </picture></div>
         </article>
         <article class="step" data-i="2">
-          <p class="time"><time>13:00</time></p>
+          <p class="time">Cobrar</p>
           <p class="say"><strong>Cobras como te paguen.</strong> Efectivo con el vuelto exacto, o Yape y Plin con tu número a la vista del cliente.</p>
           <div class="step-img"><picture>
           <img class="shot" src="img/dia_yape-light-1280.webp" srcset="img/dia_yape-light-1280.webp 1280w, img/dia_yape-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Ventana de cobro con Yape: S/ 16.80 y el número para yapear">
         </picture></div>
         </article>
         <article class="step" data-i="3">
-          <p class="time"><time>21:00</time></p>
+          <p class="time">Cerrar caja</p>
           <p class="say"><strong>Cierras y la caja cuadra.</strong> Cuentas billetes y monedas. La caja te dice si falta o sobra, al céntimo.</p>
           <div class="step-img"><picture>
           <img class="shot" src="img/dia_arqueo-light-1280.webp" srcset="img/dia_arqueo-light-1280.webp 1280w, img/dia_arqueo-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Arqueo de caja: caja inicial S/ 50, ventas en efectivo S/ 16.80, debe haber S/ 66.80 y la caja cuadra">
+        </picture></div>
+        </article>
+        <article class="step" data-i="4">
+          <p class="time">Productos</p>
+          <p class="say"><strong>Sabes qué tienes.</strong> Tus productos con precio y stock, desde Excel o uno por uno. La caja te avisa cuáles se están acabando.</p>
+          <div class="step-img"><picture>
+          <img class="shot" src="img/dia_prod-light-1280.webp" srcset="img/dia_prod-light-1280.webp 1280w, img/dia_prod-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Lista de productos: 43 productos, stock, precio por unidad o por kilo, y botones para importar, exportar y transferir">
+        </picture></div>
+        </article>
+        <article class="step" data-i="5">
+          <p class="time">Fiado y proveedores</p>
+          <p class="say"><strong>Cada deuda en su lugar.</strong> Lo que te debe cada cliente, lo que debes a cada proveedor y sus abonos, sin cuaderno.</p>
+        </article>
+        <article class="step" data-i="6">
+          <p class="time">Sin internet</p>
+          <p class="say"><strong>Si se va la señal, sigues vendiendo.</strong> Cada venta queda en tu equipo y la copia en la nube se hace sola al volver.</p>
+          <div class="step-img phone"><picture>
+          <img src="img/cel_escaner-light-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular: lo último que pasaste, productos sin código de barras y el botón Cobrar">
         </picture></div>
         </article>
       </div>
@@ -164,6 +183,13 @@
         </picture></div>
         <div class="sframe" data-i="3"><picture>
           <img class="shot" src="img/dia_arqueo-light-1280.webp" srcset="img/dia_arqueo-light-1280.webp 1280w, img/dia_arqueo-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
+        </picture></div>
+        <div class="sframe" data-i="4"><picture>
+          <img class="shot" src="img/dia_prod-light-1280.webp" srcset="img/dia_prod-light-1280.webp 1280w, img/dia_prod-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
+        </picture></div>
+        <div class="sframe none" data-i="5"></div>
+        <div class="sframe ph" data-i="6"><picture>
+          <img src="img/cel_escaner-light-780.webp" width="780" height="1688" loading="lazy" alt="">
         </picture></div>
         </div>
       </div>
