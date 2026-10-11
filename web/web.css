@@ -438,3 +438,9 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
   .sframe.ph img{display:block;height:min(62vh,560px);width:auto;border-radius:34px;outline:6px solid #2C2C2E;outline-offset:-1px;box-shadow:0 30px 80px -30px rgba(10,102,255,.55)}
   .sframe.none{min-height:360px}
 }
+
+/* Si el navegador no dibuja el lienzo (gráficos desactivados), queda una esfera de respaldo hecha con CSS */
+@media (min-width:1024px){
+  .story-screen::before{content:"";position:absolute;left:50%;top:50%;width:min(84vh,52vw);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;background:radial-gradient(circle at 36% 30%,#A9CBFF,#3C86FF 22%,#0E45C4 58%,#071C5E 88%,#040B2B);box-shadow:0 0 120px 24px rgba(30,110,255,.38)}
+  .story.gl .story-screen::before{display:none}
+}

@@ -103,7 +103,8 @@
 (function () {
   var sec = document.querySelector(".story"), cv = sec && sec.querySelector(".story-bg");
   if (!cv || !cv.getContext) return;
-  var ctx = cv.getContext("2d"), calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var ctx = cv.getContext("2d"); if (!ctx) return;
+  var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   var steps = [].slice.call(sec.querySelectorAll(".step")), screen = sec.querySelector(".story-screen");
   var small = innerWidth < 700, L = small ? 15 : 30, TAU = Math.PI * 2, W = 0, H = 0, dpr = 1;
   var cur = 0, vis = false, raf = 0, t0 = performance.now(), lastStep = 0, pulse = -9999;
@@ -153,6 +154,7 @@
     bk = { R: R, d: dpr, back: a, front: b };
   }
   function draw(now) {
+    sec.classList.add("gl");
     var f = Math.max(0, Math.min(steps.length - 1, cur)), k0 = Math.floor(f), k1 = Math.min(k0 + 1, steps.length - 1), m = f - k0, mm = m * m * (3 - 2 * m);
     var idx = Math.round(f); if (idx !== lastStep) { lastStep = idx; pulse = now; }
     var wide = screen && getComputedStyle(screen).display !== "none";
