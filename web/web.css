@@ -342,30 +342,37 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
 .hero{padding-top:0}
 .hero-photo{position:relative;min-height:calc(100svh - 52px);display:flex;align-items:flex-end;overflow:hidden;isolation:isolate}
 .hero-bg{position:absolute;inset:0;z-index:-2}
-.hero-bg img{width:100%;height:100%;object-fit:cover;object-position:50% 45%}
+.hero-bg img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;filter:brightness(.86) saturate(.9) contrast(1.06)}
 /* oscurecido suave para que el texto se lea: más fuerte abajo y a la izquierda, la tienda se sigue viendo */
 .hero-photo::after{content:"";position:absolute;inset:0;z-index:-1;background:
-  linear-gradient(to top,#050507 0%,rgba(5,5,7,.86) 22%,rgba(5,5,7,.45) 55%,rgba(5,5,7,.25) 100%),
-  linear-gradient(to right,rgba(5,5,7,.65) 0%,rgba(5,5,7,0) 60%)}
+  radial-gradient(120% 90% at 85% 8%,rgba(10,102,255,.16) 0%,rgba(10,102,255,0) 55%),
+  linear-gradient(to top,#04060F 0%,rgba(4,6,15,.93) 24%,rgba(4,6,15,.64) 56%,rgba(4,6,15,.42) 100%),
+  linear-gradient(to right,rgba(4,6,15,.72) 0%,rgba(4,6,15,0) 62%)}
 .hero-photo .hero-copy{position:relative;width:100%;max-width:var(--wrap);margin:0 auto;padding:0 var(--gut) clamp(48px,9vh,96px);align-items:flex-start;text-align:left}
 .hero-photo h1{max-width:11ch;text-shadow:0 2px 30px rgba(0,0,0,.35)}
 .hero-photo .ctas{justify-content:flex-start}
 .hero-photo .product{color:#E8E8ED;text-shadow:0 1px 16px rgba(0,0,0,.6)}
-.hero-card{position:absolute;right:max(var(--gut),calc((100vw - var(--wrap))/2 + var(--gut)));bottom:clamp(56px,10vh,110px);width:clamp(260px,26vw,360px);border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.12)}
+.hero-card{position:absolute;right:max(var(--gut),calc((100vw - var(--wrap))/2 + var(--gut)));bottom:clamp(56px,10vh,110px);width:clamp(276px,28vw,384px);padding:8px;border-radius:26px;background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.26);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 36px 90px -24px rgba(2,6,23,.85)}
+.hero-card img{display:block;width:100%;height:auto;border-radius:18px}
+@media (prefers-reduced-transparency:reduce){.hero-card{background:#161922;-webkit-backdrop-filter:none;backdrop-filter:none}}
 @media (max-width:900px){
   .hero-photo{min-height:auto;flex-direction:column;align-items:stretch;padding-top:min(56vw,340px)}
-  .hero-card{position:relative;right:auto;bottom:auto;width:min(78%,330px);margin:0 var(--gut) 40px auto;order:2}
+  .hero-card{position:relative;right:auto;bottom:auto;width:min(82%,350px);margin:0 var(--gut) 40px auto;order:2}
 }
 @media (max-width:640px){
   .hero-photo{padding-top:48vw}
   .hero-photo .hero-copy{padding-bottom:32px}
   .hero-card{margin-bottom:28px}
-  .hero-photo::after{background:linear-gradient(to top,#050507 0%,rgba(5,5,7,.88) 38%,rgba(5,5,7,.35) 70%,rgba(5,5,7,.2) 100%)}
+  .hero-photo::after{background:linear-gradient(to top,#04060F 0%,rgba(4,6,15,.92) 40%,rgba(4,6,15,.5) 72%,rgba(4,6,15,.36) 100%)}
 }
+/* una sola barrida de luz: la caja «lee» la tienda al entrar. Solo transform y opacity, una vez */
+.hero-photo::before{content:"";position:absolute;top:0;bottom:0;left:0;width:20%;pointer-events:none;opacity:0;mix-blend-mode:screen;background:linear-gradient(90deg,rgba(10,102,255,0) 0%,rgba(40,125,255,.16) 78%,rgba(150,196,255,.55) 99%,rgba(150,196,255,0) 100%)}
 /* entrada: la tarjeta aparece después del título y se mueve un poco al bajar (profundidad) */
 @media (prefers-reduced-motion:no-preference){
   .hero-card{animation:rise 900ms var(--ease-out) 420ms both}
   .hero-bg img{animation:photo-in 1600ms var(--ease-out) both}
+  .hero-photo::before{animation:scan 1500ms 650ms cubic-bezier(.77,0,.175,1) both}
+  @keyframes scan{0%{opacity:0;transform:translateX(-100%)}12%{opacity:1}88%{opacity:1}100%{opacity:0;transform:translateX(500%)}}
   @keyframes photo-in{from{opacity:0;transform:scale(1.06)}}
   @supports (animation-timeline: scroll()){
     .hero-card{animation:rise 900ms var(--ease-out) 420ms both,card-drift linear both;animation-timeline:auto,view();animation-range:normal,exit 0% exit 100%}
