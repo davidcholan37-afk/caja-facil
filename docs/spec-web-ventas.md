@@ -86,5 +86,5 @@ Página de producto para dueños de bodegas de Lima, con lenguaje de lanzamiento
 
 ## Rediseño claro con fondo 3D (octubre 2026)
 - Toda la página en tema claro (`data-theme="light"` en `<html>`); portada con título, botones y pantalla 3D con el video propio de la caja (`web/video/`).
-- «Tu caja, paso a paso» (`#funciones`): 7 pasos reales (abrir caja, vender, cobrar, cerrar caja, productos, fiado y proveedores, sin internet). Detrás, un `<canvas class="story-bg">` fijo dibuja una nube de puntos 3D que cambia de forma (esfera, malla, anillo, cubo) al pasar de un paso al siguiente. Sin librerías, sin escuchar el scroll: `requestAnimationFrame` solo mientras la sección se ve. Con «menos movimiento» se dibuja una vez, quieta.
+- «Tu caja, paso a paso» (`#funciones`): 7 pasos reales (abrir caja, vender, cobrar, cerrar caja, productos, fiado y proveedores, sin internet). Esta sección es la única oscura. Detrás, un `<canvas class="story-bg">` fijo dibuja una esfera 3D de luz con puntos LED y un anillo; los puntos se encienden con un dibujo distinto en cada paso y hay un destello al cambiar. Sin librerías, sin escuchar el scroll: `requestAnimationFrame` solo mientras la sección se ve. Con «menos movimiento» se dibuja una vez, quieta.
 - Pendiente de confirmar: capturas reales con datos de fiado, proveedores y reportes (las pantallas de ejemplo salen vacías).
