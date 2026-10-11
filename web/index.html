@@ -170,6 +170,33 @@
     </div>
   </section>
 
+  <!-- Escena 3D: la pantalla gira al bajar y se ve la caja vendiendo (video propio) -->
+  <section class="scene" aria-labelledby="h-scene">
+    <div class="scene-track">
+      <div class="scene-stick">
+        <div class="scene-copy">
+          <h2 id="h-scene">Mírala trabajar.</h2>
+          <p class="say center">Escaneas, pesas el arroz y cobras con Yape. <strong>Todo en una sola pantalla.</strong></p>
+        </div>
+        <div class="stage">
+          <div class="rig">
+            <div class="mon">
+              <div class="screen">
+                <video id="demo" muted loop playsinline preload="none" poster="video/caja-poster.jpg" width="1280" height="720" aria-label="Video de la caja: se escanean productos, se pesa el arroz y se cobra con Yape">
+                  <source src="video/caja.webm" type="video/webm">
+                  <source src="video/caja.mp4" type="video/mp4">
+                </video>
+              </div>
+            </div>
+            <div class="neck"></div>
+            <div class="foot-base"></div>
+          </div>
+          <div class="floor" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Y también: solo tipografía -->
   <section class="band gray" aria-labelledby="h-mas">
     <div class="wrap">

@@ -83,3 +83,16 @@
     window.addEventListener("pageshow", function (e) { if (e.persisted) window.scrollTo(0, 0); });
   }
 })();
+
+/* Escena 3D: el video corre solo mientras se ve (ahorra datos y batería). Con «menos movimiento» no se reproduce solo. */
+(function () {
+  var sc = document.querySelector(".scene"), v = document.getElementById("demo");
+  if (!sc || !v || !("IntersectionObserver" in window)) return;
+  var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (calm) { v.controls = true; return; }
+  new IntersectionObserver(function (es) {
+    var on = es[0].isIntersecting;
+    if (on) { sc.classList.add("in"); v.preload = "auto"; var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; }); }
+    else v.pause();
+  }, { threshold: 0.35 }).observe(sc.querySelector(".stage"));
+})();
