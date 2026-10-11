@@ -1609,3 +1609,38 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 .steps-ins{margin:6px 0 0 20px;display:grid;gap:8px;line-height:1.45}
 .steps-ins li::marker{color:var(--t3, #667085);font-weight:600}
 .suspc a.btn{color:#fff;text-decoration:none;display:flex;justify-content:center}
+
+/* ===== pantalla de entrada («Pruébala gratis»): foto de la bodega a un lado, botón de Google al otro ===== */
+#susp[data-g=activar]{display:block;place-items:stretch;padding:0;background:var(--paper);backdrop-filter:none;-webkit-backdrop-filter:none;overflow:auto}
+.gate{width:100%;min-height:100%;display:grid;grid-template-columns:1fr 1fr}
+.gate-pic{position:relative;min-height:100vh;overflow:hidden;background:#0c0d10;color:#fff;display:flex;align-items:flex-end}
+.gate-pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 45%}
+.gate-pic::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(5,5,7,.92) 0%,rgba(5,5,7,.55) 38%,rgba(5,5,7,.15) 100%)}
+.gate-tx{position:relative;z-index:1;padding:clamp(28px,5vw,64px);display:grid;gap:10px;max-width:30rem}
+.gate-tx b{font-size:clamp(1.9rem,3.6vw,3rem);font-weight:700;line-height:1.05;letter-spacing:-.03em;text-shadow:0 2px 24px rgba(0,0,0,.4)}
+.gate-tx span{font-size:1.0625rem;line-height:1.4;color:#E8E8ED}
+.gate-form{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:32px clamp(20px,5vw,72px);max-width:560px;width:100%;margin:0 auto}
+.gate-logo{border-radius:14px;margin-bottom:22px}
+.gate-form h1{font-size:clamp(1.75rem,3vw,2.25rem);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:0 0 8px}
+.gate-sub{color:var(--ink-2);margin:0 0 28px}
+.gbtn{width:100%;min-height:54px;display:flex;align-items:center;justify-content:center;gap:12px;border:1px solid var(--rule);border-radius:14px;background:#fff;color:#1f1f1f;font:inherit;font-weight:600;font-size:1.0625rem;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform 160ms var(--ease-out),box-shadow 160ms var(--ease-out),border-color 160ms var(--ease-out)}
+@media (hover:hover){.gbtn:hover{box-shadow:0 6px 18px -8px rgba(0,0,0,.3);border-color:#c9ccd3}}
+.gbtn:active{transform:scale(.97)}
+.gbtn:focus-visible{outline:3px solid var(--ac);outline-offset:3px}
+.gate-note{margin:20px 0 0;color:var(--ink-2);font-size:.9375rem;line-height:1.5;max-width:26rem}
+.gate-legal{margin:18px 0 0;color:var(--ink-2);font-size:.8125rem;line-height:1.5}
+.gate-legal a{color:var(--ink);font-weight:600}
+@media (prefers-reduced-motion:no-preference){
+  .gate-form>*{animation:gateIn 300ms var(--ease-out) both}
+  .gate-form>:nth-child(2){animation-delay:40ms}.gate-form>:nth-child(3){animation-delay:80ms}.gate-form>:nth-child(4){animation-delay:120ms}.gate-form>:nth-child(5){animation-delay:160ms}
+  @keyframes gateIn{from{opacity:0;transform:translateY(8px)}}
+  html[data-input=kbd] .gate-form>*{animation:none}
+}
+@media (max-width:760px){
+  .gate{grid-template-columns:1fr}
+  .gate-pic{min-height:0;height:34vh}
+  .gate-tx{padding:20px}
+  .gate-tx b{font-size:1.6rem}
+  .gate-tx span{display:none}
+  .gate-form{justify-content:flex-start;padding:28px 20px 40px}
+}
