@@ -66,13 +66,6 @@
   pre.observe(document.querySelector(".story"));
 })();
 
-/* La barra de arriba se vuelve oscura mientras está sobre la portada oscura. */
-(function () {
-  var nav = document.querySelector(".nav"), hero = document.querySelector(".hero");
-  if (!nav || !hero || !("IntersectionObserver" in window)) return;
-  new IntersectionObserver(function (es) { nav.classList.toggle("on-dark", es[0].isIntersecting); }, { rootMargin: "-70px 0px -88% 0px" }).observe(hero);
-})();
-
 /* Al entrar a la página siempre se empieza arriba (el navegador no debe devolverte a donde te quedaste antes).
    Si el enlace trae una sección (#precio, #preguntas...), sí se respeta. */
 (function () {
@@ -92,7 +85,7 @@
 
 /* Escena 3D: el video corre solo mientras se ve (ahorra datos y batería). Con «menos movimiento» no se reproduce solo. */
 (function () {
-  var sc = document.querySelector(".scene"), v = document.getElementById("demo");
+  var sc = document.querySelector(".hero"), v = document.getElementById("demo");
   if (!sc || !v || !("IntersectionObserver" in window)) return;
   var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (calm) { v.controls = true; return; }
@@ -100,5 +93,5 @@
     var on = es[0].isIntersecting;
     if (on) { sc.classList.add("in"); v.preload = "auto"; var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; }); }
     else v.pause();
-  }, { threshold: 0.35 }).observe(sc.querySelector(".stage"));
+  }, { threshold: 0.35 }).observe(sc.querySelector(".hero-stage"));
 })();

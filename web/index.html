@@ -1,13 +1,12 @@
 <!doctype html>
-<html lang="es-PE">
+<html lang="es-PE" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Caja Fácil: punto de venta para bodegas y minimarkets</title>
 <meta name="description" content="Caja registradora para bodegas, minimarkets y fruterías del Perú: lector o cámara, venta por kilo, Yape y efectivo con vuelto, fiado y cierre de caja. 15 días gratis.">
 <link rel="canonical" href="https://davidcholan37-afk.github.io/caja-facil/web/">
-<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0C0E12" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FFFFFF">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_PE">
 <meta property="og:site_name" content="Caja Fácil">
@@ -41,7 +40,7 @@
 <body>
 <a class="skip" href="#contenido">Saltar al contenido</a>
 
-<header class="nav on-dark">
+<header class="nav">
   <div class="navin">
     <a class="brand" href="./" aria-label="Caja Fácil, inicio"><span class="mark" aria-hidden="true">S/</span><span>Caja Fácil</span></a>
     <nav class="links" aria-label="Secciones">
@@ -60,21 +59,30 @@
 
   <!-- Portada oscura y cinematográfica: la caja iluminada -->
   <section class="hero" aria-labelledby="h-hero">
-    <div class="hero-photo">
-      <picture class="hero-bg">
-        <source media="(max-width: 640px)" srcset="img/bodega-cel-800.webp" width="800" height="1243">
-        <img src="img/bodega-1280.webp" srcset="img/bodega-1280.webp 1280w, img/bodega-2000.webp 1444w" sizes="100vw" width="1280" height="960" fetchpriority="high" alt="Una bodega de Lima por dentro: estantes con abarrotes, frutas y verduras en canastas, y el mostrador del arroz a granel">
-      </picture>
     <div class="hero-copy">
-      <p class="product">Caja Fácil</p>
       <h1 id="h-hero">Tu bodega, al céntimo.</h1>
-      <p class="from">Desde S/ 50 al mes. Los primeros 15 días, gratis.</p>
+      <p class="from">Caja para bodegas, minimarkets y fruterías. Desde S/ 50 al mes, con 15 días gratis.</p>
       <div class="ctas">
         <a class="pill" href="../">Pruébala gratis</a>
         <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20de%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Escríbeme por WhatsApp</a>
       </div>
     </div>
-      <div class="hero-card"><img src="img/card-yape-720.webp" width="720" height="492" alt="Tarjeta real de Caja Fácil: cobro de S/ 16.80 con Yape, con el número para yapear y el botón Ya llegó el Yape"></div>
+    <div class="hero-stage">
+      <div class="stage">
+        <div class="rig">
+          <div class="mon">
+            <div class="screen">
+              <video id="demo" muted loop playsinline autoplay preload="metadata" poster="video/caja-poster.jpg" width="1280" height="720" aria-label="Video de la caja: se escanean productos, se pesa el arroz y se cobra con Yape">
+                <source src="video/caja.webm" type="video/webm">
+                <source src="video/caja.mp4" type="video/mp4">
+              </video>
+            </div>
+          </div>
+          <div class="neck"></div>
+          <div class="foot-base"></div>
+        </div>
+        <div class="floor" aria-hidden="true"></div>
+      </div>
     </div>
     <div class="showcase">
       <div class="frames">
@@ -118,7 +126,6 @@
           <p class="time"><time>7:00</time></p>
           <p class="say"><strong>Abres la caja.</strong> Anotas con cuánto sencillo empiezas y ya puedes vender.</p>
           <div class="step-img"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/dia_abrir-dark-1280.webp 1280w, img/dia_abrir-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
           <img class="shot" src="img/dia_abrir-light-1280.webp" srcset="img/dia_abrir-light-1280.webp 1280w, img/dia_abrir-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Ventana Abrir caja: con cuánto efectivo empiezas, S/ 50 de sencillo">
         </picture></div>
         </article>
@@ -126,7 +133,6 @@
           <p class="time"><time>10:00</time></p>
           <p class="say"><strong>Vendes sin hacer cuentas.</strong> Pasas el código con el lector o la cámara. El arroz suelto va por kilo: pones el peso y la caja saca el precio.</p>
           <div class="step-img"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_escaner-dark-1280.webp 1280w, img/pc_escaner-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
           <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Pantalla de venta con Inca Kola, arroz por kilo a S/ 4.20 y total de S/ 16.80">
         </picture></div>
         </article>
@@ -134,7 +140,6 @@
           <p class="time"><time>13:00</time></p>
           <p class="say"><strong>Cobras como te paguen.</strong> Efectivo con el vuelto exacto, o Yape y Plin con tu número a la vista del cliente.</p>
           <div class="step-img"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/dia_yape-dark-1280.webp 1280w, img/dia_yape-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
           <img class="shot" src="img/dia_yape-light-1280.webp" srcset="img/dia_yape-light-1280.webp 1280w, img/dia_yape-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Ventana de cobro con Yape: S/ 16.80 y el número para yapear">
         </picture></div>
         </article>
@@ -142,7 +147,6 @@
           <p class="time"><time>21:00</time></p>
           <p class="say"><strong>Cierras y la caja cuadra.</strong> Cuentas billetes y monedas. La caja te dice si falta o sobra, al céntimo.</p>
           <div class="step-img"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/dia_arqueo-dark-1280.webp 1280w, img/dia_arqueo-dark-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw">
           <img class="shot" src="img/dia_arqueo-light-1280.webp" srcset="img/dia_arqueo-light-1280.webp 1280w, img/dia_arqueo-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="Arqueo de caja: caja inicial S/ 50, ventas en efectivo S/ 16.80, debe haber S/ 66.80 y la caja cuadra">
         </picture></div>
         </article>
@@ -150,48 +154,17 @@
       <div class="story-screen" aria-hidden="true">
         <div class="sframes">
         <div class="sframe on" data-i="0"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/dia_abrir-dark-1280.webp 1280w, img/dia_abrir-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
           <img class="shot" src="img/dia_abrir-light-1280.webp" srcset="img/dia_abrir-light-1280.webp 1280w, img/dia_abrir-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
         </picture></div>
         <div class="sframe" data-i="1"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_escaner-dark-1280.webp 1280w, img/pc_escaner-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
           <img class="shot" src="img/pc_escaner-light-1280.webp" srcset="img/pc_escaner-light-1280.webp 1280w, img/pc_escaner-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
         </picture></div>
         <div class="sframe" data-i="2"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/dia_yape-dark-1280.webp 1280w, img/dia_yape-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
           <img class="shot" src="img/dia_yape-light-1280.webp" srcset="img/dia_yape-light-1280.webp 1280w, img/dia_yape-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
         </picture></div>
         <div class="sframe" data-i="3"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/dia_arqueo-dark-1280.webp 1280w, img/dia_arqueo-dark-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px">
           <img class="shot" src="img/dia_arqueo-light-1280.webp" srcset="img/dia_arqueo-light-1280.webp 1280w, img/dia_arqueo-light-2400.webp 2400w" sizes="(min-width: 1024px) 640px, 0px" width="1280" height="720" loading="lazy" alt="">
         </picture></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Escena 3D: la pantalla gira al bajar y se ve la caja vendiendo (video propio) -->
-  <section class="scene" aria-labelledby="h-scene">
-    <div class="scene-track">
-      <div class="scene-stick">
-        <div class="scene-copy">
-          <h2 id="h-scene">Mírala trabajar.</h2>
-          <p class="say center">Escaneas, pesas el arroz y cobras con Yape. <strong>Todo en una sola pantalla.</strong></p>
-        </div>
-        <div class="stage">
-          <div class="rig">
-            <div class="mon">
-              <div class="screen">
-                <video id="demo" muted loop playsinline preload="none" poster="video/caja-poster.jpg" width="1280" height="720" aria-label="Video de la caja: se escanean productos, se pesa el arroz y se cobra con Yape">
-                  <source src="video/caja.webm" type="video/webm">
-                  <source src="video/caja.mp4" type="video/mp4">
-                </video>
-              </div>
-            </div>
-            <div class="neck"></div>
-            <div class="foot-base"></div>
-          </div>
-          <div class="floor" aria-hidden="true"></div>
         </div>
       </div>
     </div>
@@ -220,7 +193,6 @@
       </div>
       <div class="phone reveal">
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/cel_escaner-dark-780.webp">
           <img src="img/cel_escaner-light-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular: lo último que pasaste, productos sin código de barras y el botón Cobrar">
         </picture>
       </div>
@@ -233,11 +205,9 @@
       <h2 id="h-donde" class="center">Donde la necesites.</h2>
       <div class="duo reveal">
         <div class="duo-pc"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/pc_fichas-dark-1280.webp 1280w, img/pc_fichas-dark-2400.webp 2400w" sizes="(min-width: 1024px) 860px, 92vw">
           <img class="shot" src="img/pc_fichas-light-1280.webp" srcset="img/pc_fichas-light-1280.webp 1280w, img/pc_fichas-light-2400.webp 2400w" sizes="(min-width: 1024px) 860px, 92vw" width="1280" height="720" loading="lazy" alt="Caja Fácil en la computadora, con fichas con fotos">
         </picture></div>
         <div class="duo-cel"><picture>
-          <source media="(prefers-color-scheme: dark)" srcset="img/cel_fichas-dark-780.webp">
           <img src="img/cel_fichas-light-780.webp" width="780" height="1688" loading="lazy" alt="Caja Fácil en el celular, con fichas con fotos">
         </picture></div>
       </div>

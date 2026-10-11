@@ -381,43 +381,40 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
 }
 .showcase{margin-top:72px}
 
-/* ===== Escena 3D (v6): pantalla que gira con el scroll + video propio ===== */
-.scene{background:#04060F;color:#F5F5F7;--t1:#F5F5F7;--t2:#A1A1A6}
-.scene-track{height:230vh;view-timeline:--sc block}
-.scene-stick{position:sticky;top:0;height:100vh;height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(16px,3vh,32px);padding:76px var(--gut) 36px;overflow:hidden}
-.scene-stick::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 58%,rgba(10,102,255,.28),rgba(10,102,255,0) 70%);pointer-events:none}
-.scene-copy{position:relative;text-align:center}
-.scene-copy h2{font-size:clamp(2.25rem,5vw,3.75rem)}
-.scene-copy .say{margin:12px auto 0}
-.stage{position:relative;width:min(100%,960px,calc((100svh - 400px) * 1.78));perspective:1700px;perspective-origin:50% 40%}
-.rig{position:relative;transform-style:preserve-3d;transform:rotateX(5deg) rotateY(-14deg);transform-origin:50% 60%;will-change:transform}
-.mon{position:relative;padding:clamp(6px,1.2vw,12px);border-radius:clamp(12px,2vw,20px);background:linear-gradient(145deg,#26282E,#0B0C0F 55%);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 40px 90px -30px rgba(10,102,255,.45);transform-style:preserve-3d}
-.mon::before{content:"";position:absolute;inset:0;border-radius:inherit;background:#0A0B0E;transform:translateZ(-22px);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+/* ===== Portada clara (v7): título, pantalla 3D con video, vitrina. Todo con los colores de la página ===== */
+.hero{background:var(--bg);color:var(--t1);--t1:inherit;--t2:inherit;--rule:inherit;--ac-ink:inherit;padding:56px 0 24px;text-align:center}
+.hero::before,.hero-photo::before,.hero-photo::after{display:none}
+.hero h1{max-width:14ch;font-size:clamp(2.75rem,8vw,5.5rem);color:var(--t1)}
+.hero .from{margin-top:16px;max-width:34ch;font-family:var(--fd);font-size:clamp(1.1875rem,2.2vw,1.5rem);line-height:1.25;font-weight:500;color:var(--t2);letter-spacing:-.02em}
+.hero .tabs{background:var(--gray)}
+.hero .tabs button{color:var(--t2)}
+.hero .tabs button[aria-selected="true"]{background:var(--bg);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.08),0 2px 8px -2px rgba(0,0,0,.12)}
+@media (hover:hover) and (pointer:fine){.hero .tabs button[aria-selected="false"]:hover{color:var(--t1)}}
+.hero .tabcap{color:var(--t2)}
+.showcase .shot{box-shadow:var(--lift);outline:1px solid var(--rule);outline-offset:-1px}
+@media (max-width:640px){.showcase .shot{box-shadow:0 0 0 6px #1D1D1F,0 30px 60px -24px rgba(0,0,0,.35);outline:0}}
+.nav.on-dark{background:var(--nav)}
+
+.hero-stage{margin-top:clamp(32px,6vw,64px);padding:0 var(--gut)}
+.stage{position:relative;width:min(100%,980px);margin:0 auto;perspective:1800px;perspective-origin:50% 30%}
+.stage::before{content:"";position:absolute;inset:8% -6% -4%;background:radial-gradient(55% 55% at 50% 55%,rgba(10,102,255,.14),rgba(10,102,255,0) 70%);pointer-events:none}
+.rig{position:relative;transform-style:preserve-3d;transform:rotateX(4deg) rotateY(-8deg);transform-origin:50% 70%}
+.mon{position:relative;padding:clamp(6px,1.1vw,12px);border-radius:clamp(12px,2vw,20px);background:linear-gradient(145deg,#3A3C42,#101114 55%);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 50px 80px -40px rgba(20,40,90,.45),0 18px 30px -18px rgba(20,40,90,.3);transform-style:preserve-3d}
+.mon::before{content:"";position:absolute;inset:0;border-radius:inherit;background:#0E0F12;transform:translateZ(-22px)}
 .screen{position:relative;aspect-ratio:16/9;border-radius:clamp(6px,1vw,10px);overflow:hidden;background:#fff}
 .screen video{display:block;width:100%;height:100%;object-fit:cover}
-.screen::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.2),rgba(255,255,255,0) 32%);pointer-events:none}
-.neck{width:12%;height:clamp(26px,5vw,56px);margin:-1px auto 0;background:linear-gradient(90deg,#15171B,#3A3D45 50%,#15171B);transform:translateZ(-10px)}
-.foot-base{width:34%;height:clamp(7px,1.2vw,12px);margin:0 auto;border-radius:100px;background:linear-gradient(#3A3D45,#0F1013);transform:translateZ(-10px)}
-.floor{position:absolute;left:10%;right:10%;bottom:calc(-1 * clamp(8px,1.6vw,18px));height:36px;background:radial-gradient(50% 50% at 50% 50%,rgba(10,102,255,.35),rgba(10,102,255,0) 70%);filter:blur(10px);pointer-events:none}
-@media (max-width:640px){.scene-track{height:190vh}.scene-stick{padding-top:64px}.rig{transform:rotateX(4deg) rotateY(-8deg)}}
+.screen::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.22),rgba(255,255,255,0) 30%);pointer-events:none}
+.neck{width:12%;height:clamp(24px,4.6vw,52px);margin:-1px auto 0;background:linear-gradient(90deg,#B9BCC4,#E7E9EE 50%,#B9BCC4);transform:translateZ(-10px)}
+.foot-base{width:32%;height:clamp(6px,1.1vw,11px);margin:0 auto;border-radius:100px;background:linear-gradient(#E7E9EE,#A9ACB4);transform:translateZ(-10px);box-shadow:0 14px 24px -10px rgba(20,40,90,.4)}
+.floor{display:none}
 @supports (animation-timeline:view()){
   @media (prefers-reduced-motion:no-preference){
-    .rig{animation:rigspin linear both;animation-timeline:--sc;animation-range:cover 0% cover 100%}
-    @keyframes rigspin{
-      0%{transform:rotateX(28deg) rotateY(-48deg) scale(.8)}
-      30%{transform:rotateX(9deg) rotateY(-24deg) scale(.96)}
-      50%{transform:rotateX(0deg) rotateY(0deg) scale(1.04)}
-      70%{transform:rotateX(7deg) rotateY(22deg) scale(.96)}
-      100%{transform:rotateX(-16deg) rotateY(44deg) scale(.8)}
-    }
+    .rig{animation:rigin linear both;animation-timeline:view();animation-range:entry 0% cover 38%}
+    @keyframes rigin{from{transform:rotateX(22deg) rotateY(-26deg) scale(.88)}to{transform:rotateX(0) rotateY(0) scale(1)}}
   }
 }
-/* Sin scroll-timeline (Firefox, Safari viejo): gira una sola vez al aparecer */
 @supports not (animation-timeline:view()){
-  @media (prefers-reduced-motion:no-preference){
-    .js .rig{transition:transform 900ms var(--ease-out)}
-    .js .scene:not(.in) .rig{transform:rotateX(18deg) rotateY(-34deg) scale(.88)}
-    .js .scene.in .rig{transform:rotateX(2deg) rotateY(-4deg)}
-  }
+  @media (prefers-reduced-motion:no-preference){.rig{animation:rigin-once 1100ms var(--ease-out) 150ms both}@keyframes rigin-once{from{transform:rotateX(18deg) rotateY(-24deg) scale(.9);opacity:.6}to{transform:rotateX(2deg) rotateY(-3deg);opacity:1}}}
 }
-@media (prefers-reduced-motion:reduce){.rig{transform:rotateX(3deg) rotateY(-6deg)}}
+@media (prefers-reduced-motion:reduce){.rig{transform:none}}
+@media (max-width:640px){.hero{padding-top:40px}.rig{transform:rotateX(3deg) rotateY(-5deg)}.hero-stage{margin-bottom:8px}}
