@@ -81,6 +81,12 @@
     window.scrollTo(0, 0);
     window.addEventListener("load", function () { window.scrollTo(0, 0); });
     window.addEventListener("pageshow", function (e) { if (e.persisted) window.scrollTo(0, 0); });
+    // iPhone (Safari) a veces devuelve la página abajo un instante después: se vuelve a subir un par de veces,
+    // y también al salir, para que al recargar el navegador no tenga una posición que recordar.
+    window.addEventListener("pagehide", function () { window.scrollTo(0, 0); });
+    window.addEventListener("beforeunload", function () { window.scrollTo(0, 0); });
+    window.addEventListener("load", function () { [60, 250, 700].forEach(function (t) { setTimeout(function () { if (!location.hash && window.scrollY > 0 && !window._tocó) window.scrollTo(0, 0); }, t); }); });
+    ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (ev) { window.addEventListener(ev, function () { window._tocó = true; }, { once: true, passive: true }); });
   }
 })();
 
