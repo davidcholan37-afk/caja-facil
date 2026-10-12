@@ -2835,7 +2835,7 @@ function vzParse(text) {
       const q = vzQty(seg.slice(ia + 1).filter(vzIsQty)), nombre = seg.slice(0, ia).filter((t) => !VZ_FN.has(t) && !vzIsQty(t)).join(" ");
       return nombre && q && q.val > 0 && !q.sol && out.push({ tipo: "cambiar", nombre, cantidad: q.val, unidad: q.kg ? "kg" : "unid" });
     }
-    if (c < 0 && !(seg[0] && vzIsQty(seg[0]))) return;
+    if (c < 0) { const f = seg.findIndex(vzIsQty); if (f < 0 || f > 2 || !seg.slice(0, f).every((t) => VZ_FN.has(t) || t === "y")) return; seg.splice(0, f); } // sin verbo vale si empieza con cantidad (ignorando «los», «y»…)
     // anotar: partir en productos cuando aparece una cantidad nueva o «y/con/más»
     let cur = { q: [], n: [] }; const items = [];
     const push = () => { if (cur.n.length) items.push(cur); cur = { q: [], n: [] }; };
