@@ -1684,3 +1684,9 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 html[data-input="kbd"] .vzmic:not(.busy){animation:none}
 .vzbar{height:6px;border-radius:3px;background:var(--line,#ddd);overflow:hidden;margin:10px 0}
 .vzbar i{display:block;height:100%;background:var(--pri,#1f6f78);transform-origin:left;transform:scaleX(0);transition:transform .2s var(--ease-out)}
+.ajnav button.ajmore{background:transparent;border:1px dashed var(--hl2);color:var(--t3);font-weight:550}
+.ajnav button.ajmore:hover{color:var(--t1);border-color:var(--t3)}
+details.dtl>summary{cursor:pointer;list-style:none;font-weight:650;font-size:1.05rem;display:flex;align-items:center;justify-content:space-between;min-height:32px}
+details.dtl>summary::-webkit-details-marker{display:none}
+details.dtl>summary::after{content:"+";color:var(--t3);font-weight:500;font-size:1.3rem;line-height:1}
+details.dtl[open]>summary::after{content:"–"}

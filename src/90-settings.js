@@ -1,4 +1,5 @@
 /* ===================== 90 · AJUSTES: negocio, comprobantes, usuarios, balanza, tiendas y datos ===================== */
+const ATABS_BASIC = ["negocio", "cobros", "venta", "usuarios", "datos"]; // lo de todos los días; el resto va en «Más opciones»
 const ATABS = [["negocio", "Negocio"], ["comp", "Comprobantes"], ["cobros", "Cobros y puntos"], ["venta", "Pantalla de venta"], ["balanza", "Balanza"], ["usuarios", "Usuarios y permisos"], ["tiendas", "Tiendas"], ["nube", "Nube"], ["datos", "Datos y respaldo"], ["bitacora", "Bitácora"]];
 const fld = (label, inner, hint) => `<label class="fld"><span>${label}</span>${inner}${hint ? `<small class="hint2">${hint}</small>` : ""}</label>`;
 const inp = (key, val, o = {}) => `<input class="inp ${o.num ? "num" : ""}" data-set="${key}" value="${esc(val ?? "")}" ${o.num ? 'inputmode="decimal"' : ""} ${o.ph ? `placeholder="${esc(o.ph)}"` : ""} maxlength="${o.max || 80}">`;
@@ -7,6 +8,12 @@ const getK = (k) => k.split(".").reduce((o, x) => (o == null ? o : o[x]), DB);
 function setK(k, v) { const p = k.split("."), last = p.pop(), o = p.reduce((a, x) => a[x], DB); o[last] = v; }
 function dbSize() { try { return new Blob([JSON.stringify(DB)]).size; } catch (e) { return 0; } }
 const kb = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB");
+const ajBtn = ([k, n], t) => `<button class="${t === k ? "on" : ""}" data-a="atab" data-t="${k}">${n}</button>`;
+function ajNav(t) {
+  const basic = ATABS.filter(([k]) => ATABS_BASIC.includes(k)), more = ATABS.filter(([k]) => !ATABS_BASIC.includes(k));
+  const open = ui.amore || more.some(([k]) => k === t);
+  return basic.map((x) => ajBtn(x, t)).join("") + `<button class="ajmore" data-a="amore" aria-expanded="${open}">${open ? "Menos opciones" : "Más opciones"}</button>` + (open ? more.map((x) => ajBtn(x, t)).join("") : "");
+}
 VIEWS.aj = function viewSettings(v) {
   const t = ui.atab, C = DB.cfg, B = DB.biz;
   let body = "";
@@ -68,7 +75,7 @@ VIEWS.aj = function viewSettings(v) {
   else if (t === "bitacora") { const q = norm(ui.lq || ""), l = DB.log.filter((x) => !q || norm(x.a + " " + x.x + " " + x.u).includes(q)).slice().reverse().slice(0, 300); body = `<div class="card"><div class="row sp wrap"><h2>Bitácora de seguridad</h2><button class="btn sec sm" data-a="logcsv">Exportar</button></div><p class="muted" style="margin-bottom:10px">Quién entró, anuló, devolvió, cambió precios, cerró caja o autorizó algo.</p>
       <input class="inp" id="lq" type="search" placeholder="Buscar" value="${esc(ui.lq || "")}" style="margin-bottom:10px">
       ${l.length ? `<div class="tablewrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>${l.map((x) => `<tr><td>${fmtDT(x.t)}</td><td>${esc(x.u)}</td><td>${esc(x.a)}</td><td>${esc(x.x)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Sin registros.</p>`}</div>`; }
-  v.innerHTML = `<div class="ph"><h1>Ajustes</h1></div><div class="aj"><nav class="ajnav">${ATABS.map(([k, n]) => `<button class="${t === k ? "on" : ""}" data-a="atab" data-t="${k}">${n}</button>`).join("")}</nav><div class="stack">${body}</div></div>`;
+  v.innerHTML = `<div class="ph"><h1>Ajustes</h1></div><div class="aj"><nav class="ajnav">${ajNav(t)}</nav><div class="stack">${body}</div></div>`;
 };
 function openUser(id) {
   const u = id ? usr(id) : { name: "", role: "cajero", on: true, pin: "" };
@@ -154,6 +161,7 @@ function archiveUI() {
 }
 act({
   atab: (el) => { ui.atab = el.dataset.t; render(); },
+  amore: () => { const enMas = !ATABS_BASIC.includes(ui.atab), abierto = ui.amore || enMas; if (abierto) { if (enMas) ui.atab = "negocio"; ui.amore = false; } else ui.amore = true; render(); },
   tog: (el) => { const k = el.dataset.k, v = !getK(k); setK(k, k === "cfg.mute" ? !DB.cfg.mute : v); save(); render(); },
   setv: (el) => { setK(el.dataset.k, el.dataset.v); save(); render(); },
   unew: () => openUser(""),

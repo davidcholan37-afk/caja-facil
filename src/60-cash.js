@@ -111,7 +111,7 @@ VIEWS.caja = function viewCash(v) {
   const moves = DB.moves.filter((m) => m.date === k).sort((a, b) => b.t - a.t);
   const z = DB.closes.find((x) => x.date === k), others = shifts.filter((s) => !s.t1 && s.u !== ui.user);
   const MS = mine ? shiftSummary(mine) : null;
-  v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="tab" data-t="prov">Proveedores</button><button class="btn sec sm" data-a="mv" data-t="ingreso">Ingreso</button><button class="btn sec sm" data-a="mv" data-t="retiro">Retiro</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button></div>` : ""}</div>
+  v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button><button class="btn sec sm" data-a="cajamas">Más</button></div>` : ""}</div>
     <div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>
     ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
       <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="shcount" data-id="${mine.id}">Cerrar mi caja (arqueo)</button><button class="btn sec" data-a="liqprint" data-id="${mine.id}">${svg("print", "bi")}Corte parcial</button></div>`
@@ -125,9 +125,9 @@ VIEWS.caja = function viewCash(v) {
     </div><div class="stack">
       <div class="card"><h2>Cajas del día</h2>${shifts.length ? shifts.map((s) => { const S = s.t1 ? null : shiftSummary(s); return `<div class="kv click" data-a="liq" data-id="${s.id}"><span><b>${esc(s.un)}</b><small class="muted"> · ${hhmm(s.t0)}${s.t1 ? "–" + hhmm(s.t1) : " · abierta"}</small></span><span class="num">${s.t1 ? `${money(s.counted)} <span class="tag ${s.diff === 0 ? "" : s.diff < 0 ? "out" : "low"}">${s.diff === 0 ? "cuadra" : (s.diff < 0 ? "falta " : "sobra ") + money(Math.abs(s.diff))}</span>` : `${money(S.expected)} <span class="tag">abierta</span>`}</span></div>`; }).join("") : `<p class="muted">Nadie abrió caja este día.</p>`}
         ${others.length && can("cierre") ? `<p class="muted sm" style="margin-top:8px">Como supervisor puedes cerrar una caja ajena tocándola.</p>` : ""}</div>
-      ${can("cierre") ? `<div class="card"><h2>Cierre del día (Z)</h2>${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><div class="row wrap" style="margin-top:10px"><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button></div>`
+      ${can("cierre") ? `<div class="card"><h2>Cerrar el día</h2>${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><div class="row wrap" style="margin-top:10px"><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button></div>`
         : `<p class="muted" style="margin-bottom:10px">Resume ventas, comprobantes y cajas del día. ${shifts.some((s) => !s.t1) ? "<b>Primero cierren las cajas abiertas.</b>" : ""}</p><button class="btn" data-a="zclose" ${shifts.some((s) => !s.t1) || (!T.n && !shifts.length) ? "disabled" : ""}>Hacer cierre del día</button>`}</div>
-      <div class="card"><h2>Períodos</h2><p class="muted" style="margin-bottom:10px">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period" style="margin-top:8px">Cerrar un mes</button></div>` : ""}
+      <details class="card dtl"><summary>Cerrar el mes</summary><p class="muted" style="margin:10px 0">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period" style="margin-top:8px">Cerrar un mes</button></details>` : ""}
     </div></div>`;
 };
 function openMove(type) {
@@ -176,6 +176,7 @@ act({
     DB.closes.push(z); log("Cierre del día", `Z ${z.z} · ${dmy(k)}`); save(k); printHtml(zHtml(z)); toast("Cierre del día guardado"); render();
   }, "Cierre del día"),
   zprint: (el) => { const z = DB.closes.find((x) => x.id === el.dataset.id); if (z) printHtml(zHtml(z)); },
+  cajamas: () => openModal(`<h2>Más movimientos de caja</h2><div class="fgrid" style="margin:12px 0"><button class="fb" data-a="tab" data-t="prov">Proveedores</button><button class="fb" data-a="mv" data-t="ingreso">Ingreso de dinero</button><button class="fb" data-a="mv" data-t="retiro">Retiro de dinero</button></div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),
   mv: (el) => need("caja", () => openMove(el.dataset.t)),
   mvsave: (el) => {
     const type = el.dataset.t;

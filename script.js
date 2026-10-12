@@ -1565,8 +1565,7 @@ VIEWS.prod = function viewProducts(v) {
   const low = lowItems(), val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0));
   const T = [["lista", "Inventario"], ["kx", "Movimientos (kardex)"], ["low", `Por reponer${low.length ? ` (${low.length})` : ""}`]];
   v.innerHTML = `<div class="ph"><h1>Productos</h1><div class="row wrap">
-      ${can("precios") ? `<button class="btn sec sm" data-a="impopen">Importar</button>` : ""}<button class="btn sec sm" data-a="expprod">Exportar</button>
-      ${can("stock") ? `<button class="btn sec sm" data-a="trfopen">Transferir</button>` : ""}${can("precios") ? `<button class="btn sm" data-a="pnew">+ Nuevo producto</button>` : ""}</div></div>
+      <button class="btn sec sm" data-a="prodmas">Más</button>${can("precios") ? `<button class="btn sm" data-a="pnew">+ Nuevo producto</button>` : ""}</div></div>
     <div class="seg tabs2">${T.map(([k, l]) => `<button class="${ui.ptab === k ? "on" : ""}" data-a="ptab" data-t="${k}">${l}</button>`).join("")}</div>
     <div id="pbody"></div>`;
   if (ui.ptab === "kx") return paintKardex();
@@ -1834,6 +1833,7 @@ function doTransfer() {
 
 act({
   ptab: (el) => { if (modalOpen()) closeModal(); ui.ptab = el.dataset.t; if (ui.tab !== "prod") go("prod"); else render(); },
+  prodmas: () => openModal(`<h2>Más opciones</h2><div class="fgrid" style="margin:12px 0">${can("precios") ? `<button class="fb" data-a="impopen">Importar</button>` : ""}<button class="fb" data-a="expprod">Exportar</button>${can("stock") ? `<button class="fb" data-a="trfopen">Transferir stock</button>` : ""}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),
   pnew: () => need("precios", () => openProduct("")),
   pedit: (el) => openProduct(el.dataset.id),
   psave: saveProduct,
@@ -1875,7 +1875,7 @@ act({
   impopen: () => need("precios", openImport),
   impok: applyImport,
   tpl: () => csvOut([["nombre", "precio", "costo", "stock", "categoria", "codigo", "unidad"], ["Tomate", "4.50", "3", "30", "Verduras", "1", "kg"], ["Lechuga", "2.50", "1.5", "20", "Verduras", "2", "u"], ["Gaseosa 500 ml", "3", "2.2", "24", "Bebidas", "7750001", "u"]], "plantilla-productos.csv"),
-  expprod: () => { if (!DB.products.length) return toast("Aún no hay productos para exportar"); exportProducts(); },
+  expprod: () => { closeModal(); if (!DB.products.length) return toast("Aún no hay productos para exportar"); exportProducts(); },
   trfopen: () => need("stock", () => { ui.trf = null; ui.trfq = ""; openTransfer(); }, "Transferir stock"),
   trfadd: (el) => { trfRead(); const t = ui.trf; if (!t.items.some((x) => x.id === el.dataset.id)) t.items.push({ id: el.dataset.id, qty: 1 }); ui.trfq = ""; openTransfer(); },
   trfdel: (el) => { trfRead(); ui.trf.items.splice(+el.dataset.i, 1); openTransfer(); },
@@ -2135,7 +2135,7 @@ VIEWS.caja = function viewCash(v) {
   const moves = DB.moves.filter((m) => m.date === k).sort((a, b) => b.t - a.t);
   const z = DB.closes.find((x) => x.date === k), others = shifts.filter((s) => !s.t1 && s.u !== ui.user);
   const MS = mine ? shiftSummary(mine) : null;
-  v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="tab" data-t="prov">Proveedores</button><button class="btn sec sm" data-a="mv" data-t="ingreso">Ingreso</button><button class="btn sec sm" data-a="mv" data-t="retiro">Retiro</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button></div>` : ""}</div>
+  v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button><button class="btn sec sm" data-a="cajamas">Más</button></div>` : ""}</div>
     <div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>
     ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
       <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="shcount" data-id="${mine.id}">Cerrar mi caja (arqueo)</button><button class="btn sec" data-a="liqprint" data-id="${mine.id}">${svg("print", "bi")}Corte parcial</button></div>`
@@ -2149,9 +2149,9 @@ VIEWS.caja = function viewCash(v) {
     </div><div class="stack">
       <div class="card"><h2>Cajas del día</h2>${shifts.length ? shifts.map((s) => { const S = s.t1 ? null : shiftSummary(s); return `<div class="kv click" data-a="liq" data-id="${s.id}"><span><b>${esc(s.un)}</b><small class="muted"> · ${hhmm(s.t0)}${s.t1 ? "–" + hhmm(s.t1) : " · abierta"}</small></span><span class="num">${s.t1 ? `${money(s.counted)} <span class="tag ${s.diff === 0 ? "" : s.diff < 0 ? "out" : "low"}">${s.diff === 0 ? "cuadra" : (s.diff < 0 ? "falta " : "sobra ") + money(Math.abs(s.diff))}</span>` : `${money(S.expected)} <span class="tag">abierta</span>`}</span></div>`; }).join("") : `<p class="muted">Nadie abrió caja este día.</p>`}
         ${others.length && can("cierre") ? `<p class="muted sm" style="margin-top:8px">Como supervisor puedes cerrar una caja ajena tocándola.</p>` : ""}</div>
-      ${can("cierre") ? `<div class="card"><h2>Cierre del día (Z)</h2>${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><div class="row wrap" style="margin-top:10px"><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button></div>`
+      ${can("cierre") ? `<div class="card"><h2>Cerrar el día</h2>${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><div class="row wrap" style="margin-top:10px"><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button></div>`
         : `<p class="muted" style="margin-bottom:10px">Resume ventas, comprobantes y cajas del día. ${shifts.some((s) => !s.t1) ? "<b>Primero cierren las cajas abiertas.</b>" : ""}</p><button class="btn" data-a="zclose" ${shifts.some((s) => !s.t1) || (!T.n && !shifts.length) ? "disabled" : ""}>Hacer cierre del día</button>`}</div>
-      <div class="card"><h2>Períodos</h2><p class="muted" style="margin-bottom:10px">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period" style="margin-top:8px">Cerrar un mes</button></div>` : ""}
+      <details class="card dtl"><summary>Cerrar el mes</summary><p class="muted" style="margin:10px 0">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period" style="margin-top:8px">Cerrar un mes</button></details>` : ""}
     </div></div>`;
 };
 function openMove(type) {
@@ -2200,6 +2200,7 @@ act({
     DB.closes.push(z); log("Cierre del día", `Z ${z.z} · ${dmy(k)}`); save(k); printHtml(zHtml(z)); toast("Cierre del día guardado"); render();
   }, "Cierre del día"),
   zprint: (el) => { const z = DB.closes.find((x) => x.id === el.dataset.id); if (z) printHtml(zHtml(z)); },
+  cajamas: () => openModal(`<h2>Más movimientos de caja</h2><div class="fgrid" style="margin:12px 0"><button class="fb" data-a="tab" data-t="prov">Proveedores</button><button class="fb" data-a="mv" data-t="ingreso">Ingreso de dinero</button><button class="fb" data-a="mv" data-t="retiro">Retiro de dinero</button></div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),
   mv: (el) => need("caja", () => openMove(el.dataset.t)),
   mvsave: (el) => {
     const type = el.dataset.t;
@@ -3439,6 +3440,7 @@ act({
 });
 
 /* ===================== 90 · AJUSTES: negocio, comprobantes, usuarios, balanza, tiendas y datos ===================== */
+const ATABS_BASIC = ["negocio", "cobros", "venta", "usuarios", "datos"]; // lo de todos los días; el resto va en «Más opciones»
 const ATABS = [["negocio", "Negocio"], ["comp", "Comprobantes"], ["cobros", "Cobros y puntos"], ["venta", "Pantalla de venta"], ["balanza", "Balanza"], ["usuarios", "Usuarios y permisos"], ["tiendas", "Tiendas"], ["nube", "Nube"], ["datos", "Datos y respaldo"], ["bitacora", "Bitácora"]];
 const fld = (label, inner, hint) => `<label class="fld"><span>${label}</span>${inner}${hint ? `<small class="hint2">${hint}</small>` : ""}</label>`;
 const inp = (key, val, o = {}) => `<input class="inp ${o.num ? "num" : ""}" data-set="${key}" value="${esc(val ?? "")}" ${o.num ? 'inputmode="decimal"' : ""} ${o.ph ? `placeholder="${esc(o.ph)}"` : ""} maxlength="${o.max || 80}">`;
@@ -3447,6 +3449,12 @@ const getK = (k) => k.split(".").reduce((o, x) => (o == null ? o : o[x]), DB);
 function setK(k, v) { const p = k.split("."), last = p.pop(), o = p.reduce((a, x) => a[x], DB); o[last] = v; }
 function dbSize() { try { return new Blob([JSON.stringify(DB)]).size; } catch (e) { return 0; } }
 const kb = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB");
+const ajBtn = ([k, n], t) => `<button class="${t === k ? "on" : ""}" data-a="atab" data-t="${k}">${n}</button>`;
+function ajNav(t) {
+  const basic = ATABS.filter(([k]) => ATABS_BASIC.includes(k)), more = ATABS.filter(([k]) => !ATABS_BASIC.includes(k));
+  const open = ui.amore || more.some(([k]) => k === t);
+  return basic.map((x) => ajBtn(x, t)).join("") + `<button class="ajmore" data-a="amore" aria-expanded="${open}">${open ? "Menos opciones" : "Más opciones"}</button>` + (open ? more.map((x) => ajBtn(x, t)).join("") : "");
+}
 VIEWS.aj = function viewSettings(v) {
   const t = ui.atab, C = DB.cfg, B = DB.biz;
   let body = "";
@@ -3508,7 +3516,7 @@ VIEWS.aj = function viewSettings(v) {
   else if (t === "bitacora") { const q = norm(ui.lq || ""), l = DB.log.filter((x) => !q || norm(x.a + " " + x.x + " " + x.u).includes(q)).slice().reverse().slice(0, 300); body = `<div class="card"><div class="row sp wrap"><h2>Bitácora de seguridad</h2><button class="btn sec sm" data-a="logcsv">Exportar</button></div><p class="muted" style="margin-bottom:10px">Quién entró, anuló, devolvió, cambió precios, cerró caja o autorizó algo.</p>
       <input class="inp" id="lq" type="search" placeholder="Buscar" value="${esc(ui.lq || "")}" style="margin-bottom:10px">
       ${l.length ? `<div class="tablewrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>${l.map((x) => `<tr><td>${fmtDT(x.t)}</td><td>${esc(x.u)}</td><td>${esc(x.a)}</td><td>${esc(x.x)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Sin registros.</p>`}</div>`; }
-  v.innerHTML = `<div class="ph"><h1>Ajustes</h1></div><div class="aj"><nav class="ajnav">${ATABS.map(([k, n]) => `<button class="${t === k ? "on" : ""}" data-a="atab" data-t="${k}">${n}</button>`).join("")}</nav><div class="stack">${body}</div></div>`;
+  v.innerHTML = `<div class="ph"><h1>Ajustes</h1></div><div class="aj"><nav class="ajnav">${ajNav(t)}</nav><div class="stack">${body}</div></div>`;
 };
 function openUser(id) {
   const u = id ? usr(id) : { name: "", role: "cajero", on: true, pin: "" };
@@ -3594,6 +3602,7 @@ function archiveUI() {
 }
 act({
   atab: (el) => { ui.atab = el.dataset.t; render(); },
+  amore: () => { const enMas = !ATABS_BASIC.includes(ui.atab), abierto = ui.amore || enMas; if (abierto) { if (enMas) ui.atab = "negocio"; ui.amore = false; } else ui.amore = true; render(); },
   tog: (el) => { const k = el.dataset.k, v = !getK(k); setK(k, k === "cfg.mute" ? !DB.cfg.mute : v); save(); render(); },
   setv: (el) => { setK(el.dataset.k, el.dataset.v); save(); render(); },
   unew: () => openUser(""),

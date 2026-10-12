@@ -5,8 +5,7 @@ VIEWS.prod = function viewProducts(v) {
   const low = lowItems(), val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0));
   const T = [["lista", "Inventario"], ["kx", "Movimientos (kardex)"], ["low", `Por reponer${low.length ? ` (${low.length})` : ""}`]];
   v.innerHTML = `<div class="ph"><h1>Productos</h1><div class="row wrap">
-      ${can("precios") ? `<button class="btn sec sm" data-a="impopen">Importar</button>` : ""}<button class="btn sec sm" data-a="expprod">Exportar</button>
-      ${can("stock") ? `<button class="btn sec sm" data-a="trfopen">Transferir</button>` : ""}${can("precios") ? `<button class="btn sm" data-a="pnew">+ Nuevo producto</button>` : ""}</div></div>
+      <button class="btn sec sm" data-a="prodmas">Más</button>${can("precios") ? `<button class="btn sm" data-a="pnew">+ Nuevo producto</button>` : ""}</div></div>
     <div class="seg tabs2">${T.map(([k, l]) => `<button class="${ui.ptab === k ? "on" : ""}" data-a="ptab" data-t="${k}">${l}</button>`).join("")}</div>
     <div id="pbody"></div>`;
   if (ui.ptab === "kx") return paintKardex();
@@ -274,6 +273,7 @@ function doTransfer() {
 
 act({
   ptab: (el) => { if (modalOpen()) closeModal(); ui.ptab = el.dataset.t; if (ui.tab !== "prod") go("prod"); else render(); },
+  prodmas: () => openModal(`<h2>Más opciones</h2><div class="fgrid" style="margin:12px 0">${can("precios") ? `<button class="fb" data-a="impopen">Importar</button>` : ""}<button class="fb" data-a="expprod">Exportar</button>${can("stock") ? `<button class="fb" data-a="trfopen">Transferir stock</button>` : ""}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),
   pnew: () => need("precios", () => openProduct("")),
   pedit: (el) => openProduct(el.dataset.id),
   psave: saveProduct,
@@ -315,7 +315,7 @@ act({
   impopen: () => need("precios", openImport),
   impok: applyImport,
   tpl: () => csvOut([["nombre", "precio", "costo", "stock", "categoria", "codigo", "unidad"], ["Tomate", "4.50", "3", "30", "Verduras", "1", "kg"], ["Lechuga", "2.50", "1.5", "20", "Verduras", "2", "u"], ["Gaseosa 500 ml", "3", "2.2", "24", "Bebidas", "7750001", "u"]], "plantilla-productos.csv"),
-  expprod: () => { if (!DB.products.length) return toast("Aún no hay productos para exportar"); exportProducts(); },
+  expprod: () => { closeModal(); if (!DB.products.length) return toast("Aún no hay productos para exportar"); exportProducts(); },
   trfopen: () => need("stock", () => { ui.trf = null; ui.trfq = ""; openTransfer(); }, "Transferir stock"),
   trfadd: (el) => { trfRead(); const t = ui.trf; if (!t.items.some((x) => x.id === el.dataset.id)) t.items.push({ id: el.dataset.id, qty: 1 }); ui.trfq = ""; openTransfer(); },
   trfdel: (el) => { trfRead(); ui.trf.items.splice(+el.dataset.i, 1); openTransfer(); },
