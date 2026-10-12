@@ -2,6 +2,20 @@
    Todo se guarda en este navegador (IndexedDB). Archivo generado desde src/. */
 (() => {
 "use strict";
+/* ===================== 00 · MODO PRUEBA (solo en localhost) ===================== */
+// Para probar la voz en tu propia PC sin entrar con Google: abre http://localhost:8765/#voz-prueba
+// Solo funciona en localhost / 127.0.0.1. En la página publicada NO hace nada.
+(function () {
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  try {
+    if (location.hash === "#voz-prueba") { localStorage.setItem("cf-voz-prueba", "1"); history.replaceState(null, "", location.pathname); }
+    if (localStorage.getItem("cf-voz-prueba") !== "1") return;
+    localStorage.setItem("cf-cloud", JSON.stringify({ ses: { at: "x", rt: "r", exp: Date.now() + 9e9, user: { id: "prueba", email: "prueba@local" } }, neg: "11111111-1111-1111-1111-111111111111", negName: "Prueba de voz", chk: Date.now(), last: Date.now(), voz: true }));
+    const f = window.fetch; // la nube se queda quieta: nada sale a internet
+    window.fetch = (u, ...a) => (String((u && u.url) || u).indexOf("supabase.co") >= 0 ? Promise.reject(new TypeError("modo prueba")) : f.call(window, u, ...a));
+  } catch (e) {}
+})();
+
 /* ===================== 00 · NÚCLEO: utilidades, datos y guardado ===================== */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -2914,7 +2928,7 @@ function vzGrammar() {
 /* ---------- pantallas: escuchando, entendí, errores ---------- */
 function vzShow(html) { openModal(html); ui.mk = "voz"; }
 const vzListenHtml = (txt) => `<div class="vzbox" role="status"><div class="vzmic">${svg("mic")}</div><h2>Te escucho…</h2><p class="vzt" id="vzt" aria-live="polite">${txt}</p>
-  <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-a="vozstop">Listo</button></div></div>`;
+  <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-a="vozstop">Listo</button></div>${vzInstalled() || vzElectron ? "" : `<p class="sm" style="margin-top:10px"><button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button></p>`}</div>`;
 const VZ_EJ = "Di, por ejemplo: «anota un yogurt y un cuarto de arroz»";
 function vzSet(t) { const e = $("#vzt"); if (e) e.textContent = t; }
 
@@ -2931,6 +2945,7 @@ function vzOfrecer(msg) {
     <div class="btns h"><button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-a="vozinstall" data-enter>Instalar (34 MB)</button></div></div>`);
 }
 async function vzDoInstall() {
+  stopVoz();
   vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Instalando voz…</h2><div class="vzbar"><i id="vzbar"></i></div><p class="vzt" id="vzt">0 %</p></div>`);
   const mk = ui.mk;
   try { await vzInstall((f) => { const b = $("#vzbar"); if (b) b.style.transform = `scaleX(${f})`; vzSet(Math.round(f * 100) + " %"); }); }

@@ -215,7 +215,7 @@ function vzGrammar() {
 /* ---------- pantallas: escuchando, entendí, errores ---------- */
 function vzShow(html) { openModal(html); ui.mk = "voz"; }
 const vzListenHtml = (txt) => `<div class="vzbox" role="status"><div class="vzmic">${svg("mic")}</div><h2>Te escucho…</h2><p class="vzt" id="vzt" aria-live="polite">${txt}</p>
-  <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-a="vozstop">Listo</button></div></div>`;
+  <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-a="vozstop">Listo</button></div>${vzInstalled() || vzElectron ? "" : `<p class="sm" style="margin-top:10px"><button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button></p>`}</div>`;
 const VZ_EJ = "Di, por ejemplo: «anota un yogurt y un cuarto de arroz»";
 function vzSet(t) { const e = $("#vzt"); if (e) e.textContent = t; }
 
@@ -232,6 +232,7 @@ function vzOfrecer(msg) {
     <div class="btns h"><button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-a="vozinstall" data-enter>Instalar (34 MB)</button></div></div>`);
 }
 async function vzDoInstall() {
+  stopVoz();
   vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Instalando voz…</h2><div class="vzbar"><i id="vzbar"></i></div><p class="vzt" id="vzt">0 %</p></div>`);
   const mk = ui.mk;
   try { await vzInstall((f) => { const b = $("#vzbar"); if (b) b.style.transform = `scaleX(${f})`; vzSet(Math.round(f * 100) + " %"); }); }
