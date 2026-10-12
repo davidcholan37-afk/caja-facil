@@ -1716,3 +1716,9 @@ body .paybox .pay4 .pm.yape:not(:disabled){background:#742284;box-shadow:none}
 body .paybox .pay4 .pm.plin:not(:disabled){background:#00B8D9;box-shadow:none}
 body .paybox .pay4 .pm:disabled{opacity:.4}
 body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin){background:var(--s1,#fff);color:var(--t2,#444);border:1px solid var(--hl,#ddd);text-shadow:none}
+
+/* Carrito más limpio: sin cabecera de columnas, «Vaciar» solo con el ícono, sin hora arriba en PC */
+.cart .lh{display:none!important}
+.cart .racts .ib[data-a="clear"] span{display:none}
+.cart .racts .ib[data-a="clear"]{padding:0 8px}
+@media (min-width:900px){.cart .rtop{display:none}}
