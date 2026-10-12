@@ -1,8 +1,9 @@
-// Caja Fácil · «voz»: convierte lo que dijo el cajero en acciones simples.
-// La clave de la IA vive SOLO aquí, como secreto de Supabase (ANTHROPIC_API_KEY). Nunca en la app.
+// Caja Fácil · «voz» (OPCIONAL): ayuda extra cuando el intérprete de la caja no entendió la frase.
+// La caja NO depende de esto: sin esta función la voz funciona igual (con internet y sin internet).
+// Sirve con cualquier IA gratuita compatible con el formato OpenAI (Groq, OpenRouter, etc.).
+// Secretos de Supabase (nunca en la app): IA_URL (ej. https://api.groq.com/openai/v1/chat/completions),
+// IA_KEY (clave gratuita), IA_MODEL (ej. llama-3.1-8b-instant). SIN PROBAR con una IA real todavía.
 // Despliegue: supabase functions deploy voz   (con verify_jwt activado, que es lo normal)
-
-const MODELO = "claude-haiku-5-5";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -90,26 +91,30 @@ Deno.serve(async (req) => {
   });
   if (!ok.ok || (await ok.json()) !== true) return json({ error: "voz_no_disponible" }, 403);
 
-  const clave = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!clave) return json({ error: "sin_clave" }, 500);
+  const urlIA = Deno.env.get("IA_URL"), clave = Deno.env.get("IA_KEY"), modelo = Deno.env.get("IA_MODEL");
+  if (!urlIA || !clave || !modelo) return json({ error: "sin_ia" }, 503);
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
+    const r = await fetch(urlIA, {
       method: "POST",
-      headers: { "x-api-key": clave, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      headers: { Authorization: "Bearer " + clave, "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODELO,
+        model: modelo,
         max_tokens: 500,
-        system: SISTEMA,
-        tools: [HERRAMIENTA],
-        tool_choice: { type: "tool", name: "acciones" },
-        messages: [{ role: "user", content: `Texto del cajero: «${texto}»` }],
+        temperature: 0,
+        messages: [
+          { role: "system", content: SISTEMA },
+          { role: "user", content: `Texto del cajero: «${texto}»` },
+        ],
+        tools: [{ type: "function", function: { name: HERRAMIENTA.name, description: HERRAMIENTA.description, parameters: HERRAMIENTA.input_schema } }],
+        tool_choice: { type: "function", function: { name: "acciones" } },
       }),
       signal: AbortSignal.timeout(15000),
     });
     if (!r.ok) return json({ error: "ia" }, 502);
     const d = await r.json();
-    const uso = (d.content || []).find((c: any) => c.type === "tool_use");
-    return json({ acciones: limpiar(uso?.input?.acciones) });
+    const args = d?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    const entrada = typeof args === "string" ? JSON.parse(args) : args;
+    return json({ acciones: limpiar(entrada?.acciones) });
   } catch {
     return json({ error: "ia" }, 502);
   }

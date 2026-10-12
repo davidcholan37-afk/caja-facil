@@ -1681,3 +1681,5 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 .vzi svg{width:16px;height:16px}
 @media (prefers-reduced-motion:reduce){.vzmic:not(.busy){animation:none}}
 html[data-input="kbd"] .vzmic:not(.busy){animation:none}
+.vzbar{height:6px;border-radius:3px;background:var(--line,#ddd);overflow:hidden;margin:10px 0}
+.vzbar i{display:block;height:100%;background:var(--pri,#1f6f78);transform-origin:left;transform:scaleX(0);transition:transform .2s var(--ease-out)}
