@@ -128,8 +128,7 @@ function paintCart() {
       </div>
     </div>
     <div class="paybox">
-      ${cobra ? `<button class="cobrar" data-a="pay" data-m="efectivo" ${dis}><span>Cobrar</span><b class="num">${money(T.total)}</b><span class="kbd">F2</span></button>
-      ${lines.length ? `<div class="paymini">${["yape", "plin", "tarjeta"].map((m) => `<button class="pm ${m}" data-a="pay" data-m="${m}" ${dis}>${METHODS[m]}</button>`).join("")}<button class="pm" data-a="pay" data-m="credito" ${dis}>Crédito</button><button class="pm" data-a="split" ${dis}>Dividir</button><button class="pm" data-a="prevsave" ${dis}>Preventa</button></div>` : ""}`
+      ${cobra ? `<div class="paymini pay4"><button class="pm main" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="kbd">F2</span></button><button class="pm" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm" data-a="tools">Más</button></div>`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();

@@ -1699,3 +1699,9 @@ details.dtl[open]>summary::after{content:"–"}
 .lastp.idle{flex-direction:row!important;justify-content:center;padding:12px 18px!important;gap:12px}
 .lastp.idle svg{width:22px!important;height:22px!important;padding:10px!important;border-radius:14px!important}
 .lastp.idle .ln1{font-size:15px!important}
+
+/* Cobrar simple: Efectivo, Yape, Plin y Más (Tarjeta, Crédito, Dividir y Preventa dentro de Más) */
+body .paybox .paymini.pay4{display:grid;grid-template-columns:1.25fr 1fr 1fr .8fr;gap:8px;margin-top:0}
+body .paybox .pay4 .pm{display:inline-flex;min-height:56px;font-size:15px;font-weight:600}
+body .paybox .pay4 .pm.main:not(:disabled){background:var(--ac,#1a6bff);border-color:transparent;color:#fff}
+body .paybox .pay4 .pm .kbd{display:none}
