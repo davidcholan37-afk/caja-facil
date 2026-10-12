@@ -201,6 +201,7 @@ async function cloudRefreshNeg() {
     const r = await sb(`negocios?select=nombre,estado,soporte_hasta&id=eq.${s.neg}`);
     if (r && r[0]) { s.negName = r[0].nombre; s.estado = r[0].estado; s.sop = r[0].soporte_hasta; s.chk = Date.now(); cloudStore(); }
   } catch (e) {}
+  try { const v = await sb(`negocios?select=voz&id=eq.${s.neg}`); s.voz = !!(v && v[0] && v[0].voz); cloudStore(); } catch (e) {}
   applySusp();
 }
 async function cloudCheckAdmin() {
@@ -255,6 +256,7 @@ function soporteHtml() {
 }
 async function adminLoad() {
   try { cloud.cli = await sb("rpc/admin_negocios", { method: "POST", body: {} }); } catch (e) { cloud.cli = { err: true }; }
+  try { const vz = await sb("rpc/admin_voz_lista", { method: "POST", body: {} }); if (Array.isArray(cloud.cli)) cloud.cli.forEach((n) => { const v = vz.find((x) => x.id === n.id); if (v) { n.voz = v.voz; n.voz_limite = v.voz_limite; n.usos_hoy = v.usos_hoy; n.vozOk = true; } }); } catch (e) {}
   if (ui.tab === "aj" && ui.atab === "nube") render();
 }
 function adminHtml() {
@@ -262,8 +264,8 @@ function adminHtml() {
   const body = !c ? `<p class="muted">Toca «Ver clientes» para traer la lista.</p>` : c.err ? `<p class="muted">No se pudo traer la lista. Revisa tu internet.</p>` : !c.length ? `<p class="muted">Aún no tienes clientes.</p>`
     : c.map((n) => { const sop = n.soporte_hasta && Date.parse(n.soporte_hasta) > Date.now(), mine = n.id === me;
       return `<div class="cli"><div class="clit"><b>${esc(n.nombre)}${mine ? " <small class=\"muted\">(tu negocio)</small>" : ""}</b><small>${esc(n.correo || "")} · ${n.tiendas || 0} ${n.tiendas === 1 ? "caja" : "cajas"} · ${n.ultima ? "última copia " + fmtDT(Date.parse(n.ultima)) : "sin copias aún"}</small>
-        <small><span class="tag ${n.estado === "suspendido" ? "out" : ""}">${n.estado === "suspendido" ? "Suspendido" : "Activo"}</span> ${sop ? `<span class="tag">Soporte hasta ${fmtDT(Date.parse(n.soporte_hasta))}</span>` : ""}${n.nota ? " · " + esc(n.nota) : ""}</small></div>
-        <div class="clia">${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
+        <small><span class="tag ${n.estado === "suspendido" ? "out" : ""}">${n.estado === "suspendido" ? "Suspendido" : "Activo"}</span> ${sop ? `<span class="tag">Soporte hasta ${fmtDT(Date.parse(n.soporte_hasta))}</span>` : ""}${n.nota ? " · " + esc(n.nota) : ""}</small>${n.vozOk ? `<small><span class="tag ${n.voz ? "" : "out"}">Voz ${n.voz ? "activa · hoy " + n.usos_hoy + " de " + n.voz_limite : "apagada"}</span></small>` : ""}</div>
+        <div class="clia">${n.vozOk ? `<button class="btn sec sm" data-a="adminvoz" data-id="${n.id}" data-e="${n.voz ? 0 : 1}">${n.voz ? "Quitar voz" : "Dar voz"}</button>` : ""}${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
   return `<div class="card"><div class="row sp"><h2>Mis clientes</h2><button class="btn sec sm" data-a="adminlist">Ver clientes</button></div><p class="muted sm" style="margin-bottom:8px">Solo tú ves esto. Para ver los datos de un cliente, él debe darte acceso en su Ajustes › Nube › Soporte técnico.</p>${body}</div>`;
 }
 // Resumen de solo lectura de un cliente que dio permiso.
@@ -330,6 +332,8 @@ act({
   sopoff: () => confirmBox("¿Quitar el acceso de soporte?", "Quitar acceso", () => cloudSoporte(0), false),
   adminlist: () => { cloud.cli = null; adminLoad(); },
   adminver: (el) => adminVer(el.dataset.id),
+  adminvoz: async (el) => { const id = el.dataset.id, on = el.dataset.e === "1", n = (cloud.cli || []).find((x) => x.id === id) || {};
+    try { await sb("rpc/admin_voz", { method: "POST", body: { neg: id, activa: on, limite: n.voz_limite || 150 } }); toast(on ? `${n.nombre} ya tiene la voz` : `${n.nombre} ya no tiene la voz`); } catch (er) { toast("No se pudo cambiar la voz", true); } adminLoad(); },
   adminest: (el) => { const id = el.dataset.id, e = el.dataset.e, n = (cloud.cli || []).find((x) => x.id === id) || {};
     const go = async () => { try { await sb("rpc/admin_estado", { method: "POST", body: { n: id, e } }); toast(e === "suspendido" ? `${n.nombre} quedó suspendido` : `${n.nombre} está activo otra vez`); } catch (er) { toast("No se pudo cambiar el estado", true); } adminLoad(); };
     if (e === "suspendido") confirmBox(`¿Suspender a ${n.nombre || "este cliente"}?`, "Suspender", go, true, "Su caja se bloquea la próxima vez que se conecte a la nube. Sus datos no se borran."); else go(); },

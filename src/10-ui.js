@@ -140,7 +140,7 @@ function openModal(html, cls = "") {
 }
 function closeModal() {
   const m = $("#modal"); m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
-  ui.pay = null; ui.mk = ""; stopScaleRead(); stopCam();
+  ui.pay = null; ui.mk = ""; stopScaleRead(); stopCam(); stopVoz();
   const b = modalBack; modalBack = null; if (b) return b();
   focusQ();
 }
@@ -190,6 +190,7 @@ const IC = {
   cam: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   print: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>',
   wa: '<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/>',
   scan: '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M7.5 9v6M10.5 9v6M14 9v6M16.5 9v6" stroke-width="1.6"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',

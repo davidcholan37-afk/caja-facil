@@ -11,7 +11,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - `sw.js` es el service worker (red primero). Si agregas archivos nuevos, súmalos a su lista.
 
 ## Módulos (src/)
-00-core datos, migraciones y ejemplos · 10-ui navegación, íconos, ventanas · 20-auth usuarios y PIN · 30-cart ticket · 31-sale pantalla de venta y cobro · 32-scale cajita de peso por kilo y balanza · 33-camera escanear con cámara · 40-products · 50-clients (crédito) · 60-cash caja, arqueo, cierres · 65-prov proveedores (deuda y abonos) · 67-cloud nube · 68-install botón «Instalar Caja Fácil» (Ajustes › Negocio) · 70-sales · 80-reports · 90-settings · 99-events teclado y eventos.
+00-core datos, migraciones y ejemplos · 10-ui navegación, íconos, ventanas · 20-auth usuarios y PIN · 30-cart ticket · 31-sale pantalla de venta y cobro · 32-scale cajita de peso por kilo y balanza · 33-camera escanear con cámara · 40-products · 50-clients (crédito) · 60-cash caja, arqueo, cierres · 65-prov proveedores (deuda y abonos) · 67-cloud nube · 68-install botón «Instalar Caja Fácil» (Ajustes › Negocio) · 69-voz voz con IA (extra de pago) · 70-sales · 80-reports · 90-settings · 99-events teclado y eventos.
 
 ## Reglas de diseño
 - Diseño actual: «caja moderna» (ticket a la izquierda, búsqueda arriba, teclas F1–F12 abajo en PC), crema + azul petróleo.
@@ -39,6 +39,11 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Solo el dueño entra con Google; los cajeros siguen con PIN.
 - Licencia: la caja no funciona hasta activarla con Google (pantalla `#susp`). Se bloquea si el proveedor la suspende o si pasan 15 días (`LIC_DIAS`) sin revisar la licencia con internet. Si vence la sesión de Google, sigue vendiendo hasta ese plazo.
 - Soporte: el cliente da permiso por 24 h o 7 días (Ajustes › Nube); el proveedor (tabla `privado.admins`) ve «Mis clientes», mira datos solo con permiso y suspende/activa.
+
+## Voz con IA (extra de pago)
+- `src/69-voz.js`: botón micrófono (solo si el negocio tiene `voz` activa y hay nube). Chrome pasa la voz a texto → función de Supabase `voz` → órdenes (anotar, pagar_proveedor, fiado, consulta) → la caja las busca en sus propios productos/clientes/proveedores → tarjeta «Entendí» → Aceptar. Nada se anota ni paga sin Aceptar.
+- `supabase/voz.sql` (columnas `voz`, `voz_limite`, conteo diario, `voz_usar`, `admin_voz`) y `supabase/functions/voz/index.ts` (llama a la IA). La clave de la IA es el secreto `ANTHROPIC_API_KEY` de Supabase: NUNCA dentro de la app ni del repo.
+- El proveedor activa la voz por cliente en Ajustes › Nube › Mis clientes («Dar voz»).
 
 ## Programa de Windows
 - `desktop/` (Electron): ventana que abre la caja publicada (se actualiza sola). El .exe lo fabrica GitHub Actions (`.github/workflows/escritorio.yml`) y lo publica en Releases como `CajaFacil-Setup.exe`. Para una versión nueva del programa sube `version` en `desktop/package.json`.
