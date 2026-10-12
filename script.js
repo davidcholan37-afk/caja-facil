@@ -2929,6 +2929,7 @@ function vzGrammar() {
 function vzShow(html) { openModal(html); ui.mk = "voz"; }
 const vzListenHtml = (txt) => `<div class="vzbox" role="status"><div class="vzmic">${svg("mic")}</div><h2>Te escucho…</h2><p class="vzt" id="vzt" aria-live="polite">${txt}</p>
   <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-a="vozstop">Listo</button></div>${vzInstalled() || vzElectron ? "" : `<p class="sm" style="margin-top:10px"><button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button></p>`}</div>`;
+const VZ_PAUSA = 2500; // ms en silencio para dar por terminada la frase
 const VZ_EJ = "Di, por ejemplo: «anota un yogurt y un cuarto de arroz»";
 function vzSet(t) { const e = $("#vzt"); if (e) e.textContent = t; }
 
@@ -2956,10 +2957,11 @@ async function vzDoInstall() {
 /* oído de Chrome (con internet) */
 function vzWeb() {
   let rec; try { rec = new SR(); } catch (e) { return vzVoskOrErr(); }
-  rec.lang = "es-PE"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  rec.lang = "es-PE"; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
   const s = vz = { eng: "web", rec, texto: "" };
   vzShow(vzListenHtml(VZ_EJ));
-  rec.onresult = (e) => { let all = ""; for (let i = 0; i < e.results.length; i++) all += e.results[i][0].transcript + " "; s.texto = all.trim(); vzSet("«" + s.texto + "»"); };
+  rec.onresult = (e) => { let all = ""; for (let i = 0; i < e.results.length; i++) all += e.results[i][0].transcript + " "; s.texto = all.trim(); vzSet("«" + s.texto + "»"); clearTimeout(s.endT); s.endT = setTimeout(() => vz === s && vzStop(), VZ_PAUSA); }; // sigue escuchando hasta que callas un rato
+  s.max = setTimeout(() => vz === s && vzStop(), 30000);
   rec.onerror = (e) => {
     if (vz !== s) return;
     if (e.error === "network" || e.error === "service-not-allowed" && !s.texto) { stopVoz(); return vzVoskOrErr(); }
@@ -2989,7 +2991,7 @@ async function vzVosk() {
   try {
     const ch = new MessageChannel(); model.registerPort(ch.port1);
     const rec = s.vrec = new model.KaldiRecognizer(16000, JSON.stringify(vzGrammar()));
-    rec.on("result", (m) => { const t = ((m.result && m.result.text) || "").replace(/\[unk\]/g, " ").replace(/\s+/g, " ").trim(); if (t) s.fin.push(t); s.part = ""; vzSet("«" + s.fin.join(" ") + "»"); if (s.stopping) return vozSend(s); if (t) { clearTimeout(s.endT); s.endT = setTimeout(() => vzStop(), 1300); } });
+    rec.on("result", (m) => { const t = ((m.result && m.result.text) || "").replace(/\[unk\]/g, " ").replace(/\s+/g, " ").trim(); if (t) s.fin.push(t); s.part = ""; vzSet("«" + s.fin.join(" ") + "»"); if (s.stopping) return vozSend(s); if (t) { clearTimeout(s.endT); s.endT = setTimeout(() => vzStop(), VZ_PAUSA); } });
     rec.on("partialresult", (m) => { const p = ((m.result && m.result.partial) || "").replace(/\[unk\]/g, " ").replace(/\s+/g, " ").trim(); if (p) { s.part = p; clearTimeout(s.endT); vzSet("«" + (s.fin.join(" ") + " " + p).trim() + "»"); } });
     const ac = s.ac;
     const node = new AudioWorkletNode(ac, "recognizer-processor", { channelCount: 1, numberOfInputs: 1, numberOfOutputs: 1 });
