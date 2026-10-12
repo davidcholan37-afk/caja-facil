@@ -1946,12 +1946,13 @@ function openClient(id, cb) {
     <label class="fld"><span>Nombre o razón social</span><input class="inp" id="ce-name" value="${esc(c.name)}" autofocus maxlength="80" autocomplete="off"></label>
     <div class="two"><label class="fld"><span>Documento</span><select class="inp" id="ce-dt">${["DNI", "RUC", "CE", ""].map((d) => `<option value="${d}" ${c.dt === d ? "selected" : ""}>${d || "Sin documento"}</option>`).join("")}</select></label>
       <label class="fld"><span>Número</span><input class="inp num" id="ce-doc" value="${esc(c.doc)}" inputmode="numeric" maxlength="12" autocomplete="off"></label></div>
-    <div class="two"><label class="fld"><span>Celular (WhatsApp)</span><input class="inp num" id="ce-phone" value="${esc(c.phone)}" inputmode="tel" maxlength="15"></label>
-      <label class="fld"><span>Correo</span><input class="inp" id="ce-email" value="${esc(c.email || "")}" inputmode="email" maxlength="60"></label></div>
-    <label class="fld"><span>Dirección (sale en la factura)</span><input class="inp" id="ce-addr" value="${esc(c.addr || "")}" maxlength="100"></label>
+    <label class="fld"><span>Celular (WhatsApp)</span><input class="inp num" id="ce-phone" value="${esc(c.phone)}" inputmode="tel" maxlength="15"></label>
     <div class="two"><label class="fld"><span>Límite de crédito S/ (0 = sin límite)</span><input class="inp num" id="ce-limit" value="${esc(c.limit || "")}" inputmode="decimal" placeholder="0"></label>
       <label class="fld"><span>Días para pagar</span><input class="inp num" id="ce-days" value="${esc(c.days || "")}" inputmode="numeric" placeholder="Ej: 15"></label></div>
-    <label class="fld"><span>Nota</span><input class="inp" id="ce-note" value="${esc(c.note || "")}" maxlength="80" placeholder="Ej: paga los sábados"></label>
+    <details class="box" ${c.email || c.addr || c.note ? "open" : ""}><summary><b>Más datos</b><small>Correo, dirección (sale en la factura) y nota</small></summary>
+    <label class="fld"><span>Correo</span><input class="inp" id="ce-email" value="${esc(c.email || "")}" inputmode="email" maxlength="60"></label>
+    <label class="fld"><span>Dirección (sale en la factura)</span><input class="inp" id="ce-addr" value="${esc(c.addr || "")}" maxlength="100"></label>
+    <label class="fld"><span>Nota</span><input class="inp" id="ce-note" value="${esc(c.note || "")}" maxlength="80" placeholder="Ej: paga los sábados"></label></details>
     <div class="btns h"><button class="btn sec" data-a="${cb ? "cecancel" : "close"}">Cancelar</button><button class="btn" data-enter data-a="clisave" data-id="${id || ""}">Guardar</button></div>
     ${id && can("clientes") ? `<button class="link" data-a="clidel" data-id="${id}" style="width:100%;color:var(--red)">Eliminar cliente</button>` : ""}`);
 }
