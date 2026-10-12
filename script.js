@@ -2724,7 +2724,7 @@ let vz = null; // sesión de voz en curso: { eng, rec, ac, ms, fin: [], part: ""
 
 function stopVoz() {
   const s = vz; vz = null; if (!s) return;
-  try { if (s.rec && s.eng === "web") { s.rec.onresult = s.rec.onend = s.rec.onerror = null; s.rec.abort(); } } catch (e) {}
+  try { if (s.rec && s.eng === "web") { s.rec.onresult = s.rec.onend = s.rec.onerror = null; s.rec.abort(); } clearTimeout(s.endT); clearTimeout(s.max); } catch (e) {}
   vzCleanVosk(s);
 }
 function vzCleanVosk(s) {
@@ -2928,7 +2928,8 @@ function vzGrammar() {
 /* ---------- pantallas: escuchando, entendí, errores ---------- */
 function vzShow(html) { openModal(html); ui.mk = "voz"; }
 const vzListenHtml = (txt) => `<div class="vzbox" role="status"><div class="vzmic">${svg("mic")}</div><h2>Te escucho…</h2><p class="vzt" id="vzt" aria-live="polite">${txt}</p>
-  <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-a="vozstop">Listo</button></div>${vzInstalled() || vzElectron ? "" : `<p class="sm" style="margin-top:10px"><button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button></p>`}</div>`;
+  <div class="btns h"><button class="btn sec" data-a="vozpausa" id="vzp">Pausar</button><button class="btn" data-a="vozstop">Listo</button></div>
+  <p class="sm" style="margin-top:6px"><button class="link" data-a="close">Cancelar</button>${vzInstalled() || vzElectron ? "" : `<button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button>`}</p></div>`;
 const VZ_PAUSA = 2500; // ms en silencio para dar por terminada la frase
 const VZ_EJ = "Di, por ejemplo: «anota un yogurt y un cuarto de arroz»";
 function vzSet(t) { const e = $("#vzt"); if (e) e.textContent = t; }
@@ -2956,20 +2957,40 @@ async function vzDoInstall() {
 
 /* oído de Chrome (con internet) */
 function vzWeb() {
-  let rec; try { rec = new SR(); } catch (e) { return vzVoskOrErr(); }
-  rec.lang = "es-PE"; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
-  const s = vz = { eng: "web", rec, texto: "" };
+  const s = vz = { eng: "web", texto: "", base: "" };
   vzShow(vzListenHtml(VZ_EJ));
-  rec.onresult = (e) => { let all = ""; for (let i = 0; i < e.results.length; i++) all += e.results[i][0].transcript + " "; s.texto = all.trim(); vzSet("«" + s.texto + "»"); clearTimeout(s.endT); s.endT = setTimeout(() => vz === s && vzStop(), VZ_PAUSA); }; // sigue escuchando hasta que callas un rato
   s.max = setTimeout(() => vz === s && vzStop(), 30000);
+  vzWebRec(s);
+}
+// Un «oído» de Chrome; al pausar se apaga y al seguir se prende otro, juntando lo dicho.
+function vzWebRec(s) {
+  let rec; try { rec = new SR(); } catch (e) { stopVoz(); return vzVoskOrErr(); }
+  rec.lang = "es-PE"; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
+  s.rec = rec;
+  rec.onresult = (e) => { if (vz !== s || s.rec !== rec) return; let all = ""; for (let i = 0; i < e.results.length; i++) all += e.results[i][0].transcript + " "; s.texto = (s.base + " " + all).trim(); vzSet("«" + s.texto + "»"); clearTimeout(s.endT); s.endT = setTimeout(() => vz === s && vzStop(), VZ_PAUSA); }; // sigue escuchando hasta que callas un rato
   rec.onerror = (e) => {
-    if (vz !== s) return;
+    if (vz !== s || s.rec !== rec) return;
     if (e.error === "network" || e.error === "service-not-allowed" && !s.texto) { stopVoz(); return vzVoskOrErr(); }
     const m = { "not-allowed": "Permite el micrófono en el navegador y vuelve a intentar.", "no-speech": "No te escuché. Acércate al micrófono e intenta otra vez.", "audio-capture": "No encuentro el micrófono." }[e.error];
     if (m) { stopVoz(); vzError(m); }
   };
-  rec.onend = () => { if (vz === s) vozSend(); };
+  rec.onend = () => { if (vz === s && s.rec === rec && !s.paused) vozSend(); };
   try { rec.start(); } catch (e) { stopVoz(); vzVoskOrErr(); }
+}
+// Pausar: deja de escuchar sin perder lo dicho. Seguir: continúa la misma frase.
+function vzPausa() {
+  const s = vz; if (!s || s.stopping || !s.eng) return;
+  s.paused = !s.paused;
+  clearTimeout(s.endT); clearTimeout(s.max);
+  const b = $("#vzp"), m = $(".vzmic"), h = $("#modal h2");
+  if (b) b.textContent = s.paused ? "Seguir" : "Pausar"; if (m) m.classList.toggle("busy", s.paused); if (h) h.textContent = s.paused ? "En pausa" : "Te escucho…";
+  if (s.eng === "web") {
+    if (s.paused) { s.base = s.texto; const r = s.rec; s.rec = null; try { r.onresult = r.onend = r.onerror = null; r.abort(); } catch (e) {} }
+    else vzWebRec(s);
+  } else {
+    try { if (s.paused) s.src.disconnect(); else s.src.connect(s.node); } catch (e) {}
+  }
+  if (!s.paused) s.max = setTimeout(() => vz === s && vzStop(), 30000);
 }
 function vzVoskOrErr() { if (vzInstalled()) vzVosk(); else vzOfrecer("Esta caja no puede usar el oído de internet."); }
 
@@ -3000,7 +3021,7 @@ async function vzVosk() {
     await new Promise((ok) => setTimeout(ok, 350)); // deja que el oído termine de armarse
     ms = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); // el micrófono se abre al final
     s.ms = ms; if (vz !== s) return vzCleanVosk(s);
-    ac.createMediaStreamSource(ms).connect(node);
+    s.node = node; s.src = ac.createMediaStreamSource(ms); s.src.connect(node);
     vzSet(VZ_EJ);
     s.max = setTimeout(() => vz === s && vzStop(), 20000);
   } catch (e) { if (vz === s) { stopVoz(); vzError(e && e.name === "NotAllowedError" ? "Permite el micrófono en el navegador y vuelve a intentar." : e && e.name === "NotFoundError" ? "No encuentro el micrófono." : "No se pudo prender la voz. Intenta otra vez."); } }
@@ -3008,7 +3029,7 @@ async function vzVosk() {
 // Termina de escuchar: pide lo último que oyó y sigue.
 function vzStop() {
   const s = vz; if (!s || s.stopping) return;
-  if (s.eng !== "vosk") { try { s.rec.stop(); } catch (e) { vozSend(s); } return; }
+  if (s.eng !== "vosk") { if (s.paused || !s.rec) return vozSend(s); try { s.rec.stop(); } catch (e) { vozSend(s); } return; }
   s.stopping = true; clearTimeout(s.endT);
   try { s.vrec.retrieveFinalResult(); } catch (e) { return vozSend(s); }
   setTimeout(() => vozSend(s), 1500); // por si el oído no contesta
@@ -3056,7 +3077,7 @@ function vozAccept() {
   if (adds.length) { paintSale(); beep(true); toast(adds.length === 1 ? "Anotado" : `Anotados: ${adds.length} productos`); }
   const m = plan.find((x) => x.run); if (m) m.run();
 }
-act({ voz: vozStart, vozstop: vzStop, vozok: vozAccept, vozinstall: vzDoInstall });
+act({ voz: vozStart, vozstop: vzStop, vozpausa: vzPausa, vozok: vozAccept, vozinstall: vzDoInstall });
 
 /* ===================== 70 · VENTAS: comprobantes, anulaciones, devoluciones, preventas y despacho ===================== */
 function rangeKeys(r, from, to) {
