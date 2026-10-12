@@ -15,7 +15,7 @@ VIEWS.venta = function viewSale(v) {
         ${cobra ? `<button class="tool xtra" data-a="prevload" title="Cobrar una preventa">${svg("prev")}<span>Preventa</span></button>` : ""}
         <button class="tool xtra" data-a="quick" title="Cobrar un monto suelto">${svg("plus")}<span>Monto</span></button>
         ${vozOk() ? `<button class="tool vozb" data-a="voz" title="Hablar: anota productos, fiado o pagos" aria-label="Hablar">${svg("mic")}<span>Voz</span></button>` : ""}
-        <button class="tool more" data-a="tools" title="Más herramientas" aria-label="Más herramientas">${svg("mas")}</button>
+        <button class="tool more" data-a="tools" title="Balanza, mesas, monto suelto y más (Ctrl K)" aria-label="Más herramientas">${svg("mas")}<span>Más</span></button>
       </div>
       <div class="chips cats" id="cats"></div>
       <div class="grid t-${DB.cfg.tile}" id="grid"></div>
@@ -129,7 +129,7 @@ function paintCart() {
     </div>
     <div class="paybox">
       ${cobra ? `<button class="cobrar" data-a="pay" data-m="efectivo" ${dis}><span>Cobrar</span><b class="num">${money(T.total)}</b><span class="kbd">F2</span></button>
-      <div class="paymini">${["yape", "plin", "tarjeta"].map((m) => `<button class="pm ${m}" data-a="pay" data-m="${m}" ${dis}>${METHODS[m]}</button>`).join("")}<button class="pm" data-a="pay" data-m="credito" ${dis}>Crédito</button><button class="pm" data-a="split" ${dis}>Dividir</button><button class="pm" data-a="prevsave" ${dis}>Preventa</button></div>`
+      ${lines.length ? `<div class="paymini">${["yape", "plin", "tarjeta"].map((m) => `<button class="pm ${m}" data-a="pay" data-m="${m}" ${dis}>${METHODS[m]}</button>`).join("")}<button class="pm" data-a="pay" data-m="credito" ${dis}>Crédito</button><button class="pm" data-a="split" ${dis}>Dividir</button><button class="pm" data-a="prevsave" ${dis}>Preventa</button></div>` : ""}`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();
