@@ -42,7 +42,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 
 ## Voz (gratis, con y sin internet; extra que el proveedor activa)
 - `src/69-voz.js`: botón micrófono (solo si el negocio tiene `voz` activa en la nube). Oído: con internet el de Chrome (Web Speech); sin internet (o en el programa de Windows) **Vosk** con el modelo español de 34 MB (`voz/`, Apache 2.0), que se instala una vez en Cache Storage `cf-voz-1` (bandera `cf-voz-off` en localStorage). Con Vosk se le pasa una gramática con los productos/clientes/proveedores de la caja.
-- El intérprete es local (`vzParse`, sin IA): órdenes anotar, pagar_proveedor, fiado, consulta → se buscan en los datos de la caja → tarjeta «Entendí» → Aceptar. Nada se anota ni paga sin Aceptar; respeta permisos (`can`).
+- El intérprete es local (`vzParse`, sin IA): órdenes anotar, quitar, cambiar, vaciar, cobrar (con yape/plin/efectivo/tarjeta; solo abre el cobro), crear_producto (abre la ficha prellenada), precio/stock, pagar_proveedor, fiado, consulta; cantidades: kilo, medio, cuarto, docena, par, «dos cincuenta» → se buscan en los datos de la caja → tarjeta «Entendí» → Aceptar. Nada se anota ni paga sin Aceptar; respeta permisos (`can`).
 - IA gratuita opcional (SIN PROBAR): solo si localStorage `cf-voz-ia`="1" y el intérprete local no entendió; llama a la función `supabase/functions/voz/index.ts` (secretos `IA_URL`, `IA_KEY`, `IA_MODEL` de Supabase; cualquier API tipo OpenAI como Groq). Nunca claves en la app ni en el repo.
 - `supabase/voz.sql` (columnas `voz`, `voz_limite`, `voz_usar`, `admin_voz`) AÚN NO aplicado. El proveedor activa la voz en Ajustes › Nube › Mis clientes («Dar voz»).
 - `sw.js` no toca `/voz/` ni borra `cf-voz-1`.
