@@ -19,7 +19,7 @@ VIEWS.venta = function viewSale(v) {
       </div>
       <div class="chips cats" id="cats"></div>
       <div class="grid t-${DB.cfg.tile}" id="grid"></div>
-      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b>${curShift() ? `<i class="cstat">Caja abierta</i>` : ""}<span>${esc((me() || {}).name || "")}</span></div>
+      <div class="brandrow"><b>${esc(DB.biz.name || "Caja Fácil")}</b>${curShift() ? `<i class="cstat">Caja abierta</i>` : ""}<i class="cstat net ${navigator.onLine ? "" : "off"}" id="net">${navigator.onLine ? "En línea" : "Sin internet"}</i><span>${esc((me() || {}).name || "")}</span></div>
       <div class="fkeys"><button class="fk fun" data-a="tools" title="Todas las funciones (Ctrl K)">${svg("mas")}<span>Funciones</span><kbd>Ctrl K</kbd></button>
     </div>
     </section>
@@ -76,7 +76,7 @@ function paintGrid() {
     return;
   }
   const sm = scanMode(); document.body.classList.toggle("scanmode", sm); el.classList.toggle("scanlist", sm);
-  if (sm && !ui.q.trim()) { el.innerHTML = scanHome(); ui.bump = null; return; }
+  if (sm && !ui.q.trim() && !ui.cat) { el.innerHTML = scanHome(); ui.bump = null; return; }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
@@ -514,3 +514,6 @@ act({
   wa: (el) => { const s = saleById(el.dataset.id); if (!s) return; const c = cli(s.client), ph = c && c.phone ? "51" + c.phone.replace(/\D/g, "").slice(-9) : ""; window.open(`https://wa.me/${ph}?text=` + encodeURIComponent(receiptText(s)), "_blank", "noopener"); },
   sample: () => { loadSample(); toast("Listo: cargamos productos de prueba"); render(); }
 });
+
+const paintNet = () => { const n = $("#net"); if (!n) return; const on = navigator.onLine; n.classList.toggle("off", !on); n.textContent = on ? "En línea" : "Sin internet"; };
+window.addEventListener("online", paintNet); window.addEventListener("offline", paintNet);

@@ -1021,7 +1021,7 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet{animation:none}
 }
 
 /* ===== modo escáner (minimarket): sin fotos ===== */
-body.scanmode .chips.cats{display:none}
+body.scanmode .chips.cats .chip img{display:none}
 .grid.scanlist{display:flex;flex-direction:column;gap:8px}
 .lastp{display:grid;grid-template-columns:1fr auto;grid-template-areas:"s s" "n t" "q t";align-items:end;gap:2px 16px;padding:20px 22px;border-radius:var(--r-lg,16px);background:var(--wood-2);border:1px solid var(--line)}
 .lastp small{grid-area:s;color:var(--tiza-3);font-weight:600;font-size:.82rem;margin-bottom:4px}
@@ -1723,3 +1723,8 @@ body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin){background:var(--s1,
 .cart .racts .ib[data-a="clear"] span{display:none}
 .cart .racts .ib[data-a="clear"]{padding:0 8px}
 @media (min-width:900px){.cart .rtop{display:none}}
+
+/* Estado de internet y categorías visibles en el modo escáner */
+.cstat.net.off{background:var(--bad-t);color:var(--bad)}
+.cstat.net{order:2;margin-left:auto}
+.brandrow .cstat.net+span{margin-left:12px}
