@@ -867,7 +867,8 @@ function paintGrid() {
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»</h2><p>Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto.</p></div>`; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
-  el.innerHTML = list.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("");
+  const MAXL = 120, shown = list.slice(0, MAXL);
+  el.innerHTML = shown.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
   ui.bump = null;
 }
 function paintTickets() {
@@ -1587,11 +1588,11 @@ function paintPList() {
   const q = norm(ui.pq), raw = ui.pq || "";
   const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(raw) || (p.pres || []).some((x) => (x.code || "").includes(raw)))
     .sort((a, b) => (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || a.name.localeCompare(b.name, "es"));
-  el.innerHTML = list.slice(0, 300).map((p) => {
+  el.innerHTML = list.slice(0, 120).map((p) => {
     const kgp = p.unit === "kg", tag = p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "";
     const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
     return `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}${p.fav ? " ★" : ""}</b><small>${esc(extra)}</small> ${tag}</div><div class="v num">${money(p.price)}${kgp ? " /kg" : ""}<small>${p.stock == null ? "Sin control" : fmtQ(p.stock) + (kgp ? " kg" : " und.")}</small></div></button>`;
-  }).join("") + (list.length > 300 ? `<p class="muted">Mostrando 300 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
+  }).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
 }
 
 /* ---------- ficha del producto ---------- */
@@ -3661,11 +3662,11 @@ function keepFocus(id, fn) {
   const el = $("#" + id), pos = el ? el.selectionStart : null; fn();
   const n = $("#" + id); if (n) { n.focus(); try { if (pos != null) n.setSelectionRange(pos, pos); } catch (e) {} }
 }
-let lqT;
+let lqT, qT;
 document.addEventListener("input", (e) => {
   const t = e.target, id = t.id;
-  if (id === "q") { ui.q = t.value; paintGrid(); }
-  else if (id === "pq") { ui.pq = t.value; paintPList(); }
+  if (id === "q") { ui.q = t.value; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
+  else if (id === "pq") { ui.pq = t.value; clearTimeout(qT); qT = setTimeout(paintPList, 70); }
   else if (id === "cq") { ui.cq = t.value; paintCList(); }
   else if (id === "vq") { ui.vq = t.value; const [f, to] = rangeKeys(ui.range, ui.from, ui.to); paintVList(f, to); }
   else if (id === "pcq") { ui.pcq = t.value; const l = $("#pclist"); if (l && ui.pclist) l.innerHTML = ui.pclist(); }

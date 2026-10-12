@@ -84,7 +84,8 @@ function paintGrid() {
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»</h2><p>Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto.</p></div>`; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
-  el.innerHTML = list.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("");
+  const MAXL = 120, shown = list.slice(0, MAXL);
+  el.innerHTML = shown.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
   ui.bump = null;
 }
 function paintTickets() {

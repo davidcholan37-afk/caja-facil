@@ -9,11 +9,11 @@ function keepFocus(id, fn) {
   const el = $("#" + id), pos = el ? el.selectionStart : null; fn();
   const n = $("#" + id); if (n) { n.focus(); try { if (pos != null) n.setSelectionRange(pos, pos); } catch (e) {} }
 }
-let lqT;
+let lqT, qT;
 document.addEventListener("input", (e) => {
   const t = e.target, id = t.id;
-  if (id === "q") { ui.q = t.value; paintGrid(); }
-  else if (id === "pq") { ui.pq = t.value; paintPList(); }
+  if (id === "q") { ui.q = t.value; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
+  else if (id === "pq") { ui.pq = t.value; clearTimeout(qT); qT = setTimeout(paintPList, 70); }
   else if (id === "cq") { ui.cq = t.value; paintCList(); }
   else if (id === "vq") { ui.vq = t.value; const [f, to] = rangeKeys(ui.range, ui.from, ui.to); paintVList(f, to); }
   else if (id === "pcq") { ui.pcq = t.value; const l = $("#pclist"); if (l && ui.pclist) l.innerHTML = ui.pclist(); }
