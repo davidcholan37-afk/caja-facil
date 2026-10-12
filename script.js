@@ -2866,16 +2866,41 @@ const VZ_STOP = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "un
 const vzStem = (w) => (w.length > 4 ? w.replace(/(es|s)$/, "") : w.replace(/s$/, ""));
 const vzToks = (s) => norm(s).replace(/[^a-z0-9ñ ]/g, " ").split(/\s+/).filter((w) => w && !VZ_STOP.has(w)).map(vzStem);
 const vzHit = (q, w) => w === q || (q.length >= 3 && w.startsWith(q)) || (w.length >= 3 && q.startsWith(w));
-// Devuelve { it } si hay uno claro, { amb: [...] } si hay varios parecidos, {} si no hay.
+// Suena parecido: «zeboya» ≈ «cebolla», «inka» ≈ «inca» (b/v, c/s/z, ll/y, h muda...).
+function vzSound(w) {
+  return norm(w).replace(/[^a-z]/g, "").replace(/h/g, "").replace(/ll/g, "y").replace(/qu/g, "k").replace(/c(?=[ei])/g, "s").replace(/z/g, "s").replace(/c/g, "k").replace(/v/g, "b").replace(/w/g, "u").replace(/g(?=[ei])/g, "j").replace(/gu(?=[ei])/g, "g").replace(/x/g, "s").replace(/(.)\1+/g, "$1")
+    .replace(/^rr/, "r").replace(/([aeiou])\1/g, "$1");
+}
+function vzDist(a, b) {
+  const m = a.length, n = b.length; if (!m || !n) return Math.max(m, n);
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
+const vzMax = (len) => (len <= 3 ? 0 : len <= 5 ? 1 : 2);
+// Devuelve { it } si hay uno claro, { amb: [...] } si hay varios parecidos, {} si no hay. { aprox } = lo adiviné por el sonido.
 function vzFind(list, name, getName) {
   const q = vzToks(name); if (!q.length) return {};
   const cand = list.filter((x) => { const w = vzToks(getName(x)); return q.every((t) => w.some((y) => vzHit(t, y))); });
   if (cand.length === 1) return { it: cand[0] };
-  if (!cand.length) return {};
-  const ex = cand.filter((x) => { const w = vzToks(getName(x)); return w.length === q.length; });
-  if (ex.length === 1) return { it: ex[0] };
-  return { amb: cand.slice(0, 3).map(getName) };
+  if (cand.length) {
+    const ex = cand.filter((x) => { const w = vzToks(getName(x)); return w.length === q.length; });
+    if (ex.length === 1) return { it: ex[0] };
+    return { amb: cand.slice(0, 3).map(getName) };
+  }
+  // nada exacto: probar por parecido de sonido (voz arrastrada, mal pronunciada o mal oída)
+  const qs = q.map(vzSound), scored = [];
+  list.forEach((x) => {
+    const ws = vzToks(getName(x)).map(vzSound); let tot = 0;
+    for (const t of qs) { let best = 9; ws.forEach((w) => { const d = Math.min(vzDist(t, w), w.length >= 3 && t.length >= 3 ? vzDist(t, w.slice(0, t.length)) : 9); if (d < best) best = d; }); if (best > vzMax(t.length)) return; tot += best; }
+    scored.push({ x, tot });
+  });
+  if (!scored.length) return {};
+  scored.sort((a, b) => a.tot - b.tot);
+  if (scored.length === 1 || scored[0].tot < scored[1].tot) return { it: scored[0].x, aprox: true };
+  return { amb: scored.filter((c) => c.tot === scored[0].tot).slice(0, 3).map((c) => getName(c.x)) };
 }
+const vzAp = (r, nombre) => (r.aprox ? ` (oí «${nombre}»)` : "");
 
 /* ---------- convertir cada orden en una línea de «Entendí» ---------- */
 function vzPlan(acc) {
@@ -2896,7 +2921,7 @@ function vzPlan(acc) {
       if (kg && !a.cantidad && a.monto) { if (!(p.price > 0)) return { ok: false, txt: `${p.name}: dime cuánto pesa` }; a.cantidad = r3(a.monto / p.price); }
       const qty = r3(a.cantidad || 1);
       willAdd = true;
-      return { ok: true, txt: `${fmtQ(qty)}${kg ? " kg" : ""} × ${p.name}`, add: [p, qty] };
+      return { ok: true, txt: `${fmtQ(qty)}${kg ? " kg" : ""} × ${p.name}${vzAp(r, a.nombre)}`, add: [p, qty] };
     }
     if (a.tipo === "quitar" || a.tipo === "cambiar") {
       const r = lineOf(a.nombre);
@@ -2906,8 +2931,8 @@ function vzPlan(acc) {
       if (a.cantidad && !kg && a.unidad === "kg") return { ok: false, txt: `${x.r.name} se vende por unidad, no por peso` };
       if (a.cantidad && kg && a.unidad === "unid" && a.tipo === "cambiar") return { ok: false, txt: `${x.r.name}: dime cuánto pesa (por ejemplo «un kilo»)` };
       const sufijo = kg ? " kg" : "";
-      if (a.tipo === "cambiar") return { ok: true, txt: `Cambiar ${x.r.name} a ${fmtQ(a.cantidad)}${sufijo}`, exec: () => setLine(x.l.id, x.l.pres, r3(a.cantidad)) };
-      if (!a.cantidad || a.cantidad >= x.l.qty) return { ok: true, txt: `Quitar ${x.r.name} del ticket`, exec: () => setLine(x.l.id, x.l.pres, 0) };
+      if (a.tipo === "cambiar") return { ok: true, txt: `Cambiar ${x.r.name} a ${fmtQ(a.cantidad)}${sufijo}${vzAp(r, a.nombre)}`, exec: () => setLine(x.l.id, x.l.pres, r3(a.cantidad)) };
+      if (!a.cantidad || a.cantidad >= x.l.qty) return { ok: true, txt: `Quitar ${x.r.name} del ticket${vzAp(r, a.nombre)}`, exec: () => setLine(x.l.id, x.l.pres, 0) };
       return { ok: true, txt: `Quitar ${fmtQ(a.cantidad)}${sufijo} de ${x.r.name}`, exec: () => setLine(x.l.id, x.l.pres, r3(x.l.qty - a.cantidad)) };
     }
     if (a.tipo === "vaciar") {
@@ -2932,7 +2957,7 @@ function vzPlan(acc) {
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
       if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
       if (!r.it) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
-      return { ok: true, modal: true, txt: `Ver ${a.tipo === "precio" ? "el precio" : "el stock"} de ${r.it.name}`, run: () => vzInfo(r.it) };
+      return { ok: true, modal: true, txt: `Ver ${a.tipo === "precio" ? "el precio" : "el stock"} de ${r.it.name}${vzAp(r, a.nombre)}`, run: () => vzInfo(r.it) };
     }
     if (a.tipo === "pagar_proveedor") {
       if (!can("caja")) return { ok: false, txt: "Tu usuario no puede pagar a proveedores" };
@@ -2940,14 +2965,14 @@ function vzPlan(acc) {
       if (r.amb) return { ok: false, txt: `Proveedor «${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
       if (!r.it) return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` };
       if (!a.monto) return { ok: false, txt: `Pago a ${r.it.name}: dime el monto` };
-      return { ok: true, modal: true, txt: `Pagar ${money(a.monto)} a ${r.it.name}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzPagar(r.it, a.monto, a.medio) };
+      return { ok: true, modal: true, txt: `Pagar ${money(a.monto)} a ${r.it.name}${vzAp(r, a.nombre)}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzPagar(r.it, a.monto, a.medio) };
     }
     if (a.tipo === "fiado") {
       const r = vzFind(DB.clients, a.nombre, (c) => c.name);
       if (r.amb) return { ok: false, txt: `Cliente «${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
       if (!r.it) return { ok: false, txt: `No encontré al cliente «${a.nombre}»` };
       if (!a.monto && !cartLines().length && !willAdd) return { ok: false, txt: `Fiado a ${r.it.name}: dime el monto o anota primero los productos` };
-      return { ok: true, modal: true, txt: a.monto ? `Fiar ${money(a.monto)} a ${r.it.name}` : `Fiar este ticket a ${r.it.name}`, run: () => vzFiar(r.it, a.monto) };
+      return { ok: true, modal: true, txt: a.monto ? `Fiar ${money(a.monto)} a ${r.it.name}${vzAp(r, a.nombre)}` : `Fiar este ticket a ${r.it.name}${vzAp(r, a.nombre)}`, run: () => vzFiar(r.it, a.monto) };
     }
     return { ok: false, txt: "No entendí esta orden" };
   });
