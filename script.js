@@ -911,7 +911,7 @@ function paintCart() {
       </div>
     </div>
     <div class="paybox">
-      ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm" data-a="tools">Más</button></div>`
+      ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm" data-a="paymas" ${dis}>Más</button></div>`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();
@@ -1281,6 +1281,10 @@ act({
       <h3 class="fh">Más</h3><div class="fgrid">
       ${vozOk() ? f("voz", "mic", "Voz") : ""}${f("camscan", "scan", "Cámara")}${f("scaletool", "scale", "Balanza")}${f("quick", "plus", "Monto suelto")}${+DB.cfg.tables ? f("mesas", "mesa", "Mesas") : ""}
       </div>`, "wide");
+  },
+  paymas: () => {
+    const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
+    openModal(`<h2>Otras formas de pago</h2><div class="fgrid" style="margin:12px 0">${f("pay", "caja", "Tarjeta", "F9", "tarjeta")}${f("pay", "cli", "Crédito", "", "credito")}${f("split", "ventas", "Dividir pago", "F7")}${f("prevsave", "prev", "Guardar preventa", "")}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`);
   },
   fn: (el) => { const a = el.dataset.f; closeModal(); if (A[a]) A[a]({ dataset: { m: el.dataset.m || "" } }); },
   quick: openQuick,
