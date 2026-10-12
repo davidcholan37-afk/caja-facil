@@ -1706,3 +1706,14 @@ body .paybox .paymini.pay4{display:grid;grid-template-columns:1.25fr 1fr 1fr .8f
 body .paybox .pay4 .pm{display:inline-flex;min-height:56px;font-size:15px;font-weight:600}
 body .paybox .pay4 .pm.main:not(:disabled){background:var(--ac,#1a6bff);border-color:transparent;color:#fff}
 body .paybox .pay4 .pm .kbd{display:none}
+
+/* Colores de cobro: Efectivo verde, Yape morado, Plin celeste (los de cada marca) */
+body .paybox .pay4 .pm{min-height:60px;font-size:16px;font-weight:700;border:0;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.12)}
+body .paybox .pay4 .pm.efectivo{background:#16A34A}
+body .paybox .pay4 .pm.yape{background:#742284}
+body .paybox .pay4 .pm.plin{background:#00B8D9}
+body .paybox .pay4 .pm.efectivo:not(:disabled){background:#16A34A}
+body .paybox .pay4 .pm.yape:not(:disabled){background:#742284;box-shadow:none}
+body .paybox .pay4 .pm.plin:not(:disabled){background:#00B8D9;box-shadow:none}
+body .paybox .pay4 .pm:disabled{opacity:.4}
+body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin){background:var(--s1,#fff);color:var(--t2,#444);border:1px solid var(--hl,#ddd);text-shadow:none}

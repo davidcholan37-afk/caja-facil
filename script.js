@@ -911,7 +911,7 @@ function paintCart() {
       </div>
     </div>
     <div class="paybox">
-      ${cobra ? `<div class="paymini pay4"><button class="pm main" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="kbd">F2</span></button><button class="pm" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm" data-a="tools">Más</button></div>`
+      ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm" data-a="tools">Más</button></div>`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();
