@@ -22,9 +22,10 @@ VIEWS.ventas = function viewSales(v) {
   v.innerHTML = `<div class="ph"><h1>Ventas</h1>${can("reportes") ? `<button class="btn sec sm" data-a="vcsv">Exportar CSV</button>` : ""}</div>
     <div class="seg tabs2">${T.map(([k, l]) => `<button class="${ui.vtab === k ? "on" : ""}" data-a="vtab" data-t="${k}">${l}</button>`).join("")}</div>
     ${ui.vtab === "prev" || ui.vtab === "desp" ? "" : rangeBar()}
-    ${ui.vtab === "ventas" ? `<div class="filters"><input class="inp" id="vq" type="search" placeholder="Número, cliente o producto" value="${esc(ui.vq)}">
+    ${ui.vtab === "ventas" ? `<input class="inp" id="vq" type="search" placeholder="Número, cliente o producto" value="${esc(ui.vq)}" style="margin-bottom:10px">
+      <details class="box" ${ui.vdoc || ui.vuser ? "open" : ""}><summary><b>Filtrar</b><small>Por tipo de comprobante o por usuario</small></summary><div class="filters" style="margin-top:8px">
       <select class="inp" data-in="vdoc"><option value="">Todos los comprobantes</option>${Object.entries(DOCS).map(([k, n]) => `<option value="${k}" ${ui.vdoc === k ? "selected" : ""}>${n}</option>`).join("")}</select>
-      <select class="inp" data-in="vuser"><option value="">Todos los usuarios</option>${DB.users.map((u) => `<option value="${u.id}" ${ui.vuser === u.id ? "selected" : ""}>${esc(u.name)}</option>`).join("")}</select></div>` : ""}
+      <select class="inp" data-in="vuser"><option value="">Todos los usuarios</option>${DB.users.map((u) => `<option value="${u.id}" ${ui.vuser === u.id ? "selected" : ""}>${esc(u.name)}</option>`).join("")}</select></div></details>` : ""}
     <div id="vlist"></div>`;
   paintVList(from, to);
 };
