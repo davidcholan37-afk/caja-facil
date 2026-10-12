@@ -1664,3 +1664,22 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
   .fkeys .fk.fun kbd{align-self:center}
 }
 @media (pointer:coarse),(max-width:959px){.fb kbd{display:none}}
+
+/* ---------- voz ---------- */
+.vzbox{text-align:center;padding:6px 4px 2px}
+.vzmic{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 12px;border-radius:50%;background:var(--ac-t);color:var(--ac-ink);transition:transform .2s var(--ease-out),opacity .2s var(--ease-out)}
+.vzmic svg{width:28px;height:28px;stroke-width:1.8}
+.vzmic:not(.busy){animation:vzpulse 1.4s var(--ease-out) infinite}
+.vzmic.busy{opacity:.6}
+@keyframes vzpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.vzt{margin:8px 0 16px;color:var(--t2);font-size:15px;line-height:1.4;word-break:break-word}
+.vzlist{display:grid;gap:6px;margin-bottom:14px}
+.vzl{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--hl);border-radius:12px;background:var(--s1);font-weight:550;font-size:15px}
+.vzl.bad{color:var(--t3);font-weight:450}
+.vzi{flex:none;display:grid;place-items:center;width:20px;height:20px;margin-top:1px;color:var(--ok)}
+.vzl.bad .vzi{color:var(--red)}
+.vzi svg{width:16px;height:16px}
+@media (prefers-reduced-motion:reduce){.vzmic:not(.busy){animation:none}}
+html[data-input="kbd"] .vzmic:not(.busy){animation:none}
+.vzbar{height:6px;border-radius:3px;background:var(--line,#ddd);overflow:hidden;margin:10px 0}
+.vzbar i{display:block;height:100%;background:var(--pri,#1f6f78);transform-origin:left;transform:scaleX(0);transition:transform .2s var(--ease-out)}

@@ -11,7 +11,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - `sw.js` es el service worker (red primero). Si agregas archivos nuevos, súmalos a su lista.
 
 ## Módulos (src/)
-00-core datos, migraciones y ejemplos · 10-ui navegación, íconos, ventanas · 20-auth usuarios y PIN · 30-cart ticket · 31-sale pantalla de venta y cobro · 32-scale cajita de peso por kilo y balanza · 33-camera escanear con cámara · 40-products · 50-clients (crédito) · 60-cash caja, arqueo, cierres · 65-prov proveedores (deuda y abonos) · 67-cloud nube · 68-install botón «Instalar Caja Fácil» (Ajustes › Negocio) · 70-sales · 80-reports · 90-settings · 99-events teclado y eventos.
+00-core datos, migraciones y ejemplos · 10-ui navegación, íconos, ventanas · 20-auth usuarios y PIN · 30-cart ticket · 31-sale pantalla de venta y cobro · 32-scale cajita de peso por kilo y balanza · 33-camera escanear con cámara · 40-products · 50-clients (crédito) · 60-cash caja, arqueo, cierres · 65-prov proveedores (deuda y abonos) · 67-cloud nube · 68-install botón «Instalar Caja Fácil» (Ajustes › Negocio) · 69-voz voz con IA (extra de pago) · 70-sales · 80-reports · 90-settings · 99-events teclado y eventos.
 
 ## Reglas de diseño
 - Diseño actual: «caja moderna» (ticket a la izquierda, búsqueda arriba, teclas F1–F12 abajo en PC), crema + azul petróleo.
@@ -39,6 +39,13 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Solo el dueño entra con Google; los cajeros siguen con PIN.
 - Licencia: la caja no funciona hasta activarla con Google (pantalla `#susp`). Se bloquea si el proveedor la suspende o si pasan 15 días (`LIC_DIAS`) sin revisar la licencia con internet. Si vence la sesión de Google, sigue vendiendo hasta ese plazo.
 - Soporte: el cliente da permiso por 24 h o 7 días (Ajustes › Nube); el proveedor (tabla `privado.admins`) ve «Mis clientes», mira datos solo con permiso y suspende/activa.
+
+## Voz (gratis, con y sin internet; extra que el proveedor activa)
+- `src/69-voz.js`: botón micrófono (solo si el negocio tiene `voz` activa en la nube). Oído: con internet el de Chrome (Web Speech); sin internet (o en el programa de Windows) **Vosk** con el modelo español de 34 MB (`voz/`, Apache 2.0), que se instala una vez en Cache Storage `cf-voz-1` (bandera `cf-voz-off` en localStorage). Con Vosk se le pasa una gramática con los productos/clientes/proveedores de la caja.
+- El intérprete es local (`vzParse`, sin IA): órdenes anotar, pagar_proveedor, fiado, consulta → se buscan en los datos de la caja → tarjeta «Entendí» → Aceptar. Nada se anota ni paga sin Aceptar; respeta permisos (`can`).
+- IA gratuita opcional (SIN PROBAR): solo si localStorage `cf-voz-ia`="1" y el intérprete local no entendió; llama a la función `supabase/functions/voz/index.ts` (secretos `IA_URL`, `IA_KEY`, `IA_MODEL` de Supabase; cualquier API tipo OpenAI como Groq). Nunca claves en la app ni en el repo.
+- `supabase/voz.sql` (columnas `voz`, `voz_limite`, `voz_usar`, `admin_voz`) AÚN NO aplicado. El proveedor activa la voz en Ajustes › Nube › Mis clientes («Dar voz»).
+- `sw.js` no toca `/voz/` ni borra `cf-voz-1`.
 
 ## Programa de Windows
 - `desktop/` (Electron): ventana que abre la caja publicada (se actualiza sola). El .exe lo fabrica GitHub Actions (`.github/workflows/escritorio.yml`) y lo publica en Releases como `CajaFacil-Setup.exe`. Para una versión nueva del programa sube `version` en `desktop/package.json`.

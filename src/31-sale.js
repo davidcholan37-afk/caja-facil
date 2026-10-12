@@ -14,6 +14,7 @@ VIEWS.venta = function viewSale(v) {
         ${tables ? `<button class="tool xtra" data-a="mesas" title="Mesas">${svg("mesa")}<span>Mesas</span></button>` : ""}
         ${cobra ? `<button class="tool xtra" data-a="prevload" title="Cobrar una preventa">${svg("prev")}<span>Preventa</span></button>` : ""}
         <button class="tool xtra" data-a="quick" title="Cobrar un monto suelto">${svg("plus")}<span>Monto</span></button>
+        ${vozOk() ? `<button class="tool vozb" data-a="voz" title="Hablar: anota productos, fiado o pagos" aria-label="Hablar">${svg("mic")}<span>Voz</span></button>` : ""}
         <button class="tool more" data-a="tools" title="Más herramientas" aria-label="Más herramientas">${svg("mas")}</button>
       </div>
       <div class="chips cats" id="cats"></div>
@@ -496,7 +497,7 @@ act({
       ${f("pickcli", "cli", "Cliente", "F1")}${f("focusq", "search", "Buscar", "F3")}${f("tknew", "hold", "En espera", "F4")}${f("qeditsel", "edit", "Cantidad", "F6")}${f("rmsel", "trash", "Quitar línea", "Supr")}${f("showdisc", "plus", "Descuento")}
       </div>
       <h3 class="fh">Más</h3><div class="fgrid">
-      ${f("camscan", "scan", "Cámara")}${f("scaletool", "scale", "Balanza")}${f("quick", "plus", "Monto suelto")}${+DB.cfg.tables ? f("mesas", "mesa", "Mesas") : ""}
+      ${vozOk() ? f("voz", "mic", "Voz") : ""}${f("camscan", "scan", "Cámara")}${f("scaletool", "scale", "Balanza")}${f("quick", "plus", "Monto suelto")}${+DB.cfg.tables ? f("mesas", "mesa", "Mesas") : ""}
       </div>`, "wide");
   },
   fn: (el) => { const a = el.dataset.f; closeModal(); if (A[a]) A[a]({ dataset: { m: el.dataset.m || "" } }); },

@@ -52,7 +52,7 @@ function login(u) {
   if (!tabOk(ui.tab)) ui.tab = "venta";
   render(); focusQ();
 }
-function closeModalQuiet() { const m = $("#modal"); if (!m.hidden) { m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll"); ui.pay = null; modalBack = null; stopScaleRead(); stopCam(); } }
+function closeModalQuiet() { const m = $("#modal"); if (!m.hidden) { m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll"); ui.pay = null; modalBack = null; stopScaleRead(); stopCam(); stopVoz(); } }
 function lockNow() { if (!needLogin()) return toast("Pon una clave a tu usuario en Ajustes para poder bloquear"); log("Salió / bloqueó", (me() || {}).name || ""); loginScreen(); }
 
 // Operación delicada: si el usuario no tiene permiso, la autoriza alguien que sí lo tenga con su clave.

@@ -1,0 +1,11 @@
+Voz sin internet de Caja Fácil (gratis y de código abierto).
+
+- vosk.js ........... Vosk-Browser (Ciaran O'Reilly, Apache 2.0): reconocedor de voz en WebAssembly.
+                      https://github.com/ccoreilly/vosk-browser
+- recognizer-processor.js ... entrada del micrófono para vosk.js (del mismo proyecto).
+- model-es.tar.gz ... modelo «vosk-model-small-es-0.3» (Alpha Cephei, Apache 2.0), español, 34 MB.
+                      https://alphacephei.com/vosk/models
+- LICENSE-apache-2.0.txt ... licencia de ambos.
+
+La caja baja estos 3 archivos una sola vez (botón «Instalar voz sin internet») y los guarda en el navegador.
+Nadie paga nada y no hay claves ni cuentas.
