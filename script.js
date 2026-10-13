@@ -2814,7 +2814,7 @@ function vzMoney(toks) {
   const q = vzQty(m.filter((t) => vzIsNum(t) || /^(sol|soles)$/.test(t)));
   return q && q.val > 0 ? q.val : 0;
 }
-const VZ_FN = new Set(["el", "la", "los", "las", "de", "del", "un", "una", "unos", "unas", "a", "al", "cuanto", "cuantos", "cuantas", "cuesta", "cuestan", "vale", "valen", "precio", "esta", "estan", "es", "son", "quedan", "queda", "quedo", "hay", "stock", "tengo", "tenemos", "me", "mi", "mis", "en", "producto", "kilo", "kilos", "dime", "dame", "cual", "que", "por", "tiene", "tienes", "cuesta", "sale", "salen", "cobran", "cobras", "cobro", "como"]);
+const VZ_FN = new Set(["el", "la", "los", "las", "de", "del", "un", "una", "unos", "unas", "a", "al", "cuanto", "cuantos", "cuantas", "cuesta", "cuestan", "vale", "valen", "precio", "esta", "estan", "es", "son", "quedan", "queda", "quedo", "hay", "stock", "tengo", "tenemos", "me", "mi", "mis", "en", "producto", "kilo", "kilos", "docena", "docenas", "dime", "dame", "cual", "que", "por", "tiene", "tienes", "cuesta", "sale", "salen", "cobran", "cobras", "cobro", "como"]);
 
 /* ---------- preguntas y descuento: «cuánto me debe Rosa», «qué se está acabando», «cuánto hay en caja», «descuento de 2 soles» ---------- */
 const VZ_BAJO = /^(acabando|acaba|acabar|acabarse|acabaron|acabado|acabados|agotando|agotado|agotados|agotarse|faltan|faltando|escasea|escasos|reponer|pedir|comprar)$/;
@@ -2918,7 +2918,7 @@ function vzParse(text) {
     if (res.length) return res;
   }
   // precio y stock de un producto
-  const pr = toks.some((t) => /^(cuesta|cuestan|vale|valen|precio|sale|salen|cobran|cobras|cobro)$/.test(t)) || j.includes("a como") || (toks.includes("cuanto") && toks.some((t) => /^(esta|estan)$/.test(t))), st = toks.some((t) => /^(quedan|queda|quedo|hay|stock|tengo|tenemos)$/.test(t));
+  const pr = toks.some((t) => /^(cuesta|cuestan|vale|valen|precio|sale|salen|cobran|cobras|cobro)$/.test(t)) || j.includes("a como") || (toks.includes("cuanto") && toks.some((t) => /^(esta|estan|es|son|sera|seria|lo|la|los|las|el|un|una)$/.test(t))), st = toks.some((t) => /^(quedan|queda|quedo|hay|stock|tengo|tenemos)$/.test(t));
   if ((pr || st) && !toks.some((t) => VZ_ANOTA.has(t) || VZ_PAGA.has(t) || VZ_FIA.has(t) || VZ_COBRA.has(t) || VZ_QUITA.has(t))) {
     const nombre = toks.filter((t) => !VZ_FN.has(t) && !vzIsNum(t)).join(" ");
     return nombre ? [{ tipo: pr ? "precio" : "stock", nombre }] : [];
@@ -3492,7 +3492,7 @@ async function vzNubeRec() {
       if (s.floor === null) { calib.push(r); if (now - s.t0 > 500) { calib.sort((a, b) => a - b); s.floor = calib[Math.floor(calib.length * .3)] || 0.003; } return; }
       const hablando = r > Math.max(0.012, s.floor * 3.2);
       if (hablando) { s.heard += 70; s.last = now; vzSet("Te escucho…"); }
-      if (s.heard >= 300 && now - s.last > 1500) vzStop();
+      if (s.heard >= 300 && now - s.last > 1100) vzStop();
       else if (!s.heard && now - s.t0 > 7000) vzStop();
       else if (now - s.t0 > 22000) vzStop();
     }, 70);
