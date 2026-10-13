@@ -22,7 +22,7 @@ function helpOpen() {
   panel.hidden = false;
   if (launch) launch.hidden = true;
   if (!helpMessages.length) {
-    const hello = "Hola, soy el asistente de Caja Fácil. Puedes preguntarme cómo usar una sección o contarme qué error apareció. No puedo ver tus ventas ni cambiar datos.";
+    const hello = "Hola, soy Luis, el asistente de Caja Fácil. Puedes preguntarme cómo usar una sección o contarme qué error apareció. No puedo ver tus ventas ni cambiar datos.";
     helpMessages.push({ role: "assistant", content: hello });
     helpAppend("assistant", hello);
   }
