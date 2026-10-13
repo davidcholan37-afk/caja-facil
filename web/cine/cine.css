@@ -1,0 +1,74 @@
+/* Caja Fácil · «Un día en tu bodega» (página especial, una sola vez)
+   Idea: bajas por las nubes hasta una bodega real y el cielo vive un día entero mientras pasan las funciones.
+   Todo se mueve con el scroll (transform y opacity). Sin WebGL queda un cielo de color. */
+@font-face{font-family:"Geist";src:url(../fonts/geist.woff2) format("woff2");font-weight:300 700;font-display:swap}
+:root{--ink:#fff;--mut:rgba(255,255,255,.74);--acc:#0A66FF;--ease:cubic-bezier(.23,1,.32,1);
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Display","Geist","Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --sky:#101a3a;--hor:#f2b27e}
+*{box-sizing:border-box;margin:0}
+html{background:#0b1230;color-scheme:dark}
+body{font-family:var(--f);color:var(--ink);background:#0b1230;-webkit-font-smoothing:antialiased;overflow-x:clip}
+a{color:inherit}
+.film{height:1000vh;position:relative}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:clip;perspective:1500px;background:linear-gradient(to top,var(--hor),var(--sky))}
+.stage>*{position:absolute}
+.photo,.grade,.dusk,#sky,.scrim{inset:0;width:100%;height:100%}
+.photo{opacity:0;will-change:transform,opacity}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.grade{pointer-events:none;mix-blend-mode:soft-light}
+.dusk{pointer-events:none}
+#sky{display:block}
+.scrim{pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(4,7,22,.78) 0%,rgba(4,7,22,.46) 42%,rgba(4,7,22,0) 74%)}
+.nogl #sky{display:none}
+
+.top{left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;padding:calc(18px + env(safe-area-inset-top)) clamp(16px,3vw,40px) 0;z-index:5;opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+.top.on{opacity:1;pointer-events:auto}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:-.01em;font-size:17px}
+.logo i{font-style:normal;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--acc);font-size:13px;font-weight:700}
+.clock{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:baseline;gap:6px;font-variant-numeric:tabular-nums}
+.clock b{font-size:clamp(22px,2.4vw,30px);font-weight:300;letter-spacing:-.02em}
+.clock span{font-size:12px;color:var(--mut)}
+.pill{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 24px;border-radius:999px;background:#fff;color:#0b1230;font-weight:600;font-size:16px;text-decoration:none;transition:transform .16s var(--ease)}
+.pill.sm{min-height:38px;padding:0 18px;font-size:14px}
+.pill:active{transform:scale(.97)}
+@media (hover:hover){.pill:hover{background:#eaf1ff}}
+.tlink{font-size:16px;color:#fff;text-underline-offset:4px;text-decoration-color:rgba(255,255,255,.5)}
+a:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:8px}
+
+.intro{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 16px;will-change:transform,opacity;transform-origin:50% 46%;z-index:3}
+.intro h1{font-size:clamp(64px,15.5vw,250px);line-height:.96;font-weight:700;letter-spacing:.05em;margin-right:-.05em;text-shadow:0 8px 60px rgba(20,20,60,.35)}
+.intro p{margin-top:clamp(18px,3vh,34px);font-size:clamp(16px,1.6vw,22px);font-weight:500;color:#fff;letter-spacing:.01em;text-shadow:0 1px 3px rgba(20,20,60,.55),0 2px 28px rgba(20,20,60,.5)}
+.cue{left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;font-size:13px;color:#fff;z-index:3;will-change:opacity}
+.cue i{display:block;width:1px;height:42px;background:linear-gradient(#fff,transparent);transform-origin:top;animation:cue 2.2s var(--ease) infinite}
+@keyframes cue{0%{transform:scaleY(0)}60%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+
+.panel{inset:0;z-index:2;pointer-events:none;opacity:0;display:grid;grid-template-columns:minmax(0,6fr) minmax(0,7fr);align-items:center;gap:2vw;padding:0 clamp(24px,5.5vw,96px);transform-style:preserve-3d}
+.txt{will-change:transform,opacity;max-width:640px}
+.hr{display:block;font-size:clamp(34px,4.4vw,64px);font-weight:300;letter-spacing:-.03em;margin-bottom:clamp(10px,2vh,22px);font-variant-numeric:tabular-nums;color:rgba(255,255,255,.92)}
+.hr em{font-style:normal;font-size:13px;font-weight:600;letter-spacing:0;vertical-align:middle;margin-left:10px;padding:4px 10px;border-radius:999px;background:var(--acc);color:#fff}
+.panel h2{font-size:clamp(34px,4.3vw,70px);line-height:1;font-weight:700;letter-spacing:-.035em;text-wrap:balance}
+.panel p{margin-top:clamp(14px,2.4vh,24px);font-size:clamp(16px,1.35vw,21px);line-height:1.5;color:var(--mut);max-width:30em;text-wrap:pretty}
+.panel[data-hero] h2{font-size:clamp(44px,6.4vw,104px)}
+.shot{width:100%;max-width:980px;justify-self:end;border-radius:clamp(10px,1.1vw,16px);box-shadow:0 0 0 1px rgba(255,255,255,.22),0 50px 120px -20px rgba(0,0,0,.6),0 20px 40px -10px rgba(0,0,0,.35);will-change:transform,opacity;transform-origin:30% 60%;background:#fff}
+
+.fin{inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 20px;opacity:0;pointer-events:none;will-change:opacity,transform}
+.fin.on{pointer-events:auto}
+.fin h2{font-size:clamp(44px,8vw,128px);line-height:.95;font-weight:700;letter-spacing:-.04em;text-wrap:balance;text-shadow:0 8px 60px rgba(0,0,20,.4)}
+.fin p{margin-top:clamp(16px,3vh,30px);font-size:clamp(17px,1.8vw,24px);color:var(--mut)}
+.acts{margin-top:clamp(24px,4vh,40px);display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justify-content:center}
+.back{position:absolute;bottom:calc(22px + env(safe-area-inset-bottom));font-size:14px;color:var(--mut);text-underline-offset:4px}
+
+@media (max-width:899px){
+  .film{height:820vh}
+  .clock{display:none}
+  .scrim{background:linear-gradient(0deg,rgba(4,7,22,.88) 0%,rgba(4,7,22,.55) 46%,rgba(4,7,22,0) 78%)}
+  .panel{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:end;gap:22px;padding:0 20px calc(30px + env(safe-area-inset-bottom))}
+  .shot{order:-1;justify-self:center;max-width:none;width:min(100%,560px)}
+  .panel .txt{max-width:none}
+  .hr{font-size:30px}
+  .panel h2{font-size:clamp(32px,9.2vw,46px)}
+  .panel[data-hero] h2{font-size:clamp(38px,11vw,56px)}
+  .panel p{font-size:16px}
+}
+@media (max-width:899px) and (max-height:700px){.panel p{display:none}}
+@media (prefers-reduced-motion:reduce){.cue i{animation:none}}
