@@ -1771,3 +1771,4 @@ html[data-theme=dark] .help-message.user{background:#1769e0;color:#fff}
 html[data-theme=dark] .help-sound,html[data-theme=dark] .help-close,html[data-theme=dark] .help-listen,html[data-theme=dark] .help-input{border-color:#414958;background:#242a36;color:#edf1f8}
 html[data-theme=dark] .help-mic{background:#242a36;color:#bfd4ff}
 @media(max-width:640px){.help-launcher{right:12px;bottom:76px}.help-chat{right:12px;bottom:132px;width:calc(100vw - 24px);height:min(68dvh,570px)}}
+.help-visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
