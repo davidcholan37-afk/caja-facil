@@ -2750,11 +2750,12 @@ function vzCleanVosk(s) {
 
 /* ---------- intérprete en español (sin IA, sin internet) ---------- */
 const VZ_N = { cero: 0, un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiun: 21, veintiuno: 21, veintiuna: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500 };
-const VZ_ANOTA = new Set(["anota", "anotame", "agrega", "agregame", "pon", "ponme", "anade", "anademe", "suma", "apunta", "apuntame", "dame", "registra", "crea", "crear"]);
+const VZ_ANOTA = new Set(["anota", "anotame", "agrega", "agregame", "pon", "ponme", "anade", "anademe", "suma", "apunta", "apuntame", "dame", "registra", "crea", "crear", "ponle", "agregale", "sumale", "anotale", "mete", "metele", "llevo", "lleva", "quiero"]);
 const VZ_PAGA = new Set(["paga", "pagale", "pagar", "pagame", "abona", "abonale", "abonar", "cancela"]);
 const VZ_FIA = new Set(["fia", "fiale", "fiar", "fiado", "fiame", "credito"]);
 const VZ_COBRA = new Set(["cobra", "cobrar", "cobrame", "cobrale", "cobrarle", "cobramos"]);
-const VZ_QUITA = new Set(["quita", "quitale", "quitame", "quitar", "saca", "sacame", "elimina", "borra", "borrame", "retira"]);
+const VZ_QUITA = new Set(["quita", "quitale", "quitame", "quitar", "saca", "sacame", "elimina", "borra", "borrame", "retira", "sacale", "restale", "resta", "descuenta", "devuelve", "devuelvo"]);
+const VZ_ULT = new Set(["eso", "ese", "esa", "esto", "ultimo", "ultima", "anterior", "mismo", "misma"]); // «quita 1» = del último producto
 const VZ_VACIA = new Set(["vacia", "vaciar", "limpia", "limpiar"]);
 const VZ_CAMBIA = new Set(["cambia", "cambiale", "cambiar", "modifica", "corrige"]);
 const VZ_MEDIOS = new Set(["efectivo", "yape", "plin", "transferencia", "tarjeta"]);
@@ -2840,8 +2841,10 @@ function vzParse(text) {
     if (k === "pagar") { const nombre = vzNameAfterA(seg), monto = vzMoney(seg), medio = seg.find((t) => VZ_MEDIOS.has(t)); return nombre && out.push({ tipo: "pagar_proveedor", nombre, ...(monto ? { monto } : {}), ...(medio ? { medio } : {}) }); }
     if (k === "quitar") {
       const iq = seg.findIndex(vzIsQty), q = iq >= 0 ? vzQty(seg.filter(vzIsQty)) : null;
-      const nombre = seg.filter((t) => !vzIsQty(t) && !VZ_FN.has(t) && t !== "ticket").join(" ");
-      return nombre && out.push({ tipo: "quitar", nombre, ...(q && q.val > 0 && !q.sol ? { cantidad: q.val, unidad: q.kg ? "kg" : "unid" } : {}) });
+      const raw = seg.filter((t) => !vzIsQty(t) && !VZ_FN.has(t) && t !== "ticket" && t !== "y" && t !== "e"), nom = raw.filter((t) => !VZ_ULT.has(t)), nombre = nom.join(" ");
+      const ult = !nombre && (raw.length > 0 || iq >= 0); // «quita 1», «quita eso», «quita el último»
+      if (!nombre && !ult) return;
+      return out.push({ tipo: "quitar", nombre, ...(ult ? { ultimo: true } : {}), ...(q && q.val > 0 && !q.sol ? { cantidad: q.val, unidad: q.kg ? "kg" : "unid" } : {}) });
     }
     if (k === "cambiar") {
       let ia = -1; seg.forEach((t, i) => { if (["a", "por", "en", "sean", "son"].includes(t) && i > 0 && seg.slice(i + 1).some(vzIsQty)) ia = i; });
@@ -2917,8 +2920,9 @@ function vzFind(list, name, getName) {
 const vzAp = (r, nombre) => (r.aprox ? ` (oí «${nombre}»)` : "");
 
 /* ---------- convertir cada orden en una línea de «Entendí» ---------- */
-function vzPlan(acc) {
-  let willAdd = false;
+function vzPlan(acc, prev) {
+  const pend = (prev || []).filter((x) => x.ok && x.add).map((x) => x.add[0]); // productos que ya vas a anotar en esta misma lista
+  let willAdd = pend.length > 0;
   const lineOf = (nombre) => vzFind(cartLines().filter((x) => !x.l.quick), nombre, (x) => x.r.name);
   return acc.map((a) => {
     if (a.tipo === "consulta") return !(can("caja") || can("reportes")) ? { ok: false, txt: "Tu usuario no puede ver las ventas del día" } : { ok: true, txt: "Ver las ventas de hoy", run: () => vzVentas() };
@@ -2934,8 +2938,24 @@ function vzPlan(acc) {
       if (kg && a.unidad === "unid" && !a.monto) return { ok: false, txt: `${p.name}: dime cuánto pesa (por ejemplo «un kilo» o «medio kilo»)` };
       if (kg && !a.cantidad && a.monto) { if (!(p.price > 0)) return { ok: false, txt: `${p.name}: dime cuánto pesa` }; a.cantidad = r3(a.monto / p.price); }
       const qty = r3(a.cantidad || 1);
-      willAdd = true;
+      willAdd = true; pend.push(p);
       return { ok: true, txt: `${fmtQ(qty)}${kg ? " kg" : ""} × ${p.name}${vzAp(r, a.nombre)}`, add: [p, qty] };
+    }
+    if (a.tipo === "quitar" && (a.ultimo || pend.length)) {
+      // algo que acabas de decir en esta misma frase («anota 2 atunes, quita 1»): se quita al aceptar, ya anotado
+      const rp = a.ultimo ? { it: pend[pend.length - 1] } : vzFind(pend, a.nombre, (x) => x.name), pp = rp.it;
+      if (pp) {
+        const kg = pp.unit === "kg";
+        if (a.cantidad && !kg && a.unidad === "kg") return { ok: false, txt: `${pp.name} se vende por unidad, no por peso` };
+        const cant = a.cantidad || 0;
+        return { ok: true, txt: cant ? `Quitar ${fmtQ(cant)}${kg ? " kg" : ""} de ${pp.name}${vzAp(rp, a.nombre)}` : `Quitar ${pp.name}${vzAp(rp, a.nombre)}`,
+          exec: () => { const x = cartLines().find((y) => y.l.id === pp.id && !y.l.pres); if (!x) return; setLine(x.l.id, x.l.pres, cant && cant < x.l.qty ? r3(x.l.qty - cant) : 0); } };
+      }
+    }
+    if (a.tipo === "quitar" && a.ultimo) {
+      const ls = cartLines().filter((x) => !x.l.quick).pop();
+      if (!ls) return { ok: false, txt: "No hay nada en el ticket para quitar" };
+      a = { ...a, nombre: ls.r.name };
     }
     if (a.tipo === "quitar" || a.tipo === "cambiar") {
       const r = lineOf(a.nombre);
@@ -3212,7 +3232,7 @@ function vzEntendi(texto, acc) {
     if (k) { toast("No entendí. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); }
     return vzError(`No entendí «${texto}». Prueba con «anota un yogurt» o «paga 50 a Gloria».`);
   }
-  let plan = vzPlan(acc);
+  let plan = vzPlan(acc, k && k.plan);
   if (k) { plan = k.plan.concat(plan); texto = k.texto + " + " + texto; } // se suma a lo que ya tenías
   vzShowPlan(plan, texto);
 }
