@@ -2758,6 +2758,8 @@ const VZ_QUITA = new Set(["quita", "quitale", "quitame", "quitar", "saca", "saca
 const VZ_ULT = new Set(["eso", "ese", "esa", "esto", "ultimo", "ultima", "anterior", "mismo", "misma"]); // «quita 1» = del último producto
 const VZ_VACIA = new Set(["vacia", "vaciar", "limpia", "limpiar"]);
 const VZ_CAMBIA = new Set(["cambia", "cambiale", "cambiar", "modifica", "corrige"]);
+const VZ_UPD = new Set(["actualiza", "actualizale", "actualizar", "actualizame", "cambia", "cambiale", "cambiar", "modifica", "modificale", "corrige", "corrigele", "ponle", "pon", "sube", "subele", "baja", "bajale", "fija", "fijale", "edita", "editale"]);
+const VZ_LLEGO = new Set(["llego", "llegaron", "ingresa", "ingresan", "ingreso", "ingresaron", "repon", "repone", "reponer", "reponle", "entro", "entraron", "recibi"]);
 const VZ_MEDIOS = new Set(["efectivo", "yape", "plin", "transferencia", "tarjeta"]);
 const VZ_UNI = /^(medio|media|cuarto|cuartos|kilo|kilos|kilito|kilitos|kg|kilogramo|kilogramos|gramo|gramos|gr|docena|docenas|par|pares)$/;
 const vzIsNum = (t) => /^\d+(#\d+)?$/.test(t) || t in VZ_N;
@@ -2809,6 +2811,38 @@ function vzParse(text) {
   const toks = vzTokens(text), out = [], j = toks.join(" ");
   if (!toks.length) return out;
   if (toks.includes("cuanto") && toks.some((t) => /^vend/.test(t)) || (toks.includes("ventas") && toks.includes("hoy")) || j.includes("resumen del dia")) return [{ tipo: "consulta", consulta: "ventas_hoy" }];
+  // cambiar precio, costo o stock de un producto: «actualiza el precio del huevo a 6.70 y costo a 6»
+  const kwOf = (t) => (t === "precio" ? "precio" : t === "costo" ? "costo" : t === "stock" || t === "inventario" ? "stock" : "");
+  if (toks.some((t) => VZ_UPD.has(t)) && toks.some((t) => kwOf(t)) && !toks.includes("nuevo")) {
+    const first = toks.findIndex((t) => kwOf(t)), SKIP = (t) => VZ_UPD.has(t) || VZ_FN.has(t) || ["y", "e", "su", "producto", "articulo"].includes(t);
+    const pre = toks.slice(0, first).filter((t) => !SKIP(t) && !vzIsQty(t)).join(" ");
+    const segs = []; toks.slice(first).forEach((t) => { if (kwOf(t)) segs.push({ k: kwOf(t), t: [] }); else segs[segs.length - 1].t.push(t); });
+    const r = {}; let nombre = pre;
+    segs.forEach((sg) => {
+      let i = 0; while (i < sg.t.length && ["de", "del", "el", "la", "al", "los", "las", "su", "producto"].includes(sg.t[i])) i++;
+      const nm = []; while (i < sg.t.length && !vzIsQty(sg.t[i]) && !["a", "en", "por", "sea", "sean", "es", "son", "y"].includes(sg.t[i])) nm.push(sg.t[i++]);
+      if (!nombre && nm.length) nombre = nm.join(" ");
+      const rest = sg.t.slice(i);
+      if (!nombre) { let l = -1; rest.forEach((t, j) => { if (vzIsQty(t)) l = j; }); const tn = rest.slice(l + 1).filter((t) => !SKIP(t)); if (tn.length) nombre = tn.join(" "); } // «stock 12 al tomate»
+      if (sg.k === "stock") { const q = vzQty(rest.filter(vzIsQty)); if (q && q.val >= 0 && !q.sol) r.stock = q.val; }
+      else { const m = vzMoney(rest); if (m > 0) r[sg.k] = m; }
+    });
+    return nombre && Object.keys(r).length ? [{ tipo: "actualizar", nombre, ...r }] : [];
+  }
+  // llegó mercadería: «llegaron 20 huevos y 10 atunes» suma al stock
+  if (toks.some((t) => VZ_LLEGO.has(t))) {
+    const seg = toks.filter((t) => !VZ_LLEGO.has(t)), items = []; let cur = { q: [], n: [] };
+    const push = () => { if (cur.n.length) items.push(cur); cur = { q: [], n: [] }; };
+    seg.forEach((t) => {
+      if (vzIsQty(t)) { if (cur.n.length) push(); cur.q.push(t); }
+      else if (["y", "e", "mas", "con", "tambien"].includes(t)) { if (cur.n.length) push(); }
+      else if (VZ_FN.has(t) || ["mercaderia", "inventario", "nuevos", "nuevas"].includes(t)) { /* relleno */ }
+      else cur.n.push(t);
+    });
+    push();
+    const res = items.map((it) => { const q = vzQty(it.q); return q && q.val > 0 && !q.sol ? { tipo: "ingreso", nombre: it.n.join(" "), cantidad: q.val, unidad: q.kg ? "kg" : "unid" } : null; }).filter(Boolean);
+    if (res.length) return res;
+  }
   // precio y stock de un producto
   const pr = toks.some((t) => /^(cuesta|cuestan|vale|valen|precio)$/.test(t)), st = toks.some((t) => /^(quedan|queda|quedo|hay|stock|tengo|tenemos)$/.test(t));
   if ((pr || st) && !toks.some((t) => VZ_ANOTA.has(t) || VZ_PAGA.has(t) || VZ_FIA.has(t) || VZ_COBRA.has(t) || VZ_QUITA.has(t))) {
@@ -2818,10 +2852,13 @@ function vzParse(text) {
   // producto nuevo: «crea producto galleta soda a un sol»
   const ip = toks.findIndex((t) => t === "producto" || t === "articulo");
   if (ip >= 0 && toks.some((t) => VZ_ANOTA.has(t) || t === "nuevo")) {
-    const rest = toks.slice(ip + 1).filter((t) => t !== "nuevo"), cut = rest.findIndex((t) => vzIsQty(t) || ["a", "en", "por", "cuesta", "vale", "precio"].includes(t));
+    const rest = toks.slice(ip + 1).filter((t) => t !== "nuevo"), cut = rest.findIndex((t) => vzIsQty(t) || ["a", "en", "por", "cuesta", "vale", "precio", "costo", "stock"].includes(t));
     const nombre = (cut >= 0 ? rest.slice(0, cut) : rest).join(" "), tail = cut >= 0 ? rest.slice(cut) : [];
-    const precio = vzMoney(tail), kg = tail.some((t) => /^(kilo|kilos|kg)$/.test(t));
-    return nombre ? [{ tipo: "crear_producto", nombre, ...(precio ? { monto: precio } : {}), unidad: kg ? "kg" : "unid" }] : [];
+    const ic = tail.indexOf("costo"), is = tail.indexOf("stock");
+    const ends = [ic, is].filter((x) => x >= 0), pTail = ends.length ? tail.slice(0, Math.min(...ends)) : tail;
+    const seg = (i, o) => { if (i < 0) return []; const f = o.filter((x) => x > i); return tail.slice(i + 1, f.length ? Math.min(...f) : tail.length); };
+    const precio = vzMoney(pTail), costo = vzMoney(seg(ic, [is])), sq = vzQty(seg(is, [ic]).filter(vzIsQty)), kg = pTail.some((t) => /^(kilo|kilos|kg)$/.test(t));
+    return nombre ? [{ tipo: "crear_producto", nombre, ...(precio ? { monto: precio } : {}), ...(costo ? { costo } : {}), ...(sq && sq.val > 0 && !sq.sol ? { stock: sq.val } : {}), unidad: kg ? "kg" : "unid" }] : [];
   }
   // vaciar el ticket
   if (toks.some((t) => VZ_VACIA.has(t)) && toks.some((t) => t === "ticket" || t === "cuenta" || t === "todo") || toks.some((t) => VZ_QUITA.has(t)) && toks.some((t) => t === "todo" || t === "todos") ) return [{ tipo: "vaciar" }];
@@ -3005,7 +3042,38 @@ function vzPlan(acc, prev) {
       if (r.it && vzToks(r.it.name).length === vzToks(a.nombre).length) return { ok: false, txt: `Ya existe «${r.it.name}»` };
       if (!a.monto) return { ok: false, txt: `Producto «${a.nombre}»: dime el precio (por ejemplo «a dos cincuenta»)` };
       const nm = a.nombre.replace(/\b\w/g, (c) => c.toUpperCase());
-      return { ok: true, modal: true, txt: `Crear producto «${nm}» a ${money(a.monto)}${a.unidad === "kg" ? " por kilo" : ""} (lo revisas antes de guardar)`, run: () => vzNuevo(nm, a.monto, a.unidad === "kg") };
+      return { ok: true, modal: true, txt: `Crear producto «${nm}» a ${money(a.monto)}${a.unidad === "kg" ? " por kilo" : ""}${a.costo ? `, costo ${money(a.costo)}` : ""}${a.stock ? `, stock ${fmtQ(a.stock)}` : ""} (lo revisas antes de guardar)`, run: () => vzNuevo(nm, a.monto, a.unidad === "kg", a.costo, a.stock) };
+    }
+    if (a.tipo === "actualizar") {
+      const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
+      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
+      if (a.precio && !can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar precios" };
+      if (a.costo && !can("costos")) return { ok: false, txt: "Tu usuario no puede cambiar costos" };
+      if (a.stock != null && !can("stock")) return { ok: false, txt: "Tu usuario no puede cambiar el stock" };
+      if (a.stock != null && p.stock == null) return { ok: false, txt: `${p.name}: no llevas stock de este producto. Actívalo en su ficha` };
+      const kg = p.unit === "kg", partes = [];
+      if (a.precio) partes.push(`precio ${money(a.precio)} (antes ${money(p.price)})`);
+      if (a.costo) partes.push(`costo ${money(a.costo)}${p.cost ? ` (antes ${money(p.cost)})` : ""}`);
+      if (a.stock != null) partes.push(`stock ${fmtQ(a.stock)}${kg ? " kg" : ""} (antes ${fmtQ(p.stock)})`);
+      if (!partes.length) return { ok: false, txt: `${p.name}: dime qué cambiar (precio, costo o stock)` };
+      return { ok: true, txt: `${p.name}${vzAp(r, a.nombre)}: ${partes.join(", ")}`, exec: () => {
+        if (a.precio && a.precio !== p.price) log("Cambio de precio", `${p.name}: ${money(p.price)} → ${money(a.precio)} (voz)`);
+        if (a.precio) p.price = r2(a.precio);
+        if (a.costo) p.cost = r2(a.costo);
+        if (a.stock != null) stockAdd(p, r3(a.stock - p.stock), "ajuste", "Por voz");
+        save(); toast("Producto actualizado"); render();
+      } };
+    }
+    if (a.tipo === "ingreso") {
+      if (!can("stock")) return { ok: false, txt: "Tu usuario no puede ingresar mercadería" };
+      const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
+      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
+      if (p.stock == null) return { ok: false, txt: `${p.name}: no llevas stock de este producto. Actívalo en su ficha` };
+      const kg = p.unit === "kg"; if (!kg && a.unidad === "kg") return { ok: false, txt: `${p.name} se vende por unidad, no por peso` };
+      const q = r3(a.cantidad || 0); if (!(q > 0)) return { ok: false, txt: `${p.name}: dime cuántos llegaron` };
+      return { ok: true, txt: `Sumar ${fmtQ(q)}${kg ? " kg" : ""} al stock de ${p.name}${vzAp(r, a.nombre)} (quedan ${fmtQ(r3(p.stock + q))})`, exec: () => { stockAdd(p, q, "ingreso", "Por voz"); save(); toast("Stock actualizado"); render(); } };
     }
     if (a.tipo === "precio" || a.tipo === "stock") {
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
@@ -3047,10 +3115,10 @@ function vzCobrar(medio, monto) {
   startPay(medio);
   if (monto && ui.pay && ui.pay.method === "efectivo") { ui.pay.recv = String(monto); paintPay(); }
 }
-function vzNuevo(nombre, precio, kg) {
+function vzNuevo(nombre, precio, kg, costo, stock) {
   openProduct("");
   if (!ui.pe) return;
-  Object.assign(ui.pe.d, { name: nombre, price: String(precio), unit: kg ? "kg" : "u" }); paintPE();
+  Object.assign(ui.pe.d, { name: nombre, price: String(precio), unit: kg ? "kg" : "u", ...(costo ? { cost: String(costo) } : {}), ...(stock ? { stock: String(stock) } : {}) }); paintPE();
 }
 function vzInfo(p) {
   const kg = p.unit === "kg", stock = p.stock == null ? "No llevas stock de este producto" : `${fmtQ(p.stock)}${kg ? " kg" : " und."}`;
@@ -3104,7 +3172,7 @@ function vzGetModel() {
 function vzIdle() { clearTimeout(vzIdleT); vzIdleT = setTimeout(() => { const p = vzModelP; vzModelP = null; if (p) p.then((m) => m.terminate()).catch(() => {}); }, 120000); }
 // Lista corta de palabras: tus productos, clientes y proveedores + números y órdenes. Así el oído se equivoca mucho menos.
 function vzGrammar() {
-  const w = new Set("anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál".split(" "));
+  const w = new Set("actualiza actualízale actualizar sube súbele baja bájale fija edita costo precio stock inventario llegaron llegó ingresa ingresaron ingresó repón repone reponer entraron recibí nuevo producto anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál".split(" "));
   const add = (n) => String(n || "").toLowerCase().split(/[^a-záéíóúüñ]+/).forEach((x) => { if (x.length > 1) w.add(x); });
   DB.products.filter((p) => p.on !== false).forEach((p) => add(p.name)); DB.clients.forEach((c) => add(c.name)); DB.supp.forEach((c) => add(c.name));
   return [...w, "[unk]"];
