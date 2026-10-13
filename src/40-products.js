@@ -20,7 +20,7 @@ function paintPList() {
   if (!DB.products.length) { el.innerHTML = `<div class="empty"><h2>Inventario vacío</h2><p>Agrega tu primer producto, impórtalos desde Excel o carga ejemplos para probar.</p><button class="btn sec" data-a="sample">Cargar ejemplos</button></div>`; return; }
   const q = norm(ui.pq), raw = ui.pq || "";
   const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(raw) || (p.pres || []).some((x) => (x.code || "").includes(raw)))
-    .sort((a, b) => (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || a.name.localeCompare(b.name, "es"));
+    .sort((a, b) => (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   el.innerHTML = list.slice(0, 120).map((p) => {
     const kgp = p.unit === "kg", tag = p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "";
     const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
@@ -248,7 +248,7 @@ const exportProducts = () => csvOut([["nombre", "precio", "costo", "stock", "cat
 function openTransfer() {
   ui.trf = ui.trf || { to: "", items: [] };
   const t = ui.trf, q = norm(ui.trfq || "");
-  const found = q ? DB.products.filter((p) => norm(p.name).includes(q) || (p.code || "") === ui.trfq).slice(0, 8) : [];
+  const found = q ? DB.products.filter((p) => nameHit(p.name, q) || (p.code || "") === ui.trfq).slice(0, 8) : [];
   openModal(`<h2>Transferir productos a otra tienda</h2>
     <p class="muted" style="margin-bottom:10px">Se descuentan de esta tienda y se descarga un archivo. En la otra tienda ábrelo en Ajustes › Tiendas › Recibir archivo.</p>
     <label class="fld"><span>Tienda que recibe</span><input class="inp" id="trfto" value="${esc(t.to)}" placeholder="Ej: Tienda Los Olivos" maxlength="40"></label>

@@ -12,6 +12,10 @@ const fmtQ = (n) => String(+(+n || 0).toFixed(3));
 const money = (n) => "S/ " + r2(n).toFixed(2);
 const num = (v) => { const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+// Buscar por palabras sueltas, en cualquier orden: «manz vin» encuentra «Vinagre de manzana». q ya viene con norm().
+const nameHit = (name, q) => { const n = norm(name), pw = n.split(/\s+/); return q.split(/\s+/).filter(Boolean).every((w) => pw.some((x) => x.startsWith(w)) || (w.length >= 3 && n.includes(w))); };
+// Primero los que empiezan con lo escrito, luego los que lo tienen en otra palabra, al final el resto.
+const nameRank = (name, q) => { const ws = q.split(/\s+/).filter(Boolean), n = norm(name); if (!ws.length || n.startsWith(ws[0])) return 0; return n.split(/\s+/).some((w) => w.startsWith(ws[0])) ? 1 : 2; };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const hhmm = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 const dmy = (k) => k.split("-").reverse().join("/");

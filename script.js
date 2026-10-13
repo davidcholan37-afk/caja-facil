@@ -30,6 +30,10 @@ const fmtQ = (n) => String(+(+n || 0).toFixed(3));
 const money = (n) => "S/ " + r2(n).toFixed(2);
 const num = (v) => { const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+// Buscar por palabras sueltas, en cualquier orden: «manz vin» encuentra «Vinagre de manzana». q ya viene con norm().
+const nameHit = (name, q) => { const n = norm(name), pw = n.split(/\s+/); return q.split(/\s+/).filter(Boolean).every((w) => pw.some((x) => x.startsWith(w)) || (w.length >= 3 && n.includes(w))); };
+// Primero los que empiezan con lo escrito, luego los que lo tienen en otra palabra, al final el resto.
+const nameRank = (name, q) => { const ws = q.split(/\s+/).filter(Boolean), n = norm(name); if (!ws.length || n.startsWith(ws[0])) return 0; return n.split(/\s+/).some((w) => w.startsWith(ws[0])) ? 1 : 2; };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const hhmm = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 const dmy = (k) => k.split("-").reverse().join("/");
@@ -863,8 +867,8 @@ function paintGrid() {
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
-  let list = DB.products.filter((p) => p.on !== false && (q ? true : catOk(p)) && (!q || norm(p.name).includes(q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
-  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
+  let list = DB.products.filter((p) => p.on !== false && (q ? true : catOk(p)) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
+  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»</h2><p>Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto.</p></div>`; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
   const MAXL = 120, shown = list.slice(0, MAXL);
@@ -1200,7 +1204,7 @@ function submitCode(raw) {
   if (lab) { clear(); addToCart(lab.p, lab.qty); paintGrid(); return; }
   if (!p) { for (const x of DB.products) { const ps = (x.pres || []).find((y) => y.code && y.code === code); if (ps) { p = x; pres = ps.id; break; } } }
   const exact = !!p;
-  if (!p) { const k = norm(code), list = DB.products.filter((x) => norm(x.name).includes(k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { toast("Hay varios productos así: toca el que quieras"); return; } }
+  if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { toast("Hay varios productos así: toca el que quieras"); return; } }
   if (!p) { toast("No encontramos «" + code + "»"); beep(false); return; }
   clear();
   if (pres) addToCart(p, qty || 1, pres);
@@ -1587,7 +1591,7 @@ function paintPList() {
   if (!DB.products.length) { el.innerHTML = `<div class="empty"><h2>Inventario vacío</h2><p>Agrega tu primer producto, impórtalos desde Excel o carga ejemplos para probar.</p><button class="btn sec" data-a="sample">Cargar ejemplos</button></div>`; return; }
   const q = norm(ui.pq), raw = ui.pq || "";
   const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(raw) || (p.pres || []).some((x) => (x.code || "").includes(raw)))
-    .sort((a, b) => (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || a.name.localeCompare(b.name, "es"));
+    .sort((a, b) => (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   el.innerHTML = list.slice(0, 120).map((p) => {
     const kgp = p.unit === "kg", tag = p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "";
     const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
@@ -1815,7 +1819,7 @@ const exportProducts = () => csvOut([["nombre", "precio", "costo", "stock", "cat
 function openTransfer() {
   ui.trf = ui.trf || { to: "", items: [] };
   const t = ui.trf, q = norm(ui.trfq || "");
-  const found = q ? DB.products.filter((p) => norm(p.name).includes(q) || (p.code || "") === ui.trfq).slice(0, 8) : [];
+  const found = q ? DB.products.filter((p) => nameHit(p.name, q) || (p.code || "") === ui.trfq).slice(0, 8) : [];
   openModal(`<h2>Transferir productos a otra tienda</h2>
     <p class="muted" style="margin-bottom:10px">Se descuentan de esta tienda y se descarga un archivo. En la otra tienda ábrelo en Ajustes › Tiendas › Recibir archivo.</p>
     <label class="fld"><span>Tienda que recibe</span><input class="inp" id="trfto" value="${esc(t.to)}" placeholder="Ej: Tienda Los Olivos" maxlength="40"></label>
