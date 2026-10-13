@@ -8,6 +8,8 @@ const path = require("path");
 const APP_URL = "https://davidcholan37-afk.github.io/caja-facil/";
 const AUTH_URL = "https://ohdpfdzledddmhanscln.supabase.co/auth/v1/authorize";
 const PROTOCOL = "cajafacil";
+// Algunas computadoras dejan la ventana en blanco con la tarjeta de video: se dibuja con el procesador (suficiente para la caja).
+app.disableHardwareAcceleration();
 let win = null;
 let pendingLink = process.argv.find((a) => a.startsWith(PROTOCOL + "://")) || null;
 
