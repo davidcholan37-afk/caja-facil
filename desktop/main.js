@@ -10,6 +10,10 @@ const AUTH_URL = "https://ohdpfdzledddmhanscln.supabase.co/auth/v1/authorize";
 const PROTOCOL = "cajafacil";
 // Algunas computadoras dejan la ventana en blanco con la tarjeta de video: se dibuja con el procesador (suficiente para la caja).
 app.disableHardwareAcceleration();
+// La nube (Supabase) responde error 500 si el nombre del navegador lleva la «á» de «Fácil» («CajaFácil/1.0.5»).
+// Se quitan los acentos y todo carácter no ASCII del nombre con que el programa se presenta en internet.
+const ascii = (s) => String(s).normalize("NFD").replace(/[^\x20-\x7E]/g, "");
+try { app.userAgentFallback = ascii(app.userAgentFallback); } catch (_) {}
 let win = null;
 let caidas = 0, modoTemporal = false, limpiado = false, etapa = "abriendo";
 const ultimos = [];
@@ -53,7 +57,7 @@ function createWindow(temporal) {
   });
   Menu.setApplicationMenu(null);
   // Se marca el navegador interno para que la caja sepa que corre como programa de Windows.
-  win.webContents.setUserAgent(win.webContents.getUserAgent() + " CajaFacilEscritorio/" + app.getVersion());
+  win.webContents.setUserAgent(ascii(win.webContents.getUserAgent()) + " CajaFacilEscritorio/" + app.getVersion());
   let visible = false;
   const mostrar = () => { if (visible || win.isDestroyed()) return; visible = true; win.maximize(); win.show(); };
   win.once("ready-to-show", mostrar);
