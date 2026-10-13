@@ -16,7 +16,9 @@ if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on("second-instance", (_e, argv) => {
     const link = argv.find((a) => a.startsWith(PROTOCOL + "://"));
-    if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
+    if (!win || win.isDestroyed()) { win = null; if (link) pendingLink = link; if (app.isReady()) createWindow(); return; }
+    if (win.isMinimized()) win.restore();
+    win.show(); win.focus();
     if (link) openLink(link);
   });
 }
@@ -42,7 +44,10 @@ function createWindow() {
   Menu.setApplicationMenu(null);
   // Se marca el navegador interno para que la caja sepa que corre como programa de Windows.
   win.webContents.setUserAgent(win.webContents.getUserAgent() + " CajaFacilEscritorio/" + app.getVersion());
-  win.once("ready-to-show", () => { win.maximize(); win.show(); });
+  let visible = false;
+  const mostrar = () => { if (visible || win.isDestroyed()) return; visible = true; win.maximize(); win.show(); };
+  win.once("ready-to-show", mostrar);
+  setTimeout(mostrar, 6000); // si la página tarda, la ventana aparece igual
 
   // Entrar con Google: en el navegador normal, nunca dentro del programa.
   win.webContents.on("will-navigate", (e, url) => {
