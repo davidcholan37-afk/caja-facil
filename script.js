@@ -2751,8 +2751,8 @@ function vzCleanVosk(s) {
 }
 
 /* ---------- intérprete en español (sin IA, sin internet) ---------- */
-const VZ_N = { cero: 0, un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiun: 21, veintiuno: 21, veintiuna: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500 };
-const VZ_ANOTA = new Set(["anota", "anotame", "agrega", "agregame", "pon", "ponme", "anade", "anademe", "suma", "apunta", "apuntame", "dame", "registra", "crea", "crear", "ponle", "agregale", "sumale", "anotale", "mete", "metele", "llevo", "lleva", "quiero"]);
+const VZ_N = { cero: 0, un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiun: 21, veintiuno: 21, veintiuna: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900 };
+const VZ_ANOTA = new Set(["anota", "anotame", "agrega", "agregame", "pon", "ponme", "anade", "anademe", "suma", "apunta", "apuntame", "dame", "registra", "crea", "crear", "ponle", "agregale", "sumale", "anotale", "mete", "metele", "llevo", "lleva", "quiero", "echa", "echame", "echale", "alcanzame", "pasame", "marcame", "cargame", "cargale"]);
 const VZ_PAGA = new Set(["paga", "pagale", "pagar", "pagame", "abona", "abonale", "abonar", "cancela"]);
 const VZ_FIA = new Set(["fia", "fiale", "fiar", "fiado", "fiame", "credito"]);
 const VZ_COBRA = new Set(["cobra", "cobrar", "cobrame", "cobrale", "cobrarle", "cobramos"]);
@@ -2787,9 +2787,11 @@ function vzQty(toks) {
   if (!any && !kg && !sol) return null;
   return { val: r3(val), kg, sol };
 }
+// Como lo dice la gente: «yapéame», «en cash», «con visa»…
+const VZ_ALIAS = { yapeo: "yape", yapeado: "yape", yapea: "yape", yapeame: "yape", yapear: "yape", yapeando: "yape", yapes: "yape", plineo: "plin", plineado: "plin", plinea: "plin", plineame: "plin", cash: "efectivo", contado: "efectivo", visa: "tarjeta", pos: "tarjeta", mastercard: "tarjeta" };
 function vzTokens(text) {
   const t = String(text).toLowerCase().replace(/\b1\s*\/\s*2\b/g, " medio ").replace(/\b1\s*\/\s*4\b/g, " un cuarto ").replace(/\b3\s*\/\s*4\b/g, " tres cuartos ");
-  return norm(t).replace(/(\d)[.,](\d)/g, "$1#$2").replace(/(^|\s)s\//g, " ").replace(/[^a-z0-9# ]/g, " ").split(/\s+/).filter(Boolean);
+  return norm(t).replace(/(\d)[.,](\d)/g, "$1#$2").replace(/(^|\s)s\//g, " ").replace(/[^a-z0-9# ]/g, " ").split(/\s+/).filter(Boolean).map((w) => VZ_ALIAS[w] || w);
 }
 // Nombre = lo que sigue a «a/al/para» hasta el primer número o palabra de pago.
 function vzNameAfterA(toks) {
@@ -2811,11 +2813,61 @@ function vzMoney(toks) {
   const q = vzQty(m.filter((t) => vzIsNum(t) || /^(sol|soles)$/.test(t)));
   return q && q.val > 0 ? q.val : 0;
 }
-const VZ_FN = new Set(["el", "la", "los", "las", "de", "del", "un", "una", "unos", "unas", "a", "al", "cuanto", "cuantos", "cuantas", "cuesta", "cuestan", "vale", "valen", "precio", "esta", "estan", "es", "son", "quedan", "queda", "quedo", "hay", "stock", "tengo", "tenemos", "me", "mi", "mis", "en", "producto", "kilo", "kilos", "dime", "dame", "cual", "que", "por", "tiene", "tienes", "cuesta"]);
+const VZ_FN = new Set(["el", "la", "los", "las", "de", "del", "un", "una", "unos", "unas", "a", "al", "cuanto", "cuantos", "cuantas", "cuesta", "cuestan", "vale", "valen", "precio", "esta", "estan", "es", "son", "quedan", "queda", "quedo", "hay", "stock", "tengo", "tenemos", "me", "mi", "mis", "en", "producto", "kilo", "kilos", "dime", "dame", "cual", "que", "por", "tiene", "tienes", "cuesta", "sale", "salen", "cobran", "cobras", "cobro", "como"]);
+
+/* ---------- preguntas y descuento: «cuánto me debe Rosa», «qué se está acabando», «cuánto hay en caja», «descuento de 2 soles» ---------- */
+const VZ_BAJO = /^(acabando|acaba|acabar|acabarse|acabaron|acabado|acabados|agotando|agotado|agotados|agotarse|faltan|faltando|escasea|escasos|reponer|pedir|comprar)$/;
+const VZ_ASK_RUIDO = new Set(["que", "se", "esta", "estan", "por", "ya", "queda", "quedan", "poco", "pocos", "pocas", "poca", "stock", "bajo", "bajos", "hay", "tengo", "tenemos", "falta", "faltan", "me", "mi", "mis", "lo", "los", "las", "el", "la", "de", "del", "dime", "dame", "cuales", "cual", "cuanto", "cuantos", "cosas", "productos", "producto", "mercaderia", "algo", "toca", "debo", "hoy", "lista", "un", "una", "a", "para", "estoy", "estamos", "voy", "vamos", "tiene", "tienes", "tienen"]);
+function vzParseAsk(toks, j, raw) {
+  const has = (re) => toks.some((t) => re.test(t));
+  const medio = toks.find((t) => VZ_MEDIOS.has(t));
+  // descuento al ticket: «descuento de 2 soles», «dale 10 por ciento de descuento», «quita el descuento»
+  const iD = toks.findIndex((t) => /^(descuento|descuentito|rebaja|rebajale|rebajar|rebajita)$/.test(t) || (/^(descuenta|descuentale)$/.test(t) && has(/^(sol|soles|ciento|porciento)$/)));
+  if (iD >= 0) {
+    const desde = toks.slice(iD);
+    if (desde.some((t) => /^(quita|quitale|quitar|saca|sacale|elimina|borra|sin|cancela|anula)$/.test(t)) || toks.slice(0, iD).some((t) => /^(quita|quitale|quitar|saca|sacale|elimina|borra|sin|cancela|anula)$/.test(t))) return [{ tipo: "descuento", monto: 0 }];
+    const pre = toks.slice(0, iD); while (pre.length && /^(y|e|con|ademas|tambien|mas|aplica|aplicale|hazle|hazme|dale|ponle|pon|un|una|de|el|al|ticket|dame)$/.test(pre[pre.length - 1])) pre.pop();
+    const out = pre.length ? vzParse(pre.join(" ")) : [];
+    const pct = /%/.test(raw) || desde.some((t, i) => t === "porciento" || (t === "por" && desde[i + 1] === "ciento"));
+    const num = desde.filter((t, i) => !(t === "ciento" && desde[i - 1] === "por") && !(t === "por" && desde[i + 1] === "ciento"));
+    const valor = (ts) => (pct ? ((vzQty(ts.filter(vzIsNum)) || {}).val || 0) : vzMoney(ts));
+    let v = valor(num);
+    if (!v && !out.length) v = valor(toks.filter((t, i) => !(t === "ciento" && toks[i - 1] === "por") && !(t === "por" && toks[i + 1] === "ciento"))); // «dale 5 soles de descuento»
+    return v > 0 ? out.concat({ tipo: "descuento", ...(pct ? { pct: v } : { monto: v }) }) : out;
+  }
+  if (!toks.length) return null;
+  // ventas del día (total o por medio de pago)
+  const hoy = has(/^(hoy|dia)$/) || j.includes("resumen del dia");
+  if ((toks.includes("cuanto") && has(/^vend/)) || (toks.includes("ventas") && hoy) || j.includes("resumen del dia")) return [{ tipo: "consulta", consulta: "ventas_hoy", ...(medio ? { medio } : {}) }];
+  const verbo = toks.some((t) => VZ_PAGA.has(t) || VZ_COBRA.has(t) || VZ_QUITA.has(t) || VZ_CAMBIA.has(t) || VZ_UPD.has(t) || (VZ_LLEGO.has(t) && toks.some(vzIsNum)) || VZ_OFF.has(t) || VZ_ON.has(t) || (VZ_FIA.has(t) && !/^(fiado|fiados)$/.test(t)));
+  if (verbo) return null;
+  // deudas: «cuánto me debe Rosa», «quién me debe», «cuánto le debo a Gloria»
+  const dw = has(/^(debe|deben|debo|debemos|debes|deuda|deudas|deudor|deudores|moroso|morosos)$/) || (has(/^(fiado|fiados)$/) && has(/^(cuanto|cuantos|quien|quienes|lista|total|hay|tengo)$/));
+  if (dw && !has(VZ_BAJO)) {
+    const prov = has(/^(debo|debemos|proveedor|proveedores)$/);
+    const nombre = toks.filter((t) => !VZ_FN.has(t) && !vzIsNum(t) && !["debe", "deben", "debo", "debemos", "debes", "deuda", "deudas", "deudor", "deudores", "moroso", "morosos", "fiado", "fiados", "quien", "quienes", "lista", "total", "le", "les", "cliente", "clientes", "proveedor", "proveedores", "todos", "todas", "tengo", "hay", "cuanto", "cuantos", "fia", "fiaron", "con", "nos", "te", "se"].includes(t)).join(" ");
+    return [{ tipo: "consulta", consulta: "deuda", ...(nombre ? { nombre } : {}), ...(prov ? { prov: true } : {}) }];
+  }
+  // qué se está acabando
+  const lista = j.includes("poco stock") || j.includes("stock bajo") || j.includes("queda poco") || j.includes("quedan pocos") || j.includes("quedan pocas") || j.includes("que falta") || j.includes("que me falta");
+  if ((has(VZ_BAJO) || lista) && !toks.some(vzIsNum)) {
+    const nombre = toks.filter((t) => !VZ_ASK_RUIDO.has(t) && !VZ_BAJO.test(t) && !VZ_FN.has(t)).join(" ");
+    return nombre ? [{ tipo: "stock", nombre }] : [{ tipo: "consulta", consulta: "bajos" }];
+  }
+  // plata en caja
+  if (has(/^(caja|plata|dinero|efectivo)$/) && has(/^(cuanto|cuantos|hay|tengo|tenemos|queda|quedan|llevo|llevamos)$/) && !has(/^(precio|cuesta|vale)$/)) {
+    if (medio && medio !== "efectivo") return [{ tipo: "consulta", consulta: "ventas_hoy", medio }];
+    return [{ tipo: "consulta", consulta: "caja" }];
+  }
+  if (medio && toks.includes("cuanto") && !has(/^(cuesta|vale|precio)$/)) return [{ tipo: "consulta", consulta: "ventas_hoy", medio }];
+  // total del ticket: «cuánto es», «cuánto sería todo», «cuánto llevo»
+  if (toks[0] === "cuanto" && toks.length <= 6 && toks.every((t) => ["cuanto", "es", "seria", "sera", "va", "llevo", "llevamos", "sale", "son", "me", "lo", "en", "total", "todo", "la", "el", "cuenta", "ticket", "le", "cobro", "cobras", "mas", "ahora", "ya"].includes(t))) return [{ tipo: "consulta", consulta: "ticket" }];
+  return null;
+}
 function vzParse(text) {
   const toks = vzTokens(text), out = [], j = toks.join(" ");
   if (!toks.length) return out;
-  if (toks.includes("cuanto") && toks.some((t) => /^vend/.test(t)) || (toks.includes("ventas") && toks.includes("hoy")) || j.includes("resumen del dia")) return [{ tipo: "consulta", consulta: "ventas_hoy" }];
+  const ask = vzParseAsk(toks, j, String(text)); if (ask) return ask;
   // esconder o mostrar un producto en la venta: «desactiva el limón»
   if (toks.some((t) => VZ_OFF.has(t) || VZ_ON.has(t))) {
     const on = toks.some((t) => VZ_ON.has(t)), nombre = toks.filter((t) => !VZ_OFF.has(t) && !VZ_ON.has(t) && !VZ_FN.has(t) && !["producto", "articulo", "de", "la", "venta", "y"].includes(t) && !vzIsNum(t)).join(" ");
@@ -2865,7 +2917,7 @@ function vzParse(text) {
     if (res.length) return res;
   }
   // precio y stock de un producto
-  const pr = toks.some((t) => /^(cuesta|cuestan|vale|valen|precio)$/.test(t)), st = toks.some((t) => /^(quedan|queda|quedo|hay|stock|tengo|tenemos)$/.test(t));
+  const pr = toks.some((t) => /^(cuesta|cuestan|vale|valen|precio|sale|salen|cobran|cobras|cobro)$/.test(t)) || j.includes("a como") || (toks.includes("cuanto") && toks.some((t) => /^(esta|estan)$/.test(t))), st = toks.some((t) => /^(quedan|queda|quedo|hay|stock|tengo|tenemos)$/.test(t));
   if ((pr || st) && !toks.some((t) => VZ_ANOTA.has(t) || VZ_PAGA.has(t) || VZ_FIA.has(t) || VZ_COBRA.has(t) || VZ_QUITA.has(t))) {
     const nombre = toks.filter((t) => !VZ_FN.has(t) && !vzIsNum(t)).join(" ");
     return nombre ? [{ tipo: pr ? "precio" : "stock", nombre }] : [];
@@ -2974,7 +3026,7 @@ function vzFind(list, name, getName, nojoin) {
   if (cand.length) {
     const ex = cand.filter((x) => { const w = vzToks(getName(x)); return w.length === q.length; });
     if (ex.length === 1) return { it: ex[0] };
-    return { amb: cand.slice(0, 3).map(getName) };
+    return { amb: cand.slice(0, 3).map(getName), ambIt: cand.slice(0, 3) };
   }
   // nada exacto: probar por parecido de sonido (voz arrastrada, mal pronunciada o mal oída)
   const qs = q.map(vzSound), scored = [];
@@ -2993,9 +3045,97 @@ function vzFind(list, name, getName, nojoin) {
   }
   scored.sort((a, b) => a.tot - b.tot);
   if (scored.length === 1 || scored[0].tot < scored[1].tot) return { it: scored[0].x, aprox: true };
-  return { amb: scored.filter((c) => c.tot === scored[0].tot).slice(0, 3).map((c) => getName(c.x)) };
+  { const top = scored.filter((c) => c.tot === scored[0].tot).slice(0, 3); return { amb: top.map((c) => getName(c.x)), ambIt: top.map((c) => c.x) }; }
 }
 const vzAp = (r, nombre) => (r.aprox ? ` (oí «${nombre}»)` : "");
+
+/* ---------- respuestas: se escriben y (si está activado) se dicen en voz alta ---------- */
+const vzHabla = () => !DB.cfg.vozCalla; // Ajustes › Pantalla de venta: «La voz responde hablando»
+function vzShutUp() { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} }
+function vzDi(txt) {
+  if (!vzHabla() || !txt) return;
+  try {
+    const ss = window.speechSynthesis; if (!ss || typeof SpeechSynthesisUtterance === "undefined") return;
+    ss.cancel();
+    const u = new SpeechSynthesisUtterance(txt), vs = ss.getVoices ? ss.getVoices() : [];
+    const v = vs.find((x) => /^es[-_]PE/i.test(x.lang)) || vs.find((x) => /^es[-_](MX|US|419|AR|CO|CL)/i.test(x.lang)) || vs.find((x) => /^es/i.test(x.lang));
+    u.lang = v ? v.lang : "es-PE"; if (v) u.voice = v; u.rate = 1;
+    ss.speak(u);
+  } catch (e) {}
+}
+// «4 soles con 50», «70 céntimos»: así se lee bien en voz alta
+const vzSoles = (n) => { n = r2(n); const e = Math.floor(n), c = Math.round((n - e) * 100); if (!e && c) return `${c} céntimos`; return `${e} ${e === 1 ? "sol" : "soles"}${c ? ` con ${c}` : ""}`; };
+const vzQDi = (n) => fmtQ(n).replace(".", ",");
+// fn(dinero, cantidad) → frase escrita y frase hablada
+const vzMk = (fn) => ({ w: fn(money, fmtQ), say: fn(vzSoles, vzQDi) });
+// Línea del plan que es solo una respuesta: si es lo único que pediste, se muestra y se dice al instante (sin «Aceptar»)
+const vzAns = (txt, ans) => ({ ok: true, txt, ans, modal: true, run: () => vzResponder([{ ans }], "") });
+const amb = (r, a) => ({ ok: false, txt: `«${a.nombre}»: ¿cuál? ${r.amb.join(", ")}`, pick: r.amb.map((n) => ({ label: n, a: { ...a, nombre: n } })) });
+function vzAnsProd(p, tipo) {
+  const kg = p.unit === "kg", f = p.stock == null ? null : p.stock;
+  const rows = [["Precio", money(p.price) + (kg ? " /kg" : "")], ...(p.pres || []).map((x) => [x.name, money(x.price)]), ["Stock", f == null ? "No llevas stock" : `${fmtQ(f)}${kg ? " kg" : " und."}`]];
+  const m = vzMk((d, q) => tipo === "stock"
+    ? (f == null ? `No llevas el stock de ${p.name}.` : f <= 0 ? `Ya no queda ${p.name}.` : `Quedan ${q(f)}${kg ? " kilos" : ""} de ${p.name}${f <= (p.min || 0) ? ", ya está bajo" : ""}.`)
+    : `${p.name} ${kg ? "está a" : "cuesta"} ${d(p.price)}${kg ? " el kilo" : ""}.`);
+  return { title: p.name, w: m.w, say: m.say, rows };
+}
+function vzConsulta(a) {
+  const k = a.consulta;
+  if (k === "ventas_hoy") {
+    if (!(can("caja") || can("reportes"))) return { ok: false, txt: "Tu usuario no puede ver las ventas del día" };
+    const lbl = a.medio ? METHODS[a.medio] || a.medio : "";
+    return vzAns(a.medio ? `Ver cuánto entró hoy por ${lbl}` : "Ver las ventas de hoy", () => {
+      const t = dayTotals(dkey()), by = { efectivo: t.efectivo, yape: t.yapeAll, plin: t.plin, tarjeta: t.tarjeta, transferencia: (t.by || {}).transferencia || 0 };
+      const rows = [["Total", money(t.total)], ["Ventas", String(t.n)], ["Efectivo", money(t.efectivo)], ["Yape", money(t.yapeAll)], ["Plin", money(t.plin)], ["Tarjeta", money(t.tarjeta)]];
+      const m = vzMk((d) => a.medio ? `Hoy entraron ${d(by[a.medio] || 0)} por ${lbl}.` : t.n ? `Hoy vendiste ${d(t.total)} en ${t.n} ${t.n === 1 ? "venta" : "ventas"}.` : "Hoy todavía no hay ventas.");
+      return { title: "Ventas de hoy", w: m.w, say: m.say, rows };
+    });
+  }
+  if (k === "caja") {
+    if (!can("caja")) return { ok: false, txt: "Tu usuario no puede ver la caja" };
+    return vzAns("Ver cuánto hay en caja", () => {
+      const abiertos = DB.shifts.filter((s) => !s.t1);
+      if (!abiertos.length) return { title: "Caja", w: "No hay una caja abierta ahora.", say: "No hay una caja abierta ahora.", rows: [] };
+      const ef = r2(abiertos.reduce((x, s) => x + shiftSummary(s).expected, 0)), m = vzMk((d) => `En caja deberías tener ${d(ef)} en efectivo.`);
+      return { title: "Caja", w: m.w, say: m.say, rows: [["Efectivo en caja", money(ef)]] };
+    });
+  }
+  if (k === "deuda") {
+    if (a.prov) {
+      if (!can("caja")) return { ok: false, txt: "Tu usuario no puede ver lo que debes a proveedores" };
+      let s = null;
+      if (a.nombre) { const r = vzFind(DB.supp, a.nombre, (x) => x.name); if (r.amb) return amb(r, a); if (!r.it) return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` }; s = r.it; }
+      return vzAns(s ? `Ver cuánto le debes a ${s.name}` : "Ver cuánto debes a proveedores", () => {
+        if (s) { const b = Math.max(0, suppBal(s)), m = vzMk((d) => b ? `Le debes ${d(b)} a ${s.name}.` : `No le debes nada a ${s.name}.`); return { title: s.name, w: m.w, say: m.say, rows: [["Deuda", money(b)]] }; }
+        const l = DB.supp.filter((x) => suppBal(x) > 0).sort((x, y) => suppBal(y) - suppBal(x)), tot = suppTotalDebt();
+        const m = vzMk((d) => l.length ? `Debes ${d(tot)} a ${l.length} ${l.length === 1 ? "proveedor" : "proveedores"}. ${l.slice(0, 3).map((x) => `${x.name} ${d(suppBal(x))}`).join(", ")}.` : "No le debes nada a ningún proveedor.");
+        return { title: "Deuda a proveedores", w: m.w, say: m.say, rows: l.slice(0, 8).map((x) => [x.name, money(suppBal(x))]) };
+      });
+    }
+    if (!(can("clientes") || can("abonos") || can("credito"))) return { ok: false, txt: "Tu usuario no puede ver las deudas de clientes" };
+    let c = null;
+    if (a.nombre) { const r = vzFind(DB.clients, a.nombre, (x) => x.name); if (r.amb) return amb(r, a); if (!r.it) return { ok: false, txt: `No encontré al cliente «${a.nombre}»` }; c = r.it; }
+    return vzAns(c ? `Ver cuánto te debe ${c.name}` : "Ver quién te debe", () => {
+      if (c) { const b = balanceOf(c), m = vzMk((d) => b ? `${c.name} te debe ${d(b)}.` : `${c.name} no te debe nada.`); return { title: c.name, w: m.w, say: m.say, rows: [["Debe", money(b)]] }; }
+      const l = DB.clients.map((x) => ({ x, b: balanceOf(x) })).filter((y) => y.b > 0).sort((y, z) => z.b - y.b), tot = r2(l.reduce((acc, y) => acc + y.b, 0));
+      const m = vzMk((d) => l.length ? `Te deben ${d(tot)} en total, ${l.length} ${l.length === 1 ? "cliente" : "clientes"}. ${l.slice(0, 3).map((y) => `${y.x.name} ${d(y.b)}`).join(", ")}.` : "Nadie te debe nada.");
+      return { title: "Quién te debe", w: m.w, say: m.say, rows: l.slice(0, 8).map((y) => [y.x.name, money(y.b)]) };
+    });
+  }
+  if (k === "bajos") {
+    return vzAns("Ver qué se está acabando", () => {
+      const l = lowItems(), m = vzMk((d, q) => l.length ? `Se están acabando ${l.length} ${l.length === 1 ? "producto" : "productos"}: ${l.slice(0, 4).map((p) => p.stock <= 0 ? `${p.name} (ya no queda)` : `${p.name} (${q(p.stock)})`).join(", ")}${l.length > 4 ? " y otros más" : ""}.` : "Todo bien: ningún producto está bajo de stock.");
+      return { title: "Se está acabando", w: m.w, say: m.say, rows: l.slice(0, 10).map((p) => [p.name, p.stock <= 0 ? "Agotado" : `quedan ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""}`]) };
+    });
+  }
+  if (k === "ticket") {
+    return vzAns("Ver el total del ticket", () => {
+      const T = cartTotals(), m = vzMk((d) => T.count ? `El ticket va en ${d(T.total)}${T.disc ? `, con descuento de ${d(T.disc)}` : ""}.` : "El ticket está vacío.");
+      return { title: "Ticket", w: m.w, say: m.say, rows: T.count ? [["Productos", String(T.count)], ["Total", money(T.total)]] : [] };
+    });
+  }
+  return { ok: false, txt: "No entendí esta pregunta" };
+}
 
 /* ---------- convertir cada orden en una línea de «Entendí» ---------- */
 function vzPlan(acc, prev) {
@@ -3003,10 +3143,21 @@ function vzPlan(acc, prev) {
   let willAdd = pend.length > 0;
   const lineOf = (nombre) => vzFind(cartLines().filter((x) => !x.l.quick), nombre, (x) => x.r.name);
   return acc.map((a) => {
-    if (a.tipo === "consulta") return !(can("caja") || can("reportes")) ? { ok: false, txt: "Tu usuario no puede ver las ventas del día" } : { ok: true, txt: "Ver las ventas de hoy", run: () => vzVentas() };
+    if (a.tipo === "consulta") return vzConsulta(a);
+    if (a.tipo === "descuento") {
+      if (!can("descuento")) return { ok: false, txt: "Tu usuario no puede hacer descuentos" };
+      if (!cartLines().length && !willAdd) return { ok: false, txt: "Descuento: primero anota los productos" };
+      if (!a.pct && !a.monto) return { ok: true, txt: "Quitar el descuento del ticket", exec: () => { DB.cart.disc = 0; save(); paintCart(); } };
+      if (a.pct && a.pct >= 100) return { ok: false, txt: "Descuento: el porcentaje debe ser menor a 100" };
+      if (a.monto && !willAdd && a.monto > cartTotals().sub) return { ok: false, txt: `Descuento: ${money(a.monto)} es más que el ticket (${money(cartTotals().sub)})` };
+      return { ok: true, txt: a.pct ? `Descuento de ${fmtQ(a.pct)} % al ticket` : `Descuento de ${money(a.monto)} al ticket`, exec: () => {
+        const sub = cartTotals().sub, v = Math.min(a.pct ? r2(sub * a.pct / 100) : r2(a.monto), sub); if (!(v > 0)) return;
+        DB.cart.disc = v; log("Descuento", `${money(v)} en ${ticketLabel(DB.cart)} (voz)`); save(); paintCart();
+      } };
+    }
     if (a.tipo === "anotar") {
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
-      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
       if ((p.pres || []).length) return { ok: false, txt: `${p.name}: tiene presentaciones, tócalo para elegir una` };
       const kg = p.unit === "kg";
@@ -3037,7 +3188,7 @@ function vzPlan(acc, prev) {
     }
     if (a.tipo === "quitar" || a.tipo === "cambiar") {
       const r = lineOf(a.nombre);
-      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios en el ticket (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       const x = r.it; if (!x) return { ok: false, txt: `No encuentro «${a.nombre}» en el ticket` };
       const kg = x.r.unit === "kg";
       if (a.cantidad && !kg && a.unidad === "kg") return { ok: false, txt: `${x.r.name} se vende por unidad, no por peso` };
@@ -3067,7 +3218,7 @@ function vzPlan(acc, prev) {
     }
     if (a.tipo === "actualizar") {
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
-      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
       if (a.codigo && !can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar códigos" };
       if (a.codigo) {
@@ -3097,14 +3248,14 @@ function vzPlan(acc, prev) {
     if (a.tipo === "activar" || a.tipo === "desactivar") {
       if (!can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar productos" };
       const on = a.tipo === "activar", r = vzFind(DB.products.filter((p) => (p.on !== false) !== on), a.nombre, (p) => p.name);
-      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       const p = r.it; if (!p) return { ok: false, txt: on ? `No encontré «${a.nombre}» entre los productos ocultos` : `No encontré el producto «${a.nombre}»` };
       return { ok: true, txt: `${on ? "Mostrar" : "Ocultar"} ${p.name} en la venta${vzAp(r, a.nombre)}`, exec: () => { p.on = on; log(on ? "Producto activado" : "Producto desactivado", p.name + " (voz)"); save(); toast(on ? "Producto visible" : "Producto oculto"); render(); } };
     }
     if (a.tipo === "categoria") {
       if (!can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar productos" };
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
-      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
       const cats = [...new Set(DB.products.map((x) => x.cat).filter(Boolean))], rc = vzFind(cats, a.categoria, (c) => c);
       const nueva = !rc.it, cat = rc.it || a.categoria.replace(/\b\w/g, (c) => c.toUpperCase());
@@ -3114,7 +3265,7 @@ function vzPlan(acc, prev) {
     if (a.tipo === "ingreso") {
       if (!can("stock")) return { ok: false, txt: "Tu usuario no puede ingresar mercadería" };
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
-      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
       if (p.stock == null) return { ok: false, txt: `${p.name}: no llevas stock de este producto. Actívalo en su ficha` };
       const kg = p.unit === "kg"; if (!kg && a.unidad === "kg") return { ok: false, txt: `${p.name} se vende por unidad, no por peso` };
@@ -3123,21 +3274,21 @@ function vzPlan(acc, prev) {
     }
     if (a.tipo === "precio" || a.tipo === "stock") {
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
-      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       if (!r.it) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
-      return { ok: true, modal: true, txt: `Ver ${a.tipo === "precio" ? "el precio" : "el stock"} de ${r.it.name}${vzAp(r, a.nombre)}`, run: () => vzInfo(r.it) };
+      return vzAns(`Ver ${a.tipo === "precio" ? "el precio" : "el stock"} de ${r.it.name}${vzAp(r, a.nombre)}`, () => vzAnsProd(r.it, a.tipo));
     }
     if (a.tipo === "pagar_proveedor") {
       if (!can("caja")) return { ok: false, txt: "Tu usuario no puede pagar a proveedores" };
       const r = vzFind(DB.supp, a.nombre, (s) => s.name);
-      if (r.amb) return { ok: false, txt: `Proveedor «${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       if (!r.it) return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` };
       if (!a.monto) return { ok: false, txt: `Pago a ${r.it.name}: dime el monto` };
       return { ok: true, modal: true, txt: `Pagar ${money(a.monto)} a ${r.it.name}${vzAp(r, a.nombre)}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzPagar(r.it, a.monto, a.medio) };
     }
     if (a.tipo === "fiado") {
       const r = vzFind(DB.clients, a.nombre, (c) => c.name);
-      if (r.amb) return { ok: false, txt: `Cliente «${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      if (r.amb) return amb(r, a);
       if (!r.it) return { ok: false, txt: `No encontré al cliente «${a.nombre}»` };
       if (!a.monto && !cartLines().length && !willAdd) return { ok: false, txt: `Fiado a ${r.it.name}: dime el monto o anota primero los productos` };
       return { ok: true, modal: true, txt: a.monto ? `Fiar ${money(a.monto)} a ${r.it.name}${vzAp(r, a.nombre)}` : `Fiar este ticket a ${r.it.name}${vzAp(r, a.nombre)}`, run: () => vzFiar(r.it, a.monto) };
@@ -3184,24 +3335,34 @@ function vzVentas() {
 
 /* ---------- oído sin internet (Vosk): se instala una vez y queda en el equipo ---------- */
 let vzModelP = null, vzIdleT = 0, vzBlobs = null;
-async function vzCache() { return await caches.open(VZ_CACHE); }
-// Baja los 3 archivos a la memoria del navegador. cb(0..1) para la barra.
+// Los 3 archivos del oído se guardan en IndexedDB (no en Cache Storage: el programa de Windows se cierra si se usa).
+const VZ_TIPO = ["text/javascript", "text/javascript", "application/gzip"];
+function vzDb() { return new Promise((ok, no) => { const r = indexedDB.open("cf-voz-db", 1); r.onupgradeneeded = () => r.result.createObjectStore("f"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error || new Error("idb")); }); }
+async function vzIdbGet(k) { const db = await vzDb(); return new Promise((ok, no) => { const q = db.transaction("f").objectStore("f").get(k); q.onsuccess = () => { db.close(); ok(q.result || null); }; q.onerror = () => { db.close(); no(q.error); }; }); }
+async function vzIdbPut(k, blob) { const db = await vzDb(); return new Promise((ok, no) => { const tx = db.transaction("f", "readwrite"); tx.objectStore("f").put(blob, k); tx.oncomplete = () => { db.close(); ok(); }; tx.onerror = tx.onabort = () => { db.close(); no(tx.error || new Error("idb")); }; }); }
+// Devuelve el archivo guardado. Quien ya la instaló en el navegador (versión anterior, Cache Storage) la pasa a IndexedDB sola.
+async function vzFile(f) {
+  let b = await vzIdbGet(f); if (b) return b;
+  if (!vzElectron && typeof caches !== "undefined") { try { if (!(await caches.has(VZ_CACHE))) return null; const r = await (await caches.open(VZ_CACHE)).match(f); if (r) { b = await r.blob(); await vzIdbPut(f, b); return b; } } catch (e) {} }
+  return null;
+}
+// Baja los 3 archivos y los guarda. cb(0..1) para la barra.
 async function vzInstall(cb) {
-  const cache = await vzCache(), sizes = [5.8e6, 3e3, 34.5e6], tot = sizes.reduce((a, b) => a + b, 0); let done = 0;
+  const sizes = [5.8e6, 3e3, 34.5e6], tot = sizes.reduce((x, y) => x + y, 0); let done = 0;
   for (let i = 0; i < VZ_FILES.length; i++) {
-    if (await cache.match(VZ_FILES[i])) { done += sizes[i]; cb && cb(done / tot); continue; }
+    if (await vzFile(VZ_FILES[i])) { done += sizes[i]; cb && cb(done / tot); continue; }
     const r = await fetch(VZ_FILES[i], { cache: "no-store" }); if (!r.ok || !r.body) throw new Error("http " + r.status);
     const rd = r.body.getReader(), parts = []; let got = 0;
     for (;;) { const { done: d, value } = await rd.read(); if (d) break; parts.push(value); got += value.length; cb && cb((done + got) / tot); }
-    await cache.put(VZ_FILES[i], new Response(new Blob(parts), { headers: { "Content-Type": i === 0 || i === 1 ? "text/javascript" : "application/gzip" } }));
+    await vzIdbPut(VZ_FILES[i], new Blob(parts, { type: VZ_TIPO[i] }));
     done += sizes[i];
   }
   try { localStorage.setItem("cf-voz-off", "1"); } catch (e) {}
 }
 async function vzGetBlobs() {
   if (vzBlobs) return vzBlobs;
-  const cache = await vzCache(), out = [];
-  for (const f of VZ_FILES) { const r = await cache.match(f); if (!r) throw new Error("falta " + f); out.push(URL.createObjectURL(await r.blob())); }
+  const out = [];
+  for (const f of VZ_FILES) { const b = await vzFile(f); if (!b) throw new Error("falta " + f); out.push(URL.createObjectURL(b)); }
   return (vzBlobs = { vosk: out[0], proc: out[1], model: out[2] });
 }
 function vzGetModel() {
@@ -3218,7 +3379,7 @@ function vzGetModel() {
 function vzIdle() { clearTimeout(vzIdleT); vzIdleT = setTimeout(() => { const p = vzModelP; vzModelP = null; if (p) p.then((m) => m.terminate()).catch(() => {}); }, 120000); }
 // Lista corta de palabras: tus productos, clientes y proveedores + números y órdenes. Así el oído se equivoca mucho menos.
 function vzGrammar() {
-  const w = new Set("desactiva desactivar oculta esconde activa activar muestra categoría categoria código codigo barras mueve mover pasa asigna actualiza actualízale actualizar sube súbele baja bájale fija edita costo precio stock inventario llegaron llegó ingresa ingresaron ingresó repón repone reponer entraron recibí nuevo producto anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál".split(" "));
+  const w = new Set("desactiva desactivar oculta esconde activa activar muestra categoría categoria código codigo barras mueve mover pasa asigna actualiza actualízale actualizar sube súbele baja bájale fija edita costo precio stock inventario llegaron llegó ingresa ingresaron ingresó repón repone reponer entraron recibí nuevo producto anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál debe deben debo debemos deuda deudas deudor deudores quién quiénes fiados acabando acaba acabar acabarse agotando agotado agotados faltan falta poco pocos descuento descuentito rebaja rebájale descuenta ciento porciento por ciento caja sale salen cobran cobras cobro cómo como total llevo sería seria va echa échame echame échale alcánzame pásame márcame cárgame yapeo yapeado yapéame plineo cash contado visa seiscientos setecientos ochocientos novecientos veintiséis veintisiete veintiocho veintinueve le les lo nos te se".split(" "));
   const add = (n) => String(n || "").toLowerCase().split(/[^a-záéíóúüñ]+/).forEach((x) => { if (x.length > 1) w.add(x); });
   DB.products.filter((p) => p.on !== false).forEach((p) => add(p.name)); DB.clients.forEach((c) => add(c.name)); DB.supp.forEach((c) => add(c.name));
   return [...w, "[unk]"];
@@ -3236,7 +3397,7 @@ function vzSet(t) { const e = $("#vzt"); if (e) e.textContent = t; }
 
 function vozStart() {
   if (!vozOk()) return toast("La voz no está activada en tu caja. Pídela a tu proveedor.", true);
-  stopVoz();
+  stopVoz(); vzShutUp();
   if (SR && navigator.onLine && !vzElectron) return vzWeb();
   if (vzInstalled()) return vzVosk();
   vzOfrecer(navigator.onLine ? "" : "Sin internet, la voz necesita instalarse en esta caja.");
@@ -3306,6 +3467,7 @@ async function vzVosk() {
     if (vz !== s) return vzCleanVosk(s);
   } catch (e) {
     if (vz !== s) return; stopVoz();
+    if (e && /^falta /.test(e.message || "")) { try { localStorage.removeItem("cf-voz-off"); } catch (er) {} return vzOfrecer("Hay que instalar la voz de nuevo en esta caja."); }
     return vzError(e && e.name === "NotAllowedError" ? "Permite el micrófono en el navegador y vuelve a intentar." : e && e.name === "NotFoundError" ? "No encuentro el micrófono." : "No se pudo preparar la voz. Vuelve a instalarla desde el botón de voz.");
   }
   if (vz !== s) return vzCleanVosk(s);
@@ -3380,13 +3542,24 @@ function vzEntendi(texto, acc) {
   if (k) { plan = k.plan.concat(plan); texto = k.texto + " + " + texto; } // se suma a lo que ya tenías
   vzShowPlan(plan, texto);
 }
+// Solo preguntas (precio, stock, ventas, deudas…): se responde al instante, escrito y en voz alta, sin pedir «Aceptar».
+function vzResponder(plan, texto) {
+  vz = null;
+  const rs = plan.map((x) => { try { return x.ans(); } catch (e) { return null; } }).filter(Boolean);
+  if (!rs.length) return closeModal();
+  vzShow(`<div class="vzbox vzres" role="status">${rs.map((r) => `<h2>${esc(r.title)}</h2><p class="vzans">${esc(r.w)}</p>${r.rows.length ? `<div class="vzrows">${r.rows.map(([l, v]) => `<div class="kv"><span>${esc(l)}</span><b class="num">${esc(v)}</b></div>`).join("")}</div>` : ""}`).join("")}
+    <p class="sm" style="margin-top:8px"><button class="link" data-a="vozhabla">${vzHabla() ? "Silenciar las respuestas habladas" : "Activar las respuestas habladas"}</button></p>
+    <div class="btns h"><button class="btn sec" data-a="voz">Preguntar otra cosa</button><button class="btn" data-a="close" data-enter>Listo</button></div></div>`);
+  vzDi(rs.map((r) => r.say).join(" "));
+}
 function vzShowPlan(plan, texto) {
+  if (plan.length && plan.every((x) => x.ok && x.ans)) return vzResponder(plan, texto);
   vz = { plan, texto };
   const ok = plan.filter((x) => x.ok), modales = ok.filter((x) => x.modal).length;
   if (modales > 1) plan.forEach((x) => { if (x.modal && x !== ok.find((y) => y.modal)) { x.ok = false; x.txt += " (hazlo por separado, uno por vez)"; } });
   const hay = plan.some((x) => x.ok);
   vzShow(`<h2>Entendí</h2><p class="muted sm" style="margin-bottom:8px">«${esc(texto)}»</p>
-    <div class="vzlist">${plan.map((x) => `<div class="vzl ${x.ok ? "" : "bad"}"><span class="vzi">${x.ok ? svg("check") : svg("close")}</span><span>${esc(x.txt)}</span></div>`).join("")}</div>
+    <div class="vzlist">${plan.map((x, i) => `<div class="vzl ${x.ok ? "" : "bad"}"><span class="vzi">${x.ok ? svg("check") : svg("close")}</span><span>${esc(x.txt)}${x.pick ? `<span class="vzpick">${x.pick.map((pk, k) => `<button class="btn sec sm" data-a="vozpick" data-i="${i}" data-j="${k}">${esc(pk.label)}</button>`).join("")}</span>` : ""}</span></div>`).join("")}</div>
     ${hay ? `<button class="btn sec" data-a="vozmas" style="width:100%;margin-top:10px">+ Agregar más</button>` : ""}
     <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button>${hay ? `<button class="btn" data-a="vozok" data-enter>Aceptar</button>` : `<button class="btn" data-a="voz">Hablar otra vez</button>`}</div>`);
 }
@@ -3402,7 +3575,20 @@ act({
   voz: () => { vzKeep = null; vozStart(); },
   vozmas: () => { const p = vz && vz.plan; if (!p) return; vzKeep = { plan: p.filter((x) => x.ok), texto: vz.texto }; vozStart(); },
   vozback: () => { const k = vzKeep; vzKeep = null; stopVoz(); if (k) vzShowPlan(k.plan, k.texto); else closeModal(); },
-  vozstop: vzStop, vozpausa: vzPausa, vozok: vozAccept, vozinstall: vzDoInstall
+  vozstop: vzStop, vozpausa: vzPausa, vozok: vozAccept, vozinstall: vzDoInstall,
+  // «hay varios parecidos»: tocas el que quieres y esa línea se resuelve
+  vozpick: (el) => {
+    const s = vz; if (!s || !s.plan) return;
+    const i = +el.dataset.i, pk = s.plan[i] && s.plan[i].pick && s.plan[i].pick[+el.dataset.j]; if (!pk) return;
+    s.plan[i] = vzPlan([pk.a], s.plan.filter((_, k) => k !== i))[0];
+    vzShowPlan(s.plan, s.texto);
+  },
+  vozhabla: () => {
+    DB.cfg.vozCalla = !DB.cfg.vozCalla; save();
+    if (DB.cfg.vozCalla) vzShutUp();
+    toast(DB.cfg.vozCalla ? "La voz ya no habla" : "La voz responderá hablando");
+    const b = $('[data-a="vozhabla"]'); if (b) b.textContent = vzHabla() ? "Silenciar las respuestas habladas" : "Activar las respuestas habladas";
+  }
 });
 
 /* ===================== 70 · VENTAS: comprobantes, anulaciones, devoluciones, preventas y despacho ===================== */
@@ -3678,6 +3864,7 @@ VIEWS.aj = function viewSettings(v) {
       ${tog("cfg.needShift", C.needShift, "Preguntar el sencillo antes del primer cobro", "Apagado: la caja se abre sola al primer cobro y el sencillo se anota después en Caja")}
       ${tog("cfg.negStock", C.negStock, "Permitir vender sin stock", "Si está apagado, avisa cuando no queda")}
       ${tog("cfg.mute", !C.mute, "Sonidos", "Pitido al agregar y cobrar")}
+      ${vozOk() ? tog("cfg.vozCalla", !C.vozCalla, "La voz responde hablando", "Si le preguntas «cuánto sale el kilo de tomate» o «cuánto me debe Rosa», te lo dice en voz alta además de escribirlo") : ""}
       ${fld("Bloquear tras minutos sin uso", inp("cfg.lock", C.lock, { num: true, max: 3 }), "0 = nunca. Solo si los usuarios tienen clave")}</div>
       <div class="card" style="margin-top:14px"><h2>Códigos de barras</h2><p class="muted">Con lector USB o Bluetooth no hay nada que configurar: escanea y el producto entra solo al ticket. Sin lector, toca <b>Cámara</b> en la pantalla de venta y apunta con el celular o la webcam.</p><p class="muted" style="margin-top:8px">Para que un producto se reconozca, escribe su código en Productos, en «Código rápido o de barras».</p></div>`;
   else if (t === "balanza") body = `<div class="card"><h2>Balanza USB o serial</h2><p class="muted" style="margin-bottom:10px">Con Chrome o Edge en la computadora, Caja Fácil lee el peso directo de la balanza. Si no tienes balanza conectada, igual puedes escribir los gramos al vender.</p>

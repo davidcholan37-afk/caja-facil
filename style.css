@@ -1679,6 +1679,10 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 .vzl.bad{color:var(--t3);font-weight:450}
 .vzi{flex:none;display:grid;place-items:center;width:20px;height:20px;margin-top:1px;color:var(--ok)}
 .vzl.bad .vzi{color:var(--red)}
+.vzpick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vzres{text-align:left}.vzres h2{margin:0 0 4px}
+.vzans{font-size:19px;font-weight:600;line-height:1.35;margin:0 0 10px;text-wrap:balance}
+.vzrows{display:grid;gap:2px;margin-bottom:6px}
 .vzi svg{width:16px;height:16px}
 @media (prefers-reduced-motion:reduce){.vzmic:not(.busy){animation:none}}
 html[data-input="kbd"] .vzmic:not(.busy){animation:none}

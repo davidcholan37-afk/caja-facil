@@ -43,6 +43,7 @@ VIEWS.aj = function viewSettings(v) {
       ${tog("cfg.needShift", C.needShift, "Preguntar el sencillo antes del primer cobro", "Apagado: la caja se abre sola al primer cobro y el sencillo se anota después en Caja")}
       ${tog("cfg.negStock", C.negStock, "Permitir vender sin stock", "Si está apagado, avisa cuando no queda")}
       ${tog("cfg.mute", !C.mute, "Sonidos", "Pitido al agregar y cobrar")}
+      ${vozOk() ? tog("cfg.vozCalla", !C.vozCalla, "La voz responde hablando", "Si le preguntas «cuánto sale el kilo de tomate» o «cuánto me debe Rosa», te lo dice en voz alta además de escribirlo") : ""}
       ${fld("Bloquear tras minutos sin uso", inp("cfg.lock", C.lock, { num: true, max: 3 }), "0 = nunca. Solo si los usuarios tienen clave")}</div>
       <div class="card" style="margin-top:14px"><h2>Códigos de barras</h2><p class="muted">Con lector USB o Bluetooth no hay nada que configurar: escanea y el producto entra solo al ticket. Sin lector, toca <b>Cámara</b> en la pantalla de venta y apunta con el celular o la webcam.</p><p class="muted" style="margin-top:8px">Para que un producto se reconozca, escribe su código en Productos, en «Código rápido o de barras».</p></div>`;
   else if (t === "balanza") body = `<div class="card"><h2>Balanza USB o serial</h2><p class="muted" style="margin-bottom:10px">Con Chrome o Edge en la computadora, Caja Fácil lee el peso directo de la balanza. Si no tienes balanza conectada, igual puedes escribir los gramos al vender.</p>
