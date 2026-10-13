@@ -2744,7 +2744,8 @@ function stopVoz() {
   vzCleanVosk(s);
 }
 function vzCleanVosk(s) {
-  try { clearTimeout(s.endT); clearTimeout(s.max); if (s.vrec) s.vrec.remove(); } catch (e) {}
+  try { clearTimeout(s.endT); clearTimeout(s.max); clearInterval(s.vadT); if (s.vrec) s.vrec.remove(); } catch (e) {}
+  try { if (s.mrec && s.mrec.state !== "inactive") { s.mrec.onstop = null; s.mrec.stop(); } } catch (e) {}
   try { if (s.ms) s.ms.getTracks().forEach((t) => t.stop()); } catch (e) {}
   try { if (s.ac && s.ac.state !== "closed") s.ac.close(); } catch (e) {}
   if (s.eng === "vosk") vzIdle();
@@ -3399,6 +3400,7 @@ function vozStart() {
   if (!vozOk()) return toast("La voz no está activada en tu caja. Pídela a tu proveedor.", true);
   stopVoz(); vzShutUp();
   if (SR && navigator.onLine && !vzElectron) return vzWeb();
+  if (navigator.onLine && vzNubeOn() && window.MediaRecorder) return vzNubeRec(); // programa de Windows, iPhone…: oído en la nube (mucho mejor que el de 34 MB)
   if (vzInstalled()) return vzVosk();
   vzOfrecer(navigator.onLine ? "" : "Sin internet, la voz necesita instalarse en esta caja.");
 }
@@ -3448,12 +3450,77 @@ function vzPausa() {
   if (s.eng === "web") {
     if (s.paused) { s.base = s.texto; s.altsBase = (s.altsBase || []).concat(s.altsCur || []); s.altsCur = []; const r = s.rec; s.rec = null; try { r.onresult = r.onend = r.onerror = null; r.abort(); } catch (e) {} }
     else vzWebRec(s);
+  } else if (s.eng === "nube") {
+    try { if (s.paused) s.mrec.pause(); else s.mrec.resume(); } catch (e) {}
   } else {
     try { if (s.paused) s.src.disconnect(); else s.src.connect(s.node); } catch (e) {}
   }
   if (!s.paused) s.max = setTimeout(() => vz === s && vzStop(), 30000);
 }
-function vzVoskOrErr() { if (vzInstalled()) vzVosk(); else vzOfrecer("Esta caja no puede usar el oído de internet."); }
+function vzVoskOrErr() { if (navigator.onLine && vzNubeOn() && window.MediaRecorder) vzNubeRec(); else if (vzInstalled()) vzVosk(); else vzOfrecer("Esta caja no puede usar el oído de internet."); }
+
+
+/* oído en la nube (programa de Windows, iPhone…): graba, manda el audio con TUS productos como pista y vuelve el texto */
+let vzNubeCaida = 0; // si la nube no responde (función no instalada o sin clave), se prueba de nuevo en 10 minutos
+const vzNubeOn = () => { try { return localStorage.getItem("cf-voz-nube") !== "0" && cloudOn() && Date.now() - vzNubeCaida > 600000; } catch (e) { return false; } };
+// El círculo del micrófono late con lo que oye: así ves si tu micrófono te escucha.
+function vzMedidor(s, ac, src) {
+  try {
+    const an = ac.createAnalyser(); an.fftSize = 1024; src.connect(an); s.an = an; const buf = new Float32Array(an.fftSize);
+    s.lvT = setInterval(() => { an.getFloatTimeDomainData(buf); let q = 0; for (let i = 0; i < buf.length; i++) q += buf[i] * buf[i]; s.rms = Math.sqrt(q / buf.length); const m = $(".vzmic"); if (m) m.style.transform = `scale(${(1 + Math.min(.3, s.rms * 5)).toFixed(3)})`; }, 70);
+  } catch (e) {}
+}
+async function vzNubeRec() {
+  const s = vz = { eng: "nube", texto: "", heard: 0, last: 0, t0: Date.now(), floor: null };
+  vzShow(vzListenHtml("Preparando el micrófono…"));
+  let ms;
+  try { ms = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+  catch (e) { if (vz !== s) return; stopVoz(); return vzError(e && e.name === "NotAllowedError" ? "Permite el micrófono y vuelve a intentar." : e && e.name === "NotFoundError" ? "No encuentro el micrófono." : "No se pudo prender el micrófono."); }
+  if (vz !== s) { try { ms.getTracks().forEach((t) => t.stop()); } catch (e) {} return; }
+  try {
+    s.ms = ms; s.ac = new (window.AudioContext || window.webkitAudioContext)(); const src = s.ac.createMediaStreamSource(ms); vzMedidor(s, s.ac, src);
+    const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((m) => MediaRecorder.isTypeSupported(m)) || "";
+    const rec = s.mrec = new MediaRecorder(ms, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined), chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => { if (vz === s || s.stopping) vzNubeSend(s, chunks.length ? new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" }) : null); };
+    rec.start(250); vzSet(VZ_EJ);
+    // detector de voz: se corta solo cuando callas un rato; nunca antes de oírte hablar
+    let calib = [];
+    s.vadT = setInterval(() => {
+      if (vz !== s || s.paused || s.stopping) return;
+      const now = Date.now(), r = s.rms || 0;
+      if (s.floor === null) { calib.push(r); if (now - s.t0 > 500) { calib.sort((a, b) => a - b); s.floor = calib[Math.floor(calib.length * .3)] || 0.003; } return; }
+      const hablando = r > Math.max(0.012, s.floor * 3.2);
+      if (hablando) { s.heard += 70; s.last = now; vzSet("Te escucho…"); }
+      if (s.heard >= 300 && now - s.last > 1500) vzStop();
+      else if (!s.heard && now - s.t0 > 7000) vzStop();
+      else if (now - s.t0 > 22000) vzStop();
+    }, 70);
+  } catch (e) { if (vz === s) { stopVoz(); vzError("No se pudo grabar la voz. Intenta otra vez."); } }
+}
+async function vzNubeTexto(blob) {
+  const tk = await cloudToken(), neg = cloudLoad().neg, fd = new FormData();
+  fd.append("neg", neg); fd.append("catalogo", JSON.stringify(vzCatalogo()));
+  fd.append("audio", blob, "voz." + (/mp4/.test(blob.type) ? "m4a" : /ogg/.test(blob.type) ? "ogg" : "webm"));
+  const r = await fetch(`${SB_URL}/functions/v1/voz-oido`, { method: "POST", headers: { apikey: SB_KEY, Authorization: "Bearer " + tk }, body: fd, signal: AbortSignal.timeout(20000) });
+  if (!r.ok) { const e = new Error("nube " + r.status); e.st = r.status; throw e; }
+  return String(((await r.json()) || {}).texto || "").trim();
+}
+async function vzNubeSend(s, blob) {
+  if (s.sent) return; s.sent = true; const dur = Date.now() - s.t0, oyo = s.heard >= 300; if (vz === s) vz = null; vzCleanVosk(s);
+  if (!blob || blob.size < 1500 || !oyo) { const k = vzKeep; if (k) { vzKeep = null; toast("No te escuché. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); } return vzError("No te escuché. Acércate al micrófono e intenta otra vez."); }
+  vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Entendiendo…</h2></div>`);
+  const mk = ui.mk; let texto = "";
+  try { texto = await vzNubeTexto(blob); }
+  catch (e) {
+    if (ui.mk !== mk) return;
+    const st = e && e.st; if (!st || st === 404 || st === 503 || st === 502 || st >= 500) vzNubeCaida = Date.now();
+    return vzError(st === 403 ? "Ya usaste toda la voz de hoy." : st === 429 ? "Muchos pedidos juntos. Espera unos segundos y vuelve a hablar." : vzInstalled() ? "La nube no respondió. La próxima vez uso la voz sin internet." : "La nube no respondió. Revisa tu internet e intenta otra vez.");
+  }
+  if (ui.mk !== mk) return;
+  if (!texto) { const k = vzKeep; if (k) { vzKeep = null; toast("No te escuché. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); } return vzError("No te escuché. Acércate al micrófono e intenta otra vez."); }
+  vozSend({ eng: "nube", texto });
+}
 
 /* oído sin internet (Vosk) */
 async function vzVosk() {
@@ -3481,9 +3548,9 @@ async function vzVosk() {
     node.port.postMessage({ action: "init", recognizerId: rec.id }, [ch.port2]);
     node.connect(ac.destination);
     await new Promise((ok) => setTimeout(ok, 350)); // deja que el oído termine de armarse
-    ms = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); // el micrófono se abre al final
+    ms = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: true, autoGainControl: true } }); // el micrófono se abre al final (volumen automático: los micrófonos de laptop suelen oír muy bajito)
     s.ms = ms; if (vz !== s) return vzCleanVosk(s);
-    s.node = node; s.src = ac.createMediaStreamSource(ms); s.src.connect(node);
+    s.node = node; s.src = ac.createMediaStreamSource(ms); s.src.connect(node); vzMedidor(s, ac, s.src);
     vzSet(VZ_EJ);
     s.max = setTimeout(() => vz === s && vzStop(), 20000);
   } catch (e) { if (vz === s) { stopVoz(); vzError(e && e.name === "NotAllowedError" ? "Permite el micrófono en el navegador y vuelve a intentar." : e && e.name === "NotFoundError" ? "No encuentro el micrófono." : "No se pudo prender la voz. Intenta otra vez."); } }
@@ -3491,6 +3558,7 @@ async function vzVosk() {
 // Termina de escuchar: pide lo último que oyó y sigue.
 function vzStop() {
   const s = vz; if (!s || s.stopping) return;
+  if (s.eng === "nube") { s.stopping = true; clearInterval(s.vadT); try { if (s.mrec.state === "paused") s.mrec.resume(); s.mrec.stop(); } catch (e) { vzNubeSend(s, null); } return; }
   if (s.eng !== "vosk") { if (s.paused || !s.rec) return vozSend(s); try { s.rec.stop(); } catch (e) { vozSend(s); } return; }
   s.stopping = true; clearTimeout(s.endT);
   try { s.vrec.retrieveFinalResult(); } catch (e) { return vozSend(s); }
