@@ -33,6 +33,9 @@ const VZ_VACIA = new Set(["vacia", "vaciar", "limpia", "limpiar"]);
 const VZ_CAMBIA = new Set(["cambia", "cambiale", "cambiar", "modifica", "corrige"]);
 const VZ_UPD = new Set(["actualiza", "actualizale", "actualizar", "actualizame", "cambia", "cambiale", "cambiar", "modifica", "modificale", "corrige", "corrigele", "ponle", "pon", "sube", "subele", "baja", "bajale", "fija", "fijale", "edita", "editale"]);
 const VZ_LLEGO = new Set(["llego", "llegaron", "ingresa", "ingresan", "ingreso", "ingresaron", "repon", "repone", "reponer", "reponle", "entro", "entraron", "recibi"]);
+const VZ_OFF = new Set(["desactiva", "desactivar", "desactivale", "oculta", "ocultar", "ocultale", "ocultame", "esconde", "escondeme", "desactivame", "esconder", "apaga"]);
+const VZ_ON = new Set(["activa", "activar", "activale", "activame", "muestra", "mostrar", "prende"]);
+const VZ_MUEVE = new Set(["mueve", "mover", "muevelo", "pasa", "pasalo", "asigna", "asignale", "clasifica"]);
 const VZ_MEDIOS = new Set(["efectivo", "yape", "plin", "transferencia", "tarjeta"]);
 const VZ_UNI = /^(medio|media|cuarto|cuartos|kilo|kilos|kilito|kilitos|kg|kilogramo|kilogramos|gramo|gramos|gr|docena|docenas|par|pares)$/;
 const vzIsNum = (t) => /^\d+(#\d+)?$/.test(t) || t in VZ_N;
@@ -84,20 +87,36 @@ function vzParse(text) {
   const toks = vzTokens(text), out = [], j = toks.join(" ");
   if (!toks.length) return out;
   if (toks.includes("cuanto") && toks.some((t) => /^vend/.test(t)) || (toks.includes("ventas") && toks.includes("hoy")) || j.includes("resumen del dia")) return [{ tipo: "consulta", consulta: "ventas_hoy" }];
+  // esconder o mostrar un producto en la venta: «desactiva el limón»
+  if (toks.some((t) => VZ_OFF.has(t) || VZ_ON.has(t))) {
+    const on = toks.some((t) => VZ_ON.has(t)), nombre = toks.filter((t) => !VZ_OFF.has(t) && !VZ_ON.has(t) && !VZ_FN.has(t) && !["producto", "articulo", "de", "la", "venta", "y"].includes(t) && !vzIsNum(t)).join(" ");
+    return nombre ? [{ tipo: on ? "activar" : "desactivar", nombre }] : [];
+  }
+  // categoría: «cambia la categoría del limón a frutas» · «mueve el limón a categoría frutas» · «ponle categoría frutas al limón»
+  if (toks.includes("categoria") && toks.some((t) => VZ_UPD.has(t) || VZ_MUEVE.has(t) || VZ_ANOTA.has(t))) {
+    const ic = toks.indexOf("categoria"), noise = (t) => VZ_UPD.has(t) || VZ_MUEVE.has(t) || VZ_ANOTA.has(t) || ["el", "la", "los", "las", "su", "producto", "articulo", "de", "del", "a", "al", "en", "como", "para", "sea", "y"].includes(t);
+    const before = toks.slice(0, ic).filter((t) => !noise(t)), after = toks.slice(ic + 1); let nombre = "", cat = "";
+    const CON = ["a", "al", "en", "como", "para", "sea", "es"];
+    if (before.length) { nombre = before.join(" "); cat = after.filter((t) => !["a", "al", "en", "como", "de", "la", "el"].includes(t) || false).join(" "); const k = after.findIndex((t) => !["a", "en", "como", "de", "la", "el", "sea", "es"].includes(t)); cat = k >= 0 ? after.slice(k).join(" ") : ""; }
+    else if (["de", "del"].includes(after[0])) { const rest = after.slice(1), k = rest.findIndex((t) => CON.includes(t)); if (k > 0) { nombre = rest.slice(0, k).filter((t) => t !== "la" && t !== "el").join(" "); cat = rest.slice(k + 1).join(" "); } }
+    else { const k = after.findIndex((t) => CON.includes(t)); if (k > 0) { cat = after.slice(0, k).join(" "); nombre = after.slice(k + 1).filter((t) => t !== "la" && t !== "el").join(" "); } }
+    return nombre && cat ? [{ tipo: "categoria", nombre, categoria: cat }] : [];
+  }
   // cambiar precio, costo o stock de un producto: «actualiza el precio del huevo a 6.70 y costo a 6»
-  const kwOf = (t) => (t === "precio" ? "precio" : t === "costo" ? "costo" : t === "stock" || t === "inventario" ? "stock" : "");
+  const kwOf = (t) => (t === "precio" ? "precio" : t === "costo" ? "costo" : t === "codigo" ? "codigo" : t === "stock" || t === "inventario" ? "stock" : "");
   if (toks.some((t) => VZ_UPD.has(t)) && toks.some((t) => kwOf(t)) && !toks.includes("nuevo")) {
-    const first = toks.findIndex((t) => kwOf(t)), SKIP = (t) => VZ_UPD.has(t) || VZ_FN.has(t) || ["y", "e", "su", "producto", "articulo"].includes(t);
+    const first = toks.findIndex((t) => kwOf(t)), SKIP = (t) => VZ_UPD.has(t) || VZ_FN.has(t) || ["y", "e", "su", "producto", "articulo", "barras", "barra", "numero"].includes(t);
     const pre = toks.slice(0, first).filter((t) => !SKIP(t) && !vzIsQty(t)).join(" ");
     const segs = []; toks.slice(first).forEach((t) => { if (kwOf(t)) segs.push({ k: kwOf(t), t: [] }); else segs[segs.length - 1].t.push(t); });
     const r = {}; let nombre = pre;
     segs.forEach((sg) => {
-      let i = 0; while (i < sg.t.length && ["de", "del", "el", "la", "al", "los", "las", "su", "producto"].includes(sg.t[i])) i++;
+      let i = 0; while (i < sg.t.length && ["de", "del", "el", "la", "al", "los", "las", "su", "producto", "barras", "barra", "numero"].includes(sg.t[i])) i++;
       const nm = []; while (i < sg.t.length && !vzIsQty(sg.t[i]) && !["a", "en", "por", "sea", "sean", "es", "son", "y"].includes(sg.t[i])) nm.push(sg.t[i++]);
       if (!nombre && nm.length) nombre = nm.join(" ");
       const rest = sg.t.slice(i);
       if (!nombre) { let l = -1; rest.forEach((t, j) => { if (vzIsQty(t)) l = j; }); const tn = rest.slice(l + 1).filter((t) => !SKIP(t)); if (tn.length) nombre = tn.join(" "); } // «stock 12 al tomate»
-      if (sg.k === "stock") { const q = vzQty(rest.filter(vzIsQty)); if (q && q.val >= 0 && !q.sol) r.stock = q.val; }
+      if (sg.k === "codigo") { const c = rest.filter((t) => /^\d+$/.test(t)).join(""); if (c) r.codigo = c; }
+      else if (sg.k === "stock") { const q = vzQty(rest.filter(vzIsQty)); if (q && q.val >= 0 && !q.sol) r.stock = q.val; }
       else { const m = vzMoney(rest); if (m > 0) r[sg.k] = m; }
     });
     return nombre && Object.keys(r).length ? [{ tipo: "actualizar", nombre, ...r }] : [];
@@ -321,6 +340,12 @@ function vzPlan(acc, prev) {
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
       if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
       const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
+      if (a.codigo && !can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar códigos" };
+      if (a.codigo) {
+        if (a.codigo.length < 4) return { ok: false, txt: `${p.name}: el código «${a.codigo}» es muy corto. Dilo número por número` };
+        const dup = DB.products.find((x) => x.id !== p.id && (x.code === a.codigo || (x.pres || []).some((y) => y.code === a.codigo)));
+        if (dup) return { ok: false, txt: `El código ${a.codigo} ya lo usa «${dup.name}»` };
+      }
       if (a.precio && !can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar precios" };
       if (a.costo && !can("costos")) return { ok: false, txt: "Tu usuario no puede cambiar costos" };
       if (a.stock != null && !can("stock")) return { ok: false, txt: "Tu usuario no puede cambiar el stock" };
@@ -329,14 +354,33 @@ function vzPlan(acc, prev) {
       if (a.precio) partes.push(`precio ${money(a.precio)} (antes ${money(p.price)})`);
       if (a.costo) partes.push(`costo ${money(a.costo)}${p.cost ? ` (antes ${money(p.cost)})` : ""}`);
       if (a.stock != null) partes.push(`stock ${fmtQ(a.stock)}${kg ? " kg" : ""} (antes ${fmtQ(p.stock)})`);
-      if (!partes.length) return { ok: false, txt: `${p.name}: dime qué cambiar (precio, costo o stock)` };
+      if (a.codigo) partes.push(`código ${a.codigo}${p.code ? ` (antes ${p.code})` : ""}`);
+      if (!partes.length) return { ok: false, txt: `${p.name}: dime qué cambiar (precio, costo, stock o código)` };
       return { ok: true, txt: `${p.name}${vzAp(r, a.nombre)}: ${partes.join(", ")}`, exec: () => {
         if (a.precio && a.precio !== p.price) log("Cambio de precio", `${p.name}: ${money(p.price)} → ${money(a.precio)} (voz)`);
         if (a.precio) p.price = r2(a.precio);
         if (a.costo) p.cost = r2(a.costo);
+        if (a.codigo) p.code = a.codigo;
         if (a.stock != null) stockAdd(p, r3(a.stock - p.stock), "ajuste", "Por voz");
         save(); toast("Producto actualizado"); render();
       } };
+    }
+    if (a.tipo === "activar" || a.tipo === "desactivar") {
+      if (!can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar productos" };
+      const on = a.tipo === "activar", r = vzFind(DB.products.filter((p) => (p.on !== false) !== on), a.nombre, (p) => p.name);
+      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      const p = r.it; if (!p) return { ok: false, txt: on ? `No encontré «${a.nombre}» entre los productos ocultos` : `No encontré el producto «${a.nombre}»` };
+      return { ok: true, txt: `${on ? "Mostrar" : "Ocultar"} ${p.name} en la venta${vzAp(r, a.nombre)}`, exec: () => { p.on = on; log(on ? "Producto activado" : "Producto desactivado", p.name + " (voz)"); save(); toast(on ? "Producto visible" : "Producto oculto"); render(); } };
+    }
+    if (a.tipo === "categoria") {
+      if (!can("precios")) return { ok: false, txt: "Tu usuario no puede cambiar productos" };
+      const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
+      if (r.amb) return { ok: false, txt: `«${a.nombre}»: hay varios (${r.amb.join(", ")}). Di el nombre completo.` };
+      const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
+      const cats = [...new Set(DB.products.map((x) => x.cat).filter(Boolean))], rc = vzFind(cats, a.categoria, (c) => c);
+      const nueva = !rc.it, cat = rc.it || a.categoria.replace(/\b\w/g, (c) => c.toUpperCase());
+      if (p.cat === cat) return { ok: false, txt: `${p.name} ya está en «${cat}»` };
+      return { ok: true, txt: `Pasar ${p.name}${vzAp(r, a.nombre)} a la categoría «${cat}»${nueva ? " (nueva)" : ""}`, exec: () => { p.cat = cat; save(); toast("Categoría cambiada"); render(); } };
     }
     if (a.tipo === "ingreso") {
       if (!can("stock")) return { ok: false, txt: "Tu usuario no puede ingresar mercadería" };
@@ -445,7 +489,7 @@ function vzGetModel() {
 function vzIdle() { clearTimeout(vzIdleT); vzIdleT = setTimeout(() => { const p = vzModelP; vzModelP = null; if (p) p.then((m) => m.terminate()).catch(() => {}); }, 120000); }
 // Lista corta de palabras: tus productos, clientes y proveedores + números y órdenes. Así el oído se equivoca mucho menos.
 function vzGrammar() {
-  const w = new Set("actualiza actualízale actualizar sube súbele baja bájale fija edita costo precio stock inventario llegaron llegó ingresa ingresaron ingresó repón repone reponer entraron recibí nuevo producto anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál".split(" "));
+  const w = new Set("desactiva desactivar oculta esconde activa activar muestra categoría categoria código codigo barras mueve mover pasa asigna actualiza actualízale actualizar sube súbele baja bájale fija edita costo precio stock inventario llegaron llegó ingresa ingresaron ingresó repón repone reponer entraron recibí nuevo producto anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál".split(" "));
   const add = (n) => String(n || "").toLowerCase().split(/[^a-záéíóúüñ]+/).forEach((x) => { if (x.length > 1) w.add(x); });
   DB.products.filter((p) => p.on !== false).forEach((p) => add(p.name)); DB.clients.forEach((c) => add(c.name)); DB.supp.forEach((c) => add(c.name));
   return [...w, "[unk]"];
