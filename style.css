@@ -1275,6 +1275,8 @@ button.sum:hover{box-shadow:inset 0 0 0 1px var(--hl2),var(--sh1)}
 .pbox,body[data-tab="venta"] .pbox{margin:0;border-radius:13px;background:var(--img);aspect-ratio:1/.78}
 .pt.k-art .pbox{background:linear-gradient(165deg,color-mix(in srgb,var(--cc,transparent) 7%,var(--s2)),color-mix(in srgb,var(--cc,transparent) 12%,var(--s3)))}
 .pt.k-art .pim{inset:12% 20% 14%;width:60%;height:74%;filter:drop-shadow(0 8px 10px rgba(0,0,0,.16))}
+/* Si el programa no respeta aspect-ratio, la ficha sin foto igual conserva su cuadro (no se aplasta). */
+.pt.k-art .pbox::before{content:"";display:block;padding-top:78%}
 .pt .pim.noimg{background:var(--s3);color:var(--t2)}
 .prc,.grid.t-s .prc,.grid.t-l .prc{margin:9px 4px 0;padding:0;background:none;color:var(--t1);font:600 16px/1.1 var(--f);letter-spacing:-.01em;transform:none;box-shadow:none;border-radius:0;background-image:none;font-variant-numeric:tabular-nums}
 .prc i{font-size:12px;font-weight:500;color:var(--t3);margin-right:3px}
