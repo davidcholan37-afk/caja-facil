@@ -4185,9 +4185,8 @@ async function boot() {
 boot();
 
 /* ===================== 71 · AYUDA IA: chat de guía y diagnóstico ===================== */
-// El chat solo envía las preguntas y respuestas recientes. No lee ni modifica ventas, clientes o inventario.
-const HELP_SR = typeof window !== "undefined" ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
-let helpMessages = [], helpBusy = false, helpRecognition = null, helpSpeakOn = false;
+// El chat usa texto para no interferir con las voces existentes. No lee ni modifica ventas, clientes o inventario.
+let helpMessages = [], helpBusy = false;
 
 function helpAppend(role, text, temporary) {
   const list = $("#helpMessages");
@@ -4199,29 +4198,9 @@ function helpAppend(role, text, temporary) {
   body.className = "help-message-text";
   body.textContent = String(text || "");
   item.appendChild(body);
-  if (role === "assistant" && !temporary) {
-    const listen = document.createElement("button");
-    listen.type = "button";
-    listen.className = "help-listen";
-    listen.textContent = "Escuchar";
-    listen.setAttribute("aria-label", "Escuchar esta respuesta");
-    listen.addEventListener("click", () => helpSay(String(text || "")));
-    item.appendChild(listen);
-  }
   list.appendChild(item);
   list.scrollTop = list.scrollHeight;
   return item;
-}
-function helpSay(text) {
-  try {
-    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
-      toast("La lectura en voz alta no está disponible en este equipo.", true); return;
-    }
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(String(text || ""));
-    u.lang = "es-PE"; u.rate = 1;
-    window.speechSynthesis.speak(u);
-  } catch (e) { toast("No se pudo leer la respuesta en voz alta.", true); }
 }
 function helpOpen() {
   const panel = $("#helpChat"), launch = $("#helpLauncher");
@@ -4240,42 +4219,6 @@ function helpClose() {
   const panel = $("#helpChat"), launch = $("#helpLauncher");
   if (panel) panel.hidden = true;
   if (launch) launch.hidden = false;
-  if (helpRecognition) { try { helpRecognition.stop(); } catch (e) {} }
-  try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
-}
-function helpMic() {
-  if (!HELP_SR) {
-    helpAppend("assistant", "El dictado por micrófono no está disponible aquí. Puedes escribir tu pregunta o usar el dictado de Windows.");
-    return;
-  }
-  if (helpRecognition) { try { helpRecognition.stop(); } catch (e) {} return; }
-  try {
-    const rec = new HELP_SR();
-    helpRecognition = rec;
-    rec.lang = "es-PE"; rec.continuous = false; rec.interimResults = false; rec.maxAlternatives = 1;
-    const btn = $("#helpMic");
-    if (btn) { btn.textContent = "Detener"; btn.setAttribute("aria-pressed", "true"); }
-    rec.onresult = (e) => {
-      const heard = e.results && e.results[0] && e.results[0][0] ? e.results[0][0].transcript : "";
-      const input = $("#helpInput");
-      if (input && heard) { input.value = heard; helpSend(heard); }
-    };
-    rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") helpAppend("assistant", "No se autorizó el micrófono. Puedes escribir la pregunta; no hace falta cambiar la seguridad de Windows.");
-      else if (e.error !== "no-speech" && e.error !== "aborted") helpAppend("assistant", "No pude escuchar. Intenta otra vez o escribe tu pregunta.");
-    };
-    rec.onend = () => {
-      helpRecognition = null;
-      const b = $("#helpMic");
-      if (b) { b.textContent = "Hablar"; b.setAttribute("aria-pressed", "false"); }
-    };
-    rec.start();
-  } catch (e) {
-    helpRecognition = null;
-    const btn = $("#helpMic");
-    if (btn) { btn.textContent = "Hablar"; btn.setAttribute("aria-pressed", "false"); }
-    helpAppend("assistant", "No se pudo iniciar el micrófono. Puedes escribir tu pregunta.");
-  }
 }
 function helpError(status, code) {
   if (status === 401) return "Tu sesión venció. Vuelve a entrar con Google y prueba otra vez.";
@@ -4295,9 +4238,8 @@ async function helpSend(value) {
     helpMessages.push({ role: "assistant", content: offline }); helpAppend("assistant", offline); return;
   }
   helpBusy = true;
-  const send = $("#helpSend"), mic = $("#helpMic");
+  const send = $("#helpSend");
   if (send) send.disabled = true;
-  if (mic) mic.disabled = true;
   const waiting = helpAppend("assistant", "Estoy revisando tu pregunta…", true);
   try {
     const session = cloudLoad(), token = await cloudToken();
@@ -4313,7 +4255,6 @@ async function helpSend(value) {
     helpMessages.push({ role: "assistant", content: answer });
     if (helpMessages.length > 10) helpMessages = helpMessages.slice(-10);
     helpAppend("assistant", answer);
-    if (helpSpeakOn) helpSay(answer);
   } catch (e) {
     const answer = helpError(e.status || 0, e.code || "");
     helpMessages.push({ role: "assistant", content: answer });
@@ -4323,7 +4264,6 @@ async function helpSend(value) {
     if (waiting) waiting.remove();
     helpBusy = false;
     if (send) send.disabled = false;
-    if (mic) mic.disabled = false;
     if (input) input.focus();
   }
 }
@@ -4331,13 +4271,6 @@ const helpForm = $("#helpForm");
 if (helpForm) helpForm.addEventListener("submit", (e) => { e.preventDefault(); helpSend(); });
 act({
   ayudaAbrir: helpOpen,
-  ayudaCerrar: helpClose,
-  ayudaMic: helpMic,
-  ayudaVoz: (el) => {
-    helpSpeakOn = !helpSpeakOn;
-    el.setAttribute("aria-pressed", helpSpeakOn ? "true" : "false");
-    el.textContent = helpSpeakOn ? "🔊 Leer respuestas: sí" : "🔇 Leer respuestas: no";
-    if (!helpSpeakOn) { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} }
-  }
+  ayudaCerrar: helpClose
 });
 })();
