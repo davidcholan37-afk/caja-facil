@@ -444,3 +444,31 @@ h2{font-size:clamp(2.5rem,5.6vw,4rem);line-height:1.06;letter-spacing:-.035em}
   .story-screen::before{content:"";position:absolute;left:50%;top:50%;width:min(84vh,52vw);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;background:radial-gradient(circle at 36% 30%,#A9CBFF,#3C86FF 22%,#0E45C4 58%,#071C5E 88%,#040B2B);box-shadow:0 0 120px 24px rgba(30,110,255,.38)}
   .story.gl .story-screen::before{display:none}
 }
+
+/* ===== v5: portada cinematográfica en 3D =====
+   Al bajar, la cámara gira alrededor de la caja y 4 pantallas reales salen hacia ti.
+   Solo PC con scroll-driven CSS (transform/opacity). En celular, con «menos movimiento» o equipos lentos queda la portada de siempre. */
+.orbit{display:none}
+@media (min-width:900px) and (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:view()) {
+    html:not(.lite3d) .hero{overflow:clip}
+    html:not(.lite3d) .hero-stage{height:250vh;padding:0;view-timeline:--scene block}
+    html:not(.lite3d) .stage-pin{position:sticky;top:64px;height:calc(100svh - 64px);display:flex;align-items:center;justify-content:center;padding:0 var(--gut)}
+    html:not(.lite3d) .stage{width:min(100%,860px)}
+    html:not(.lite3d) .stage::before{inset:-10% -30% -14%;background:radial-gradient(50% 50% at 50% 55%,rgba(10,102,255,.2),rgba(10,102,255,0) 70%);animation:spot linear both;animation-timeline:--scene;animation-range:cover 26% cover 70%}
+    @keyframes spot{from{transform:scale(.7);opacity:.4}to{transform:scale(1.15);opacity:1}}
+    html:not(.lite3d) .rig{animation:cam linear both;animation-timeline:--scene;animation-range:cover 26% cover 70%}
+    @keyframes cam{from{transform:rotateX(4deg) rotateY(-8deg) scale(1)}to{transform:rotateX(8deg) rotateY(14deg) scale(.72) translate3d(0,0,-160px)}}
+    html:not(.lite3d) .orbit{display:block;position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none}
+    html:not(.lite3d) .fl{position:absolute;left:50%;top:50%;width:230px;margin:-80px 0 0 -115px;opacity:0;animation:fly linear both;animation-timeline:--scene;will-change:transform,opacity}
+    html:not(.lite3d) .fl img{display:block;width:100%;height:auto;border-radius:12px;background:#fff;box-shadow:var(--lift);outline:1px solid var(--rule);outline-offset:-1px;background:#fff}
+    html:not(.lite3d) .fl figcaption{margin-top:12px;text-align:center;font-family:var(--fd);font-size:.9375rem;font-weight:600;letter-spacing:-.01em;color:var(--t1)}
+    html:not(.lite3d) .fl1{--x:-410px;--y:-170px;--z:140px;--r:18deg;animation-range:cover 28% cover 46%}
+    html:not(.lite3d) .fl2{--x:410px;--y:-185px;--z:190px;--r:-18deg;animation-range:cover 34% cover 52%}
+    html:not(.lite3d) .fl3{--x:-400px;--y:130px;--z:70px;--r:14deg;animation-range:cover 40% cover 58%}
+    html:not(.lite3d) .fl4{--x:400px;--y:150px;--z:110px;--r:-14deg;animation-range:cover 46% cover 64%}
+    @keyframes fly{from{opacity:0;transform:translate3d(0,0,-320px) rotateY(0) scale(.45)}to{opacity:1;transform:translate3d(var(--x),var(--y),var(--z)) rotateY(var(--r)) scale(1)}}
+    html:not(.lite3d) .floor{display:block;position:absolute;left:18%;right:18%;bottom:-3%;height:44px;background:radial-gradient(closest-side,rgba(20,40,90,.32),rgba(20,40,90,0));filter:blur(10px);animation:cam-floor linear both;animation-timeline:--scene;animation-range:cover 26% cover 70%}
+    @keyframes cam-floor{from{transform:scale(1)}to{transform:scale(.7) translateX(40px)}}
+  }
+}

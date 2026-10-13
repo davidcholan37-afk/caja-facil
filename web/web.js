@@ -1,5 +1,8 @@
 /* Caja Fácil · página de ventas: revelado único de imágenes y del ticket cuando aparecen en pantalla.
    Sin escuchar el scroll: IntersectionObserver. Si el sistema pide menos movimiento, no se hace nada. */
+(function () { // equipos lentos o con ahorro de datos: sin escena 3D
+  try { var c = navigator.connection || {}; if ((navigator.hardwareConcurrency || 8) <= 2 || (navigator.deviceMemory || 8) <= 2 || c.saveData) document.documentElement.classList.add("lite3d"); } catch (e) {}
+})();
 (function () {
   if (!("IntersectionObserver" in window) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   document.documentElement.classList.add("js");

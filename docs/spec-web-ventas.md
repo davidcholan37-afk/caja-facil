@@ -88,3 +88,9 @@ Página de producto para dueños de bodegas de Lima, con lenguaje de lanzamiento
 - Toda la página en tema claro (`data-theme="light"` en `<html>`); portada con título, botones y pantalla 3D con el video propio de la caja (`web/video/`).
 - «Tu caja, paso a paso» (`#funciones`): 7 pasos reales (abrir caja, vender, cobrar, cerrar caja, productos, fiado y proveedores, sin internet). Esta sección es la única oscura. Detrás, un `<canvas class="story-bg">` fijo dibuja una esfera 3D de luz con puntos LED y un anillo; los puntos se encienden con un dibujo distinto en cada paso y hay un destello al cambiar. Sin librerías, sin escuchar el scroll: `requestAnimationFrame` solo mientras la sección se ve. Con «menos movimiento» se dibuja una vez, quieta.
 - Pendiente de confirmar: capturas reales con datos de fiado, proveedores y reportes (las pantallas de ejemplo salen vacías).
+
+## v5: portada cinematográfica en 3D + paso de voz (octubre 2026)
+- Portada: al bajar, la cámara gira alrededor de la caja y 4 pantallas reales (cobrar con Yape, voz, cierre de caja, productos) salen hacia el cliente. Solo CSS (`view-timeline` + `animation-timeline`, transform/opacity), sin librerías ni escuchar el scroll.
+- Solo en PC (≥ 900 px), con `@supports (animation-timeline:view())` y sin «reducir movimiento». En celular, navegadores sin soporte o equipos lentos (`lite3d`: ≤ 2 núcleos, ≤ 2 GB o ahorro de datos) queda la portada anterior.
+- Historia «Tu caja, paso a paso»: nuevo paso «Voz» (captura real de «Entendí») después de «Vender»; aclara que la voz es un extra que activa el proveedor.
+- Imágenes nuevas: `dia_voz-light-*`, y recortes `dia_voz-card`, `dia_yape-card`, `dia_arqueo-card` para las pantallas flotantes.
