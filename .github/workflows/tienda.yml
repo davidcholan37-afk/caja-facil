@@ -1,0 +1,32 @@
+# Fabrica el paquete para la Microsoft Store (CajaFacil-Setup.appx) en una computadora Windows de GitHub.
+# Solo se ejecuta a mano (Actions › «Paquete para Microsoft Store» › Run workflow) o al subir la rama programa-windows-store.
+# El paquete queda en la página de la ejecución, en «Artifacts». Microsoft lo firma al publicarlo; no hace falta certificado.
+name: Paquete para Microsoft Store
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [programa-windows-store]
+    paths: ["desktop/**", ".github/workflows/tienda.yml"]
+
+jobs:
+  tienda:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar herramientas
+        run: npm install --no-audit --no-fund
+      - name: Fabricar el paquete .appx
+        run: npm run dist:tienda
+      - name: Guardar el paquete
+        uses: actions/upload-artifact@v4
+        with:
+          name: CajaFacil-Tienda
+          path: desktop/dist/*.appx
+          if-no-files-found: error

@@ -1,0 +1,5 @@
+<uap:Extension Category="windows.protocol" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10">
+  <uap:Protocol Name="cajafacil">
+    <uap:DisplayName>Caja Fácil</uap:DisplayName>
+  </uap:Protocol>
+</uap:Extension>

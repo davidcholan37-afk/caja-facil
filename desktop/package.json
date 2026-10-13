@@ -10,7 +10,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis --x64 --publish never"
+    "dist": "electron-builder --win nsis --x64 --publish never",
+    "dist:tienda": "electron-builder --win appx --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -20,10 +21,29 @@
     "appId": "pe.cajafacil.escritorio",
     "productName": "Caja Fácil",
     "copyright": "© 2026 Caja Fácil",
-    "files": ["main.js", "build/icon.png"],
-    "directories": { "output": "dist", "buildResources": "build" },
-    "protocols": [{ "name": "Caja Fácil", "schemes": ["cajafacil"] }],
-    "win": { "target": "nsis", "icon": "build/icon.ico", "artifactName": "CajaFacil-Setup.exe" },
+    "files": [
+      "main.js",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "protocols": [
+      {
+        "name": "Caja Fácil",
+        "schemes": [
+          "cajafacil"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "CajaFacil-Setup.${ext}"
+    },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
@@ -34,6 +54,20 @@
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "deleteAppDataOnUninstall": false
+    },
+    "appx": {
+      "applicationId": "CajaFacil",
+      "identityName": "CAMBIAR.CajaFacil",
+      "publisher": "CN=00000000-0000-0000-0000-000000000000",
+      "publisherDisplayName": "Caja Fácil",
+      "displayName": "Caja Fácil",
+      "backgroundColor": "#0A66FF",
+      "languages": [
+        "es-PE",
+        "es-ES",
+        "es-MX"
+      ],
+      "customExtensionsPath": "build/appx-extensiones.xml"
     }
   }
 }
