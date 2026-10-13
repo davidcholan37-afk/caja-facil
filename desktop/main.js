@@ -2,7 +2,7 @@
 // Así se actualiza sola (cada cambio del sistema llega sin reinstalar) y funciona sin internet gracias al service worker.
 // Google no permite iniciar sesión dentro de programas de escritorio, por eso el ingreso se hace en el navegador
 // normal y vuelve aquí con el enlace cajafacil://auth#... (ver «#login-escritorio» en src/67-cloud.js).
-const { app, BrowserWindow, Menu, shell, dialog } = require("electron");
+const { app, BrowserWindow, Menu, shell, dialog, session } = require("electron");
 const path = require("path");
 
 const APP_URL = "https://davidcholan37-afk.github.io/caja-facil/";
@@ -11,7 +11,7 @@ const PROTOCOL = "cajafacil";
 // Algunas computadoras dejan la ventana en blanco con la tarjeta de video: se dibuja con el procesador (suficiente para la caja).
 app.disableHardwareAcceleration();
 let win = null;
-let caidas = 0, modoTemporal = false, etapa = "abriendo";
+let caidas = 0, modoTemporal = false, limpiado = false, etapa = "abriendo";
 const ultimos = [];
 let pendingLink = process.argv.find((a) => a.startsWith(PROTOCOL + "://")) || null;
 
@@ -89,12 +89,20 @@ function createWindow(temporal) {
   wc.on("dom-ready", () => { etapa = "la página ya dibujó"; });
   wc.on("did-finish-load", () => { etapa = "la página cargó"; });
   wc.on("console-message", (_e, _nivel, msg) => { ultimos.push(String(msg).slice(0, 90)); if (ultimos.length > 4) ultimos.shift(); });
+  let cerrando = false;
   wc.on("render-process-gone", (_e, d) => {
-    if (d.reason === "clean-exit") return;
+    if (d.reason === "clean-exit" || cerrando || win !== w) return;
     caidas++;
-    if (caidas <= 2) { setTimeout(() => { if (!w.isDestroyed()) wc.reload(); }, 800); return; }
-    if (caidas === 3 && !modoTemporal) { // última prueba: sesión limpia, sin los datos guardados de este equipo
-      modoTemporal = true; createWindow(true); setTimeout(() => { if (!w.isDestroyed()) w.destroy(); }, 300); return;
+    // 1.º: borrar solo lo que se vuelve a armar solo (copias de archivos y service worker); las ventas y productos no se tocan.
+    if (!limpiado) {
+      limpiado = true;
+      const ses = session.defaultSession;
+      ses.clearStorageData({ storages: ["serviceworkers", "cachestorage"] }).then(() => ses.clearCache()).catch(() => {}).then(() => { if (!w.isDestroyed()) wc.reload(); });
+      return;
+    }
+    if (caidas <= 3) { setTimeout(() => { if (!w.isDestroyed()) wc.reload(); }, 800); return; }
+    if (!modoTemporal) { // última prueba: sesión limpia, sin los datos guardados de este equipo
+      modoTemporal = true; cerrando = true; createWindow(true); setTimeout(() => { if (!w.isDestroyed()) w.destroy(); }, 300); return;
     }
     avisar("La ventana se cerró sola: " + d.reason + " (código " + d.exitCode + ")\nEtapa: " + etapa + (modoTemporal ? " · sesión limpia" : "") + "\nÚltimos avisos: " + (ultimos.join(" | ") || "ninguno") + "\n\nSe abrirá la caja en tu navegador para que sigas vendiendo.");
     shell.openExternal(APP_URL);
