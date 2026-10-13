@@ -2878,6 +2878,19 @@ function vzParseFia(seg) {
   return nombre ? [{ tipo: "fiado", nombre, ...(monto ? { monto } : {}) }] : [];
 }
 
+// Chrome da varias opciones de cada frase; me quedo con la que la caja entiende mejor (más productos encontrados).
+function vzMejor(top, segs) {
+  try {
+    if (!segs.length || segs.every((a) => a.length < 2)) return top;
+    const score = (t) => { const pl = vzPlan(vzParse(t)); return pl.filter((x) => x.ok).length * 3 - pl.filter((x) => !x.ok).length * 2 - pl.filter((x) => x.ok && /\(oí /.test(x.txt)).length; };
+    const base = segs.map((a) => a[0]), cands = [base.join(" ")];
+    segs.forEach((a, i) => a.slice(1).forEach((alt) => { const c = base.slice(); c[i] = alt; cands.push(c.join(" ")); }));
+    let best = cands[0], bs = score(best);
+    cands.slice(1).forEach((c) => { const sc = score(c); if (sc > bs) { bs = sc; best = c; } });
+    return best.trim() || top;
+  } catch (e) { return top; }
+}
+
 /* ---------- buscar nombres en lo que ya tiene la caja ---------- */
 const VZ_STOP = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas", "y", "con", "para", "a", "al", "dona", "don", "senora", "senor", "sra", "sr"]);
 const vzStem = (w) => (w.length > 4 ? w.replace(/(es|s)$/, "") : w.replace(/s$/, ""));
@@ -2896,7 +2909,7 @@ function vzDist(a, b) {
 }
 const vzMax = (len) => (len <= 3 ? 0 : len <= 5 ? 1 : 2);
 // Devuelve { it } si hay uno claro, { amb: [...] } si hay varios parecidos, {} si no hay. { aprox } = lo adiviné por el sonido.
-function vzFind(list, name, getName) {
+function vzFind(list, name, getName, nojoin) {
   const q = vzToks(name); if (!q.length) return {};
   const cand = list.filter((x) => { const w = vzToks(getName(x)); return q.every((t) => w.some((y) => vzHit(t, y))); });
   if (cand.length === 1) return { it: cand[0] };
@@ -2912,7 +2925,14 @@ function vzFind(list, name, getName) {
     for (const t of qs) { if (t.length < 3) return; let best = 9; ws.forEach((w) => { const d = Math.min(vzDist(t, w), w.length >= 3 && t.length >= 3 ? vzDist(t, w.slice(0, t.length)) : 9); if (d < best) best = d; }); if (best > vzMax(t.length)) return; tot += best; }
     scored.push({ x, tot });
   });
-  if (!scored.length) return {};
+  if (!scored.length) {
+    // a veces se oye una palabra partida: «a tun» por «atún», «coca cola» por «cocacola»
+    if (!nojoin) {
+      const raw = norm(name).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+      for (let i = 0; i + 1 < raw.length; i++) { const r = vzFind(list, raw.slice(0, i).concat(raw[i] + raw[i + 1], raw.slice(i + 2)).join(" "), getName, true); if (r.it) return { it: r.it, aprox: true }; }
+    }
+    return {};
+  }
   scored.sort((a, b) => a.tot - b.tot);
   if (scored.length === 1 || scored[0].tot < scored[1].tot) return { it: scored[0].x, aprox: true };
   return { amb: scored.filter((c) => c.tot === scored[0].tot).slice(0, 3).map((c) => getName(c.x)) };
@@ -3131,9 +3151,9 @@ function vzWeb() {
 // Un «oído» de Chrome; al pausar se apaga y al seguir se prende otro, juntando lo dicho.
 function vzWebRec(s) {
   let rec; try { rec = new SR(); } catch (e) { stopVoz(); return vzVoskOrErr(); }
-  rec.lang = "es-PE"; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
+  rec.lang = "es-PE"; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 5;
   s.rec = rec;
-  rec.onresult = (e) => { if (vz !== s || s.rec !== rec) return; let all = ""; for (let i = 0; i < e.results.length; i++) all += e.results[i][0].transcript + " "; s.texto = (s.base + " " + all).trim(); vzSet("«" + s.texto + "»"); clearTimeout(s.endT); s.endT = setTimeout(() => vz === s && vzStop(), VZ_PAUSA); }; // sigue escuchando hasta que callas un rato
+  rec.onresult = (e) => { if (vz !== s || s.rec !== rec) return; let all = ""; for (let i = 0; i < e.results.length; i++) all += e.results[i][0].transcript + " "; try { s.altsCur = Array.from(e.results, (r) => Array.from(r, (x) => x.transcript)); } catch (er) {} s.texto = (s.base + " " + all).trim(); vzSet("«" + s.texto + "»"); clearTimeout(s.endT); s.endT = setTimeout(() => vz === s && vzStop(), VZ_PAUSA); }; // sigue escuchando hasta que callas un rato
   rec.onerror = (e) => {
     if (vz !== s || s.rec !== rec) return;
     if (e.error === "network" || e.error === "service-not-allowed" && !s.texto) { stopVoz(); return vzVoskOrErr(); }
@@ -3151,7 +3171,7 @@ function vzPausa() {
   const b = $("#vzp"), m = $(".vzmic"), h = $("#modal h2");
   if (b) b.textContent = s.paused ? "Seguir" : "Pausar"; if (m) m.classList.toggle("busy", s.paused); if (h) h.textContent = s.paused ? "En pausa" : "Te escucho…";
   if (s.eng === "web") {
-    if (s.paused) { s.base = s.texto; const r = s.rec; s.rec = null; try { r.onresult = r.onend = r.onerror = null; r.abort(); } catch (e) {} }
+    if (s.paused) { s.base = s.texto; s.altsBase = (s.altsBase || []).concat(s.altsCur || []); s.altsCur = []; const r = s.rec; s.rec = null; try { r.onresult = r.onend = r.onerror = null; r.abort(); } catch (e) {} }
     else vzWebRec(s);
   } else {
     try { if (s.paused) s.src.disconnect(); else s.src.connect(s.node); } catch (e) {}
@@ -3207,7 +3227,8 @@ function vzError(msg) { vzShow(`<div class="vzbox"><h2>No pude</h2><p class="mut
 // pide ayuda a una IA gratuita (opcional; si falla se ignora).
 async function vozSend(s) {
   s = s || vz; if (!s || s.sent) return; s.sent = true;
-  const texto = (s.eng === "vosk" ? [...s.fin, s.part].filter(Boolean).join(" ") : s.texto || "").trim();
+  let texto = (s.eng === "vosk" ? [...s.fin, s.part].filter(Boolean).join(" ") : s.texto || "").trim();
+  if (s.eng !== "vosk" && texto) texto = vzMejor(texto, (s.altsBase || []).concat(s.altsCur || []));
   if (vz === s) vz = null; vzCleanVosk(s);
   if (!texto) { const k = vzKeep; if (k) { vzKeep = null; toast("No te escuché. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); } return vzError("No te escuché. Acércate al micrófono e intenta otra vez."); }
   let acc = vzParse(texto);
