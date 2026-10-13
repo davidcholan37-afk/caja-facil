@@ -2909,7 +2909,7 @@ function vzFind(list, name, getName) {
   const qs = q.map(vzSound), scored = [];
   list.forEach((x) => {
     const ws = vzToks(getName(x)).map(vzSound); let tot = 0;
-    for (const t of qs) { let best = 9; ws.forEach((w) => { const d = Math.min(vzDist(t, w), w.length >= 3 && t.length >= 3 ? vzDist(t, w.slice(0, t.length)) : 9); if (d < best) best = d; }); if (best > vzMax(t.length)) return; tot += best; }
+    for (const t of qs) { if (t.length < 3) return; let best = 9; ws.forEach((w) => { const d = Math.min(vzDist(t, w), w.length >= 3 && t.length >= 3 ? vzDist(t, w.slice(0, t.length)) : 9); if (d < best) best = d; }); if (best > vzMax(t.length)) return; tot += best; }
     scored.push({ x, tot });
   });
   if (!scored.length) return {};
@@ -3211,18 +3211,27 @@ async function vozSend(s) {
   if (vz === s) vz = null; vzCleanVosk(s);
   if (!texto) { const k = vzKeep; if (k) { vzKeep = null; toast("No te escuché. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); } return vzError("No te escuché. Acércate al micrófono e intenta otra vez."); }
   let acc = vzParse(texto);
-  if (!acc.length && navigator.onLine && vzIaOn()) {
+  // Si la caja no entendió todo y hay IA, se le pide ayuda; me quedo con lo que entienda mejor (nunca empeora).
+  const prev = vzKeep && vzKeep.plan, valor = (x) => { const pl = vzPlan(x, prev); return pl.filter((i) => i.ok).length * 3 - pl.filter((i) => !i.ok).length * 2; };
+  if (navigator.onLine && vzIaOn() && (!acc.length || vzPlan(acc, prev).some((i) => !i.ok))) {
     vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Entendiendo…</h2><p class="vzt">«${esc(texto)}»</p></div>`);
-    acc = await vzNube(texto);
+    const ia = await vzNube(texto);
+    if (ia.length && (!acc.length || valor(ia) > valor(acc))) acc = ia;
   }
   vzEntendi(texto, acc);
 }
-const vzIaOn = () => { try { return localStorage.getItem("cf-voz-ia") === "1" && cloudOn(); } catch (e) { return false; } };
+let vzIaCaida = 0; // si la IA no responde (no instalada o sin clave), no se vuelve a intentar por 10 minutos
+const vzIaOn = () => { try { return localStorage.getItem("cf-voz-ia") !== "0" && cloudOn() && Date.now() - vzIaCaida > 600000; } catch (e) { return false; } };
+const vzCatalogo = () => ({
+  productos: DB.products.filter((p) => p.on !== false).slice(0, 400).map((p) => p.name),
+  clientes: DB.clients.slice(0, 100).map((c) => c.name), proveedores: DB.supp.slice(0, 60).map((c) => c.name),
+  ticket: cartLines().filter((x) => !x.l.quick).slice(0, 30).map((x) => x.r.name)
+});
 async function vzNube(texto) {
   try {
     const tk = await cloudToken(), neg = cloudLoad().neg;
-    const r = await fetch(`${SB_URL}/functions/v1/voz`, { method: "POST", headers: { apikey: SB_KEY, Authorization: "Bearer " + tk, "Content-Type": "application/json" }, body: JSON.stringify({ neg, texto }), signal: AbortSignal.timeout(8000) });
-    if (!r.ok) return [];
+    const r = await fetch(`${SB_URL}/functions/v1/voz`, { method: "POST", headers: { apikey: SB_KEY, Authorization: "Bearer " + tk, "Content-Type": "application/json" }, body: JSON.stringify({ neg, texto, catalogo: vzCatalogo() }), signal: AbortSignal.timeout(9000) });
+    if (!r.ok) { if (r.status === 404 || r.status === 503) vzIaCaida = Date.now(); return []; }
     const a = (await r.json()).acciones; return Array.isArray(a) ? a : [];
   } catch (e) { return []; }
 }
