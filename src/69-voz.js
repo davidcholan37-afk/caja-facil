@@ -347,7 +347,8 @@ function vzGrammar() {
 function vzShow(html) { openModal(html); ui.mk = "voz"; }
 const vzListenHtml = (txt) => `<div class="vzbox" role="status"><div class="vzmic">${svg("mic")}</div><h2>Te escucho…</h2><p class="vzt" id="vzt" aria-live="polite">${txt}</p>
   <div class="btns h"><button class="btn sec" data-a="vozpausa" id="vzp">Pausar</button><button class="btn" data-a="vozstop">Listo</button></div>
-  <p class="sm" style="margin-top:6px"><button class="link" data-a="close">Cancelar</button>${vzInstalled() || vzElectron ? "" : `<button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button>`}</p></div>`;
+  <p class="sm" style="margin-top:6px"><button class="link" data-a="${vzKeep ? "vozback" : "close"}">Cancelar</button>${vzInstalled() || vzElectron ? "" : `<button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button>`}</p></div>`;
+let vzKeep = null; // lista de la tarjeta «Entendí» que se conserva al tocar «Agregar más»
 const VZ_PAUSA = 2500; // ms en silencio para dar por terminada la frase
 const VZ_EJ = "Di, por ejemplo: «anota un yogurt y un cuarto de arroz» o «cobra con yape»";
 function vzSet(t) { const e = $("#vzt"); if (e) e.textContent = t; }
@@ -461,7 +462,7 @@ async function vozSend(s) {
   s = s || vz; if (!s || s.sent) return; s.sent = true;
   const texto = (s.eng === "vosk" ? [...s.fin, s.part].filter(Boolean).join(" ") : s.texto || "").trim();
   if (vz === s) vz = null; vzCleanVosk(s);
-  if (!texto) return vzError("No te escuché. Acércate al micrófono e intenta otra vez.");
+  if (!texto) { const k = vzKeep; if (k) { vzKeep = null; toast("No te escuché. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); } return vzError("No te escuché. Acércate al micrófono e intenta otra vez."); }
   let acc = vzParse(texto);
   if (!acc.length && navigator.onLine && vzIaOn()) {
     vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Entendiendo…</h2><p class="vzt">«${esc(texto)}»</p></div>`);
@@ -479,13 +480,23 @@ async function vzNube(texto) {
   } catch (e) { return []; }
 }
 function vzEntendi(texto, acc) {
-  if (!acc.length) return vzError(`No entendí «${texto}». Prueba con «anota un yogurt» o «paga 50 a Gloria».`);
-  const plan = vzPlan(acc); vz = { plan, texto };
+  const k = vzKeep; vzKeep = null;
+  if (!acc.length) {
+    if (k) { toast("No entendí. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); }
+    return vzError(`No entendí «${texto}». Prueba con «anota un yogurt» o «paga 50 a Gloria».`);
+  }
+  let plan = vzPlan(acc);
+  if (k) { plan = k.plan.concat(plan); texto = k.texto + " + " + texto; } // se suma a lo que ya tenías
+  vzShowPlan(plan, texto);
+}
+function vzShowPlan(plan, texto) {
+  vz = { plan, texto };
   const ok = plan.filter((x) => x.ok), modales = ok.filter((x) => x.modal).length;
   if (modales > 1) plan.forEach((x) => { if (x.modal && x !== ok.find((y) => y.modal)) { x.ok = false; x.txt += " (hazlo por separado, uno por vez)"; } });
   const hay = plan.some((x) => x.ok);
   vzShow(`<h2>Entendí</h2><p class="muted sm" style="margin-bottom:8px">«${esc(texto)}»</p>
     <div class="vzlist">${plan.map((x) => `<div class="vzl ${x.ok ? "" : "bad"}"><span class="vzi">${x.ok ? svg("check") : svg("close")}</span><span>${esc(x.txt)}</span></div>`).join("")}</div>
+    ${hay ? `<button class="btn sec" data-a="vozmas" style="width:100%;margin-top:10px">+ Agregar más</button>` : ""}
     <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button>${hay ? `<button class="btn" data-a="vozok" data-enter>Aceptar</button>` : `<button class="btn" data-a="voz">Hablar otra vez</button>`}</div>`);
 }
 function vozAccept() {
@@ -496,4 +507,9 @@ function vozAccept() {
   if (n) { paintSale(); beep(true); toast(n === 1 ? "Listo" : `Listo: ${n} cambios en el ticket`); }
   const m = plan.find((x) => x.run); if (m) m.run();
 }
-act({ voz: vozStart, vozstop: vzStop, vozpausa: vzPausa, vozok: vozAccept, vozinstall: vzDoInstall });
+act({
+  voz: () => { vzKeep = null; vozStart(); },
+  vozmas: () => { const p = vz && vz.plan; if (!p) return; vzKeep = { plan: p.filter((x) => x.ok), texto: vz.texto }; vozStart(); },
+  vozback: () => { const k = vzKeep; vzKeep = null; stopVoz(); if (k) vzShowPlan(k.plan, k.texto); else closeModal(); },
+  vozstop: vzStop, vozpausa: vzPausa, vozok: vozAccept, vozinstall: vzDoInstall
+});
