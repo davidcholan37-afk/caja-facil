@@ -94,3 +94,9 @@ Página de producto para dueños de bodegas de Lima, con lenguaje de lanzamiento
 - Solo en PC (≥ 900 px), con `@supports (animation-timeline:view())` y sin «reducir movimiento». En celular, navegadores sin soporte o equipos lentos (`lite3d`: ≤ 2 núcleos, ≤ 2 GB o ahorro de datos) queda la portada anterior.
 - Historia «Tu caja, paso a paso»: nuevo paso «Voz» (captura real de «Entendí») después de «Vender»; aclara que la voz es un extra que activa el proveedor.
 - Imágenes nuevas: `dia_voz-light-*`, y recortes `dia_voz-card`, `dia_yape-card`, `dia_arqueo-card` para las pantallas flotantes.
+
+## v6: voz destacada y arreglo de imágenes apiladas (octubre 2026)
+- Causa de «las imágenes salen abajo»: el navegador tenía el `web.css` viejo en caché con el HTML nuevo, y las pantallas flotantes quedaban en el flujo de la página. Arreglo: `?v=` en `web.css` y `web.js` (subirlo en cada cambio) y `hidden` en `.orbit`, que solo el CSS nuevo muestra.
+- Nueva sección `#voz` «Háblale a tu caja» (después de la portada): micrófono con ondas, frases que sí entiende la caja y la tarjeta real «Entendí». Dice que es un extra que activa el proveedor.
+- La tarjeta de voz es la estrella de la escena 3D (más grande, con burbuja de voz y etiqueta «Nuevo»).
+- Imágenes con la caja actual: `pc_escaner-*` (botones Efectivo/Yape/Plin de colores), `dia_yape-*` y `dia_yape-card-720`. Video de la portada regrabado con la voz: «anota dos atunes y un aceite y tres pan francés y cobra con Yape».

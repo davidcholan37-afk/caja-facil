@@ -20,7 +20,7 @@
 <link rel="icon" href="../icon-192.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="preload" href="fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="web.css">
+<link rel="stylesheet" href="web.css?v=20261012b">
 <script>if("scrollRestoration" in history)history.scrollRestoration="manual";</script>
 
 <script type="application/ld+json">
@@ -82,9 +82,9 @@
           <div class="neck"></div>
           <div class="foot-base"></div>
         </div>
-        <div class="orbit" aria-hidden="true">
-          <figure class="fl fl1"><img src="img/dia_yape-card-720.webp" width="720" height="478" loading="lazy" alt=""><figcaption>Cobra con Yape</figcaption></figure>
-          <figure class="fl fl2"><img src="img/dia_voz-card-720.webp" width="720" height="530" loading="lazy" alt=""><figcaption>Habla y anota</figcaption></figure>
+        <div class="orbit" aria-hidden="true" hidden>
+          <figure class="fl fl1"><img src="img/dia_yape-card-720.webp" width="720" height="488" loading="lazy" alt=""><figcaption>Cobra con Yape</figcaption></figure>
+          <figure class="fl fl2"><span class="bub"><i class="wv"><b></b><b></b><b></b><b></b><b></b></i>«anota dos atunes y cobra con Yape»</span><img src="img/dia_voz-card-720.webp" width="720" height="530" loading="lazy" alt=""><figcaption>Habla y anota <em class="nw">Nuevo</em></figcaption></figure>
           <figure class="fl fl3"><img src="img/dia_arqueo-card-720.webp" width="720" height="702" loading="lazy" alt=""><figcaption>Cierra y cuadra</figcaption></figure>
           <figure class="fl fl4"><img src="img/dia_prod-light-1280.webp" width="1280" height="720" loading="lazy" alt=""><figcaption>Sabe qué tienes</figcaption></figure>
         </div>
@@ -122,6 +122,31 @@
     </div>
   </section>
 
+
+  <!-- La voz, destacada -->
+  <section id="voz" class="voz" aria-labelledby="h-voz">
+    <div class="wrap voz-grid">
+      <div class="voz-copy">
+        <p class="nuevo">Nuevo</p>
+        <h2 id="h-voz">Háblale a tu caja.</h2>
+        <p class="say"><strong>Dices lo que quieres y la caja lo hace.</strong> Tú solo revisas y tocas Aceptar.</p>
+        <ul class="frases" aria-label="Ejemplos de lo que puedes decir">
+          <li>«Anota dos atunes y cobra con Yape»</li>
+          <li>«Quita uno»</li>
+          <li>«Actualiza el precio del huevo a 6.70»</li>
+          <li>«Llegaron 20 huevos»</li>
+          <li>«Cambia la categoría del limón a frutas»</li>
+        </ul>
+        <p class="voz-nota">Entiende cómo hablamos en Lima y nada se anota ni se cobra sin tu Aceptar. Es un extra que activo yo. <a class="tlink inl" href="https://wa.me/51904623137?text=Hola%2C%20quiero%20activar%20la%20voz%20en%20Caja%20F%C3%A1cil" target="_blank" rel="noopener">Pídemelo por WhatsApp</a></p>
+      </div>
+      <div class="voz-demo" aria-hidden="true">
+        <div class="orb"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div>
+        <p class="bub big"><i class="wv"><b></b><b></b><b></b><b></b><b></b></i>«anota dos atunes y un aceite y cobra con Yape»</p>
+        <img class="vcard" src="img/dia_voz-card-720.webp" width="720" height="530" loading="lazy" alt="">
+      </div>
+    </div>
+  </section>
+
   <!-- La historia: un día con Caja Fácil (pantalla fija en PC, lista en celular) -->
   <section id="funciones" class="story" aria-labelledby="h-dia">
     <canvas class="story-bg" aria-hidden="true"></canvas>
@@ -146,7 +171,7 @@
         </picture></div>
         </article>
                 <article class="step" data-i="2">
-          <p class="time">Voz</p>
+          <p class="time">Voz, nuevo</p>
           <p class="say"><strong>Hablas y la caja anota.</strong> Dices «anota dos atunes y cobra con Yape». Tú revisas y tocas Aceptar. También cambia precios y suma mercadería. Es un extra que activo yo.</p>
           <div class="step-img"><picture>
           <img class="shot" src="img/dia_voz-light-1280.webp" srcset="img/dia_voz-light-1280.webp 1280w, img/dia_voz-light-2400.webp 2400w" sizes="(min-width: 1280px) 1180px, 92vw" width="1280" height="720" loading="lazy" alt="La caja entendió: 2 Atún en lata, 1 Aceite y cobrar con Yape, con botones Aceptar y Cancelar">
@@ -376,6 +401,6 @@
   </div>
 </footer>
 
-<script src="web.js" defer></script>
+<script src="web.js?v=20261012b" defer></script>
 </body>
 </html>
