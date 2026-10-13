@@ -53,6 +53,8 @@ function deskReturn(link) {
   document.body.appendChild(el);
   setTimeout(() => { location.href = link; }, 300);
 }
+// Si el programa ya estaba abierto, recibe la sesión como un cambio de «#» (sin recargar la página): se recarga para que entre.
+window.addEventListener("hashchange", () => { if (isDesktopApp() && /(^#|&)access_token=/.test(location.hash)) location.reload(); });
 function cloudUserFromJwt(at) {
   try { const p = JSON.parse(atob(at.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return { id: p.sub, email: p.email || "" }; } catch (e) { return { id: "", email: "" }; }
 }
