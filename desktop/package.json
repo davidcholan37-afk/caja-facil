@@ -66,8 +66,7 @@
         "es-PE",
         "es-ES",
         "es-MX"
-      ],
-      "customExtensionsPath": "build/appx-extensiones.xml"
+      ]
     }
   }
 }
