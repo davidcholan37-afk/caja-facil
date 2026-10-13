@@ -87,4 +87,3 @@ act({
   ayudaAbrir: helpOpen,
   ayudaCerrar: helpClose
 });
-})();
