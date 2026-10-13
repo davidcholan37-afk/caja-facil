@@ -2,7 +2,7 @@
 // Así se actualiza sola (cada cambio del sistema llega sin reinstalar) y funciona sin internet gracias al service worker.
 // Google no permite iniciar sesión dentro de programas de escritorio, por eso el ingreso se hace en el navegador
 // normal y vuelve aquí con el enlace cajafacil://auth#... (ver «#login-escritorio» en src/67-cloud.js).
-const { app, BrowserWindow, Menu, shell } = require("electron");
+const { app, BrowserWindow, Menu, shell, dialog } = require("electron");
 const path = require("path");
 
 const APP_URL = "https://davidcholan37-afk.github.io/caja-facil/";
@@ -12,7 +12,13 @@ let win = null;
 let pendingLink = process.argv.find((a) => a.startsWith(PROTOCOL + "://")) || null;
 
 // Un solo programa abierto a la vez: si se abre otra vez (o llega el enlace de Google), se usa la ventana existente.
-if (!app.requestSingleInstanceLock()) { app.quit(); }
+// Si no se pudo abrir, se avisa con un mensaje (antes se cerraba en silencio).
+function avisar(texto) { try { dialog.showErrorBox("Caja Fácil", texto); } catch (_) {} }
+process.on("uncaughtException", (e) => avisar("No se pudo abrir el programa.\n\n" + (e && e.stack || e)));
+if (!app.requestSingleInstanceLock()) {
+  avisar("Caja Fácil ya está abierta (quizá escondida). Ciérrala desde el Administrador de tareas y ábrela de nuevo.");
+  app.quit();
+}
 else {
   app.on("second-instance", (_e, argv) => {
     const link = argv.find((a) => a.startsWith(PROTOCOL + "://"));
@@ -74,7 +80,8 @@ function createWindow() {
 
   if (pendingLink && pendingLink.includes("#")) { const l = pendingLink; pendingLink = null; win.loadURL(APP_URL + l.slice(l.indexOf("#"))); }
   else win.loadURL(APP_URL);
+  win.webContents.on("render-process-gone", (_e, d) => avisar("La ventana se cerró sola: " + d.reason));
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(createWindow).catch((e) => avisar("No se pudo abrir el programa.\n\n" + (e && e.stack || e)));
 app.on("window-all-closed", () => app.quit());
