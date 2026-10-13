@@ -15,10 +15,10 @@
   <meta name="apple-mobile-web-app-title" content="Caja Fácil">
   <script>try{if(localStorage.getItem("cf-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
   <script>try{var n=navigator,f=localStorage.getItem("cf-lite");if(f==="1"||(f!=="0"&&(n.hardwareConcurrency<=2||n.deviceMemory<=2)))document.documentElement.classList.add("lite")}catch(e){}</script>
-  <link rel="stylesheet" href="style.css?v=cb1d3713">
+  <link rel="stylesheet" href="style.css?v=chat-luis-1">
   <script src="img.js" defer></script>
   <script src="fotos.js" defer></script>
-  <script src="script.js?v=cb1d3713" defer></script>
+  <script src="script.js?v=chat-luis-1" defer></script>
 </head>
 <body>
   <div id="bg" aria-hidden="true"></div>
@@ -53,6 +53,25 @@
   <div id="modal" class="modal" hidden><div class="sheet" role="dialog" aria-modal="true"></div></div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="print" aria-hidden="true"></div>
+
+  <button class="help-launcher" id="helpLauncher" type="button" data-a="ayudaAbrir" aria-haspopup="dialog" aria-controls="helpChat">
+    <span class="help-launcher-icon" aria-hidden="true">?</span><span>Chat con Luis</span>
+  </button>
+  <section class="help-chat" id="helpChat" role="dialog" aria-label="Chat con Luis, ayuda de Caja Fácil" aria-modal="false" hidden>
+    <header class="help-head">
+      <div class="help-head-title"><strong>Luis · Ayuda de Caja Fácil</strong><span>Pregunta cómo usar la app o cuéntame qué pasó</span></div>
+      <div class="help-head-actions">
+        <button class="help-close" type="button" data-a="ayudaCerrar" aria-label="Cerrar chat">×</button>
+      </div>
+    </header>
+    <div class="help-messages" id="helpMessages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+    <form class="help-form" id="helpForm">
+      <label class="help-visually-hidden" for="helpInput">Escribe tu pregunta</label>
+      <input class="help-input" id="helpInput" type="text" maxlength="1200" autocomplete="off" placeholder="Escribe qué necesitas…" required>
+      <button class="help-send" id="helpSend" type="submit">Enviar</button>
+    </form>
+    <p class="help-note">La IA solo recibe tus preguntas, no tus ventas ni clientes. Máximo 50 preguntas al día; no compartas contraseñas ni PIN.</p>
+  </section>
 
   <noscript><p style="padding:24px;font-family:sans-serif;color:#fff">Caja Fácil necesita JavaScript para funcionar.</p></noscript>
 </body>

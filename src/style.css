@@ -1739,3 +1739,35 @@ body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin){background:var(--s1,
 /* Modo liviano (se activa solo en PC con 2 núcleos o 2 GB; se fuerza con localStorage cf-lite=1): sin desenfoques ni animaciones */
 html.lite *,html.lite *::before,html.lite *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;text-shadow:none!important;scroll-behavior:auto!important}
 html.lite .modal{background:rgba(14,9,6,.78)}
+
+/* Chat de ayuda de Caja Fácil */
+.help-launcher{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;align-items:center;gap:9px;padding:11px 16px;border:0;border-radius:999px;background:#1769e0;color:#fff;font:600 14px system-ui,sans-serif;box-shadow:0 6px 24px #0003;cursor:pointer}
+.help-launcher:hover{background:#1057c2}
+.help-launcher-icon{display:grid;place-items:center;width:24px;height:24px;border:2px solid currentColor;border-radius:50%;font-weight:800}
+.help-chat{position:fixed;right:18px;bottom:76px;z-index:91;display:flex;flex-direction:column;width:min(390px,calc(100vw - 28px));height:min(570px,calc(100dvh - 105px));overflow:hidden;border:1px solid #d8deea;border-radius:18px;background:#fff;color:#1b2230;box-shadow:0 18px 60px #09122a35}
+.help-chat[hidden],.help-launcher[hidden]{display:none!important}
+.help-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 15px;border-bottom:1px solid #e6e9f0;background:#f8f9fc}
+.help-head-title{display:flex;flex-direction:column;gap:3px}
+.help-head-title strong{font-size:15px}
+.help-head-title span,.help-note{font-size:11px;color:#657084}
+.help-head-actions{display:flex;align-items:center;gap:7px}
+.help-close{border:1px solid #d8deea;border-radius:10px;background:#fff;color:inherit;cursor:pointer}
+.help-close{width:32px;height:32px;font-size:20px}
+.help-messages{display:flex;flex:1;flex-direction:column;gap:9px;overflow:auto;padding:14px;background:#f4f6fa}
+.help-message{display:flex;flex-direction:column;align-items:flex-start;max-width:88%;padding:10px 12px;border-radius:14px;background:#fff;color:#1b2230;box-shadow:0 1px 3px #09122a12;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.45}
+.help-message.user{align-self:flex-end;background:#1769e0;color:#fff}
+.help-message.temporary{opacity:.7;font-style:italic}
+.help-form{display:flex;align-items:center;gap:7px;padding:10px;border-top:1px solid #e6e9f0;background:#fff}
+.help-input{min-width:0;flex:1;padding:10px 11px;border:1px solid #d8deea;border-radius:11px;background:#fff;color:#1b2230;font:inherit;font-size:13px}
+.help-send{flex:none;padding:9px 11px;border:0;border-radius:11px;background:#edf2fb;color:#1757b7;font-weight:600;cursor:pointer}
+.help-send{background:#1769e0;color:#fff}
+.help-form button:disabled{opacity:.5;cursor:not-allowed}
+.help-note{margin:0;padding:0 12px 9px;background:#fff;text-align:center}
+html[data-theme=dark] .help-chat{border-color:#343a47;background:#151922;color:#edf1f8}
+html[data-theme=dark] .help-head,html[data-theme=dark] .help-form,html[data-theme=dark] .help-note{border-color:#343a47;background:#1d222d}
+html[data-theme=dark] .help-messages{background:#10141b}
+html[data-theme=dark] .help-message{background:#242a36;color:#edf1f8}
+html[data-theme=dark] .help-message.user{background:#1769e0;color:#fff}
+html[data-theme=dark] .help-close,html[data-theme=dark] .help-input{border-color:#414958;background:#242a36;color:#edf1f8}
+@media(max-width:640px){.help-launcher{right:12px;bottom:76px}.help-chat{right:12px;bottom:132px;width:calc(100vw - 24px);height:min(68dvh,570px)}}
+.help-visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
