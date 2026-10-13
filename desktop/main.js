@@ -11,6 +11,8 @@ const PROTOCOL = "cajafacil";
 // Algunas computadoras dejan la ventana en blanco con la tarjeta de video: se dibuja con el procesador (suficiente para la caja).
 app.disableHardwareAcceleration();
 let win = null;
+let caidas = 0, modoTemporal = false, etapa = "abriendo";
+const ultimos = [];
 let pendingLink = process.argv.find((a) => a.startsWith(PROTOCOL + "://")) || null;
 
 // Un solo programa abierto a la vez: si se abre otra vez (o llega el enlace de Google), se usa la ventana existente.
@@ -42,12 +44,12 @@ function openLink(link) {
 
 function inApp(url) { return url.startsWith(APP_URL) || url === APP_URL.slice(0, -1); }
 
-function createWindow() {
+function createWindow(temporal) {
   win = new BrowserWindow({
     width: 1366, height: 820, minWidth: 900, minHeight: 600,
     title: "Caja Fácil", backgroundColor: "#F3F4F7", show: false, autoHideMenuBar: true,
     icon: path.join(__dirname, "build", "icon.png"),
-    webPreferences: { contextIsolation: true, sandbox: false, nodeIntegration: false, spellcheck: false }
+    webPreferences: { contextIsolation: true, sandbox: false, nodeIntegration: false, spellcheck: false, partition: temporal ? "cf-temporal" : undefined }
   });
   Menu.setApplicationMenu(null);
   // Se marca el navegador interno para que la caja sepa que corre como programa de Windows.
@@ -82,13 +84,22 @@ function createWindow() {
 
   if (pendingLink && pendingLink.includes("#")) { const l = pendingLink; pendingLink = null; win.loadURL(APP_URL + l.slice(l.indexOf("#"))); }
   else win.loadURL(APP_URL);
-  let caidas = 0;
-  win.webContents.on("render-process-gone", (_e, d) => {
+  const wc = win.webContents, w = win;
+  wc.on("did-start-loading", () => { etapa = "cargando la página"; });
+  wc.on("dom-ready", () => { etapa = "la página ya dibujó"; });
+  wc.on("did-finish-load", () => { etapa = "la página cargó"; });
+  wc.on("console-message", (_e, _nivel, msg) => { ultimos.push(String(msg).slice(0, 90)); if (ultimos.length > 4) ultimos.shift(); });
+  wc.on("render-process-gone", (_e, d) => {
     if (d.reason === "clean-exit") return;
-    if (++caidas <= 3) { setTimeout(() => { if (!win.isDestroyed()) win.webContents.reload(); }, 800); return; }
-    avisar("La ventana se cerró sola: " + d.reason + " (código " + d.exitCode + ")");
+    caidas++;
+    if (caidas <= 2) { setTimeout(() => { if (!w.isDestroyed()) wc.reload(); }, 800); return; }
+    if (caidas === 3 && !modoTemporal) { // última prueba: sesión limpia, sin los datos guardados de este equipo
+      modoTemporal = true; createWindow(true); setTimeout(() => { if (!w.isDestroyed()) w.destroy(); }, 300); return;
+    }
+    avisar("La ventana se cerró sola: " + d.reason + " (código " + d.exitCode + ")\nEtapa: " + etapa + (modoTemporal ? " · sesión limpia" : "") + "\nÚltimos avisos: " + (ultimos.join(" | ") || "ninguno") + "\n\nSe abrirá la caja en tu navegador para que sigas vendiendo.");
+    shell.openExternal(APP_URL);
   });
 }
 
-app.whenReady().then(createWindow).catch((e) => avisar("No se pudo abrir el programa.\n\n" + (e && e.stack || e)));
+app.whenReady().then(() => createWindow()).catch((e) => avisar("No se pudo abrir el programa.\n\n" + (e && e.stack || e)));
 app.on("window-all-closed", () => app.quit());
