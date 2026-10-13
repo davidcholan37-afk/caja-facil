@@ -47,7 +47,7 @@ function createWindow() {
     width: 1366, height: 820, minWidth: 900, minHeight: 600,
     title: "Caja Fácil", backgroundColor: "#F3F4F7", show: false, autoHideMenuBar: true,
     icon: path.join(__dirname, "build", "icon.png"),
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false }
+    webPreferences: { contextIsolation: true, sandbox: false, nodeIntegration: false, spellcheck: false }
   });
   Menu.setApplicationMenu(null);
   // Se marca el navegador interno para que la caja sepa que corre como programa de Windows.
@@ -82,7 +82,12 @@ function createWindow() {
 
   if (pendingLink && pendingLink.includes("#")) { const l = pendingLink; pendingLink = null; win.loadURL(APP_URL + l.slice(l.indexOf("#"))); }
   else win.loadURL(APP_URL);
-  win.webContents.on("render-process-gone", (_e, d) => avisar("La ventana se cerró sola: " + d.reason));
+  let caidas = 0;
+  win.webContents.on("render-process-gone", (_e, d) => {
+    if (d.reason === "clean-exit") return;
+    if (++caidas <= 3) { setTimeout(() => { if (!win.isDestroyed()) win.webContents.reload(); }, 800); return; }
+    avisar("La ventana se cerró sola: " + d.reason + " (código " + d.exitCode + ")");
+  });
 }
 
 app.whenReady().then(createWindow).catch((e) => avisar("No se pudo abrir el programa.\n\n" + (e && e.stack || e)));
