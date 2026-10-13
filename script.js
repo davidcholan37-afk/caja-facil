@@ -3972,7 +3972,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ---------- inicio ---------- */
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
+// En el programa de Windows se registra "sw.js?escritorio=1": ese service worker no usa el almacén de copias (ver sw.js).
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register(/Electron\/|CajaFacilEscritorio/.test(navigator.userAgent) ? "sw.js?escritorio=1" : "sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
 window.CF = { get DB() { return DB; }, ui, flush, save, dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan };
 // Fondo: foto del puesto (nítida en la pantalla de ingreso, suave detrás de la app).

@@ -2,7 +2,13 @@
 const CACHE = "cajafacil-v9";
 const ASSETS = ["./", "index.html", "style.css", "script.js", "img.js", "fotos.js", "escaner.js", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "privacidad.html", "terminos.html", "legal.css"];
 
+// Dentro del programa de Windows (Electron) el almacén de copias hace que Chromium cierre la ventana
+// («bad Mojo message … CacheStorageCache», código 3). Allí no se guardan ni se leen copias: todo va por red.
+// En el navegador (Chrome, Edge, celular) nada cambia.
+const EN_ESCRITORIO = /Electron\/|CajaFacilEscritorio/.test(self.navigator.userAgent) || /[?&]escritorio=1/.test(self.location.search);
+
 self.addEventListener("install", (e) => {
+  if (EN_ESCRITORIO) { e.waitUntil(self.skipWaiting()); return; }
   e.waitUntil(
     caches.open(CACHE)
       .then((c) => Promise.all(ASSETS.map((a) => c.add(a).catch(() => {}))))
@@ -11,6 +17,7 @@ self.addEventListener("install", (e) => {
 });
 
 self.addEventListener("activate", (e) => {
+  if (EN_ESCRITORIO) { e.waitUntil(self.clients.claim()); return; }
   e.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k.startsWith("cajafacil-") && k !== CACHE).map((k) => caches.delete(k))))
@@ -19,6 +26,7 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  if (EN_ESCRITORIO) return;
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
