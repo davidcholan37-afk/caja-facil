@@ -2925,6 +2925,7 @@ function vzParseAbono(toks) {
   if (!(monto > 0)) return null;
   const clean = (ts) => ts.filter((t) => !VZ_NOMBRE_RUIDO.has(t) && !vzIsNum(t) && !VZ_MEDIOS.has(t) && !VZ_UNI.test(t)).join(" ");
   const iV = toks.findIndex((t) => VZ_ABONO.test(t));
+  if (iV > 0 && toks[iV + 1] === "con" && toks.some((t) => VZ_COBRA.has(t) || t === "cobra")) return null; // «cobra, pagó con veinte»: es con cuánto paga, no un abono
   if (iV > 0) { const nombre = clean(toks.slice(0, iV)); if (nombre) return [{ tipo: "abono", nombre, monto, ...(medio ? { medio } : {}) }]; }
   const iR = toks.findIndex((t) => /^(recibi|cobre|recibimos|cobramos)$/.test(t));
   if (iR >= 0) { const iD = toks.findIndex((t, i) => i > iR && (t === "de" || t === "a")); const nombre = iD >= 0 ? clean(toks.slice(iD + 1)) : ""; if (nombre) return [{ tipo: "abono", nombre, monto, ...(medio ? { medio } : {}) }]; }
@@ -3018,6 +3019,10 @@ function vzParse(text) {
     // «anota fiado a rosa 10 soles» es un fiado
     if ((k === "anotar" || k === "cobrar") && seg[0] && VZ_FIA.has(seg[0])) return out.push(...vzParseFia(seg.slice(1)));
     if (k === "fiar") return out.push(...vzParseFia(seg));
+    // «cobra con efectivo, paga con cincuenta»: el «paga con» es con cuánto paga el cliente, no un pago a proveedor
+    if (k === "pagar" && seg[0] === "con" && out.length && out[out.length - 1].tipo === "cobrar" && out[out.length - 1].medio === "efectivo") {
+      const m = vzMoney(seg.slice(1).filter((t) => !VZ_MEDIOS.has(t))); if (m) { out[out.length - 1].monto = m; return; }
+    }
     if (k === "cobrar" || (k === "pagar" && !vzNameAfterA(seg) && seg.some((t) => VZ_MEDIOS.has(t)))) {
       const medio = seg.find((t) => VZ_MEDIOS.has(t)) || "efectivo", monto = vzMoney(seg.filter((t) => !VZ_MEDIOS.has(t)));
       return out.push({ tipo: "cobrar", medio, ...(monto && medio === "efectivo" ? { monto } : {}) });
@@ -3304,7 +3309,7 @@ function vzPlan(acc, prev) {
       if (!can("cobrar")) return { ok: false, txt: "Tu usuario no puede cobrar" };
       if (!cartLines().length && !willAdd) return { ok: false, txt: "Cobrar: primero anota los productos" };
       const mt = METHODS[a.medio] || "Efectivo";
-      return { ok: true, modal: true, txt: `Cobrar el ticket con ${mt}${a.monto ? ` (paga con ${money(a.monto)})` : ""}`, run: () => vzCobrar(a.medio, a.monto) };
+      return { ok: true, modal: true, pay: { medio: a.medio || "efectivo", monto: a.monto || 0 }, txt: `Cobrar el ticket con ${mt}${a.monto ? ` (paga con ${money(a.monto)})` : ""}`, run: () => vzCobrar(a.medio, a.monto) };
     }
     if (a.tipo === "crear_producto") {
       if (!can("precios")) return { ok: false, txt: "Tu usuario no puede crear productos" };
@@ -3770,10 +3775,15 @@ function vzShowPlan(plan, texto) {
   if (modales > 1) plan.forEach((x) => { if (x.modal && x !== ok.find((y) => y.modal)) { x.ok = false; x.txt += " (hazlo por separado, uno por vez)"; } });
   const hay = plan.some((x) => x.ok);
   const rc = plan.filter((x) => x.ok && x.rc), suma = r2(rc.reduce((t, x) => t + x.rc.amt, 0));
+  // Cobrar desde la misma tarjeta: fichas de pago, y vuelto si dijiste con cuánto paga.
+  const cob = plan.find((x) => x.ok && x.pay), puedeCobrar = hay && can("cobrar") && (rc.length || cartLines().length || cob);
+  const totalCob = r2(cartTotals().total + suma), vuelto = cob && cob.pay.medio === "efectivo" && cob.pay.monto > totalCob ? r2(cob.pay.monto - totalCob) : 0;
+  const cobLabel = cob ? (plan.some((x) => x.ok && (x.add || x.exec)) ? "Anotar y cobrar" : "Cobrar") : "Aceptar";
   vzShow(`<h2>Entendí</h2><p class="muted sm" style="margin-bottom:8px">«${esc(texto)}»</p>
     <div class="vzlist">${plan.map((x, i) => `<div class="vzl ${x.ok ? "" : "bad"}" style="--i:${i}"><span class="vzi">${x.ok ? svg("check") : svg("close")}</span>${x.rc ? `<span class="vzn"><b class="vzq">${esc(x.rc.q)}</b> ${esc(x.rc.n)}${x.txt.slice(x.txt.indexOf(x.rc.n) + x.rc.n.length) ? `<small>${esc(x.txt.slice(x.txt.indexOf(x.rc.n) + x.rc.n.length).trim())}</small>` : ""}</span><b class="num vzm">${money(x.rc.amt)}</b>` : `<span>${esc(x.txt)}${x.pick ? `<span class="vzpick">${x.pick.map((pk, k) => `<button class="btn sec sm" data-a="vozpick" data-i="${i}" data-j="${k}">${esc(pk.label)}</button>`).join("")}</span>` : ""}</span>`}</div>`).join("")}${rc.length ? `<div class="vzsum"><span>Suma de lo que anotas</span><b class="num">${money(suma)}</b></div>` : ""}</div>
+    ${puedeCobrar ? `<div class="vzpayh">Cobrar con</div><div class="vzpay" role="group" aria-label="Cobrar con">${["efectivo", "yape", "plin", "tarjeta"].map((m) => `<button class="vzp${cob && cob.pay.medio === m ? " on" : ""}" data-a="vozpay" data-m="${m}">${METHODS[m]}</button>`).join("")}</div>${vuelto ? `<div class="vzsum"><span>Vuelto</span><b class="num">${money(vuelto)}</b></div>` : ""}` : ""}
     ${hay ? `<button class="btn sec" data-a="vozmas" style="width:100%;margin-top:10px">+ Agregar más</button>` : ""}
-    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button>${hay ? `<button class="btn" data-a="vozok" data-enter>Aceptar</button>` : `<button class="btn" data-a="voz">Hablar otra vez</button>`}</div>`);
+    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button>${hay ? `<button class="btn" data-a="vozok" data-enter>${cobLabel}</button>` : `<button class="btn" data-a="voz">Hablar otra vez</button>`}</div>`);
 }
 // Un ✓ que aparece y se va, y una vibración corta si el equipo la tiene.
 function vzTic() {
@@ -3795,6 +3805,14 @@ act({
   vozmas: () => { const p = vz && vz.plan; if (!p) return; vzKeep = { plan: p.filter((x) => x.ok), texto: vz.texto }; vozStart(); },
   vozback: () => { const k = vzKeep; vzKeep = null; stopVoz(); if (k) vzShowPlan(k.plan, k.texto); else closeModal(); },
   vozstop: vzStop, vozpausa: vzPausa, vozok: vozAccept, vozinstall: vzDoInstall,
+  // Una ficha de pago: anota lo de la tarjeta y abre el cobro con ese método (nunca cobra solo).
+  vozpay: (el) => {
+    const s = vz; if (!s || !s.plan || !can("cobrar")) return;
+    const m = el.dataset.m, old = s.plan.find((x) => x.pay), base = s.plan.filter((x) => !x.pay);
+    const nuevo = vzPlan([{ tipo: "cobrar", medio: m, monto: m === "efectivo" && old ? old.pay.monto : 0 }], base)[0];
+    if (!nuevo || !nuevo.ok) return toast(nuevo ? nuevo.txt : "No se puede cobrar", true);
+    s.plan = base.concat(nuevo); vozAccept();
+  },
   // «hay varios parecidos»: tocas el que quieres y esa línea se resuelve
   vozpick: (el) => {
     const s = vz; if (!s || !s.plan) return;

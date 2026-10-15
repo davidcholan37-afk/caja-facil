@@ -1693,6 +1693,11 @@ html[data-input=kbd] #modal,html[data-input=kbd] .sheet,html[data-input=kbd] .pa
 .vzm{margin-left:auto;font-weight:650}
 .vzsum{display:flex;justify-content:space-between;align-items:baseline;padding:8px 12px 2px;font-size:14px;color:var(--t2)}
 .vzsum b{font-size:22px;color:var(--t1);letter-spacing:-.02em}
+.vzpayh{margin:12px 2px 6px;font-size:13px;font-weight:600;color:var(--t3)}
+.vzpay{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.vzp{min-height:46px;padding:0 4px;border:1px solid var(--hl2);border-radius:12px;background:var(--s1);color:var(--t1);font:600 14px/1 var(--f);cursor:pointer;transition:transform .16s var(--ease-out),background .16s var(--ease-out)}
+.vzp:active{transform:scale(.97)}
+.vzp.on{background:var(--ac-t);border-color:var(--ac);color:var(--ac-ink)}
 @keyframes vzin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .vzbig{font-size:52px;line-height:1;font-weight:680;letter-spacing:-.045em;color:var(--ac-ink);margin:2px 0 8px;animation:vzin .28s var(--ease-out) both}
 .vzans.sm2{font-size:15px;font-weight:500;color:var(--t2)}
