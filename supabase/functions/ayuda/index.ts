@@ -65,35 +65,63 @@ Deno.serve(async (req) => {
   if (!mensajes.length || mensajes[mensajes.length - 1].role !== "user") return json({ error: "datos" }, 400);
 
   const url = Deno.env.get("SUPABASE_URL"), anon = Deno.env.get("SUPABASE_ANON_KEY");
-  const urlIA = Deno.env.get("IA_URL"), clave = Deno.env.get("IA_KEY"), modelo = Deno.env.get("IA_MODEL");
+  const urlIA = "https://api.groq.com/openai/v1/chat/completions";
+  const clave = Deno.env.get("IA_KEY"), modelo = "openai/gpt-oss-20b";
   if (!url || !anon) return json({ error: "configuracion" }, 503);
   if (!urlIA || !clave || !modelo) return json({ error: "sin_ia" }, 503);
 
+  let fase = "limite";
   try {
     const usage = await fetch(url + "/rest/v1/rpc/ayuda_usar", {
       method: "POST",
       headers: { apikey: anon, Authorization: auth, "Content-Type": "application/json" },
       body: JSON.stringify({ neg }),
     });
-    if (!usage.ok || (await usage.json()) !== true) return json({ error: "no_disponible" }, 429);
+    if (!usage.ok) {
+      console.error(JSON.stringify({ event: "ayuda_limite_http_error", status: usage.status }));
+      return json({ error: "no_disponible" }, 429);
+    }
+    if ((await usage.json()) !== true) return json({ error: "no_disponible" }, 429);
 
+    fase = "proveedor";
     const r = await fetch(urlIA, {
       method: "POST",
       headers: { Authorization: "Bearer " + clave, "content-type": "application/json" },
       body: JSON.stringify({
         model: modelo,
-        max_tokens: 650,
+        max_tokens: 900,
         temperature: 0.25,
         messages: [{ role: "system", content: SYSTEM + ctx }, ...mensajes],
       }),
       signal: AbortSignal.timeout(20000),
     });
-    if (!r.ok) return json({ error: "ia" }, 502);
-    const data = await r.json();
+    if (!r.ok) {
+      console.error(JSON.stringify({ event: "ayuda_proveedor_http_error", status: r.status }));
+      return json({ error: "ia" }, 502);
+    }
+
+    let data: any;
+    try {
+      data = await r.json();
+    } catch (error) {
+      console.error(JSON.stringify({
+        event: "ayuda_proveedor_invalid_json",
+        errorName: error instanceof Error ? error.name : "unknown",
+      }));
+      return json({ error: "ia" }, 502);
+    }
     const answer = data?.choices?.[0]?.message?.content;
-    if (typeof answer !== "string" || !answer.trim()) return json({ error: "ia" }, 502);
+    if (typeof answer !== "string" || !answer.trim()) {
+      console.error(JSON.stringify({ event: "ayuda_proveedor_invalid_payload", status: r.status }));
+      return json({ error: "ia" }, 502);
+    }
     return json({ respuesta: answer.trim().slice(0, 2200) });
-  } catch {
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "ayuda_request_failed",
+      fase,
+      errorName: error instanceof Error ? error.name : "unknown",
+    }));
     return json({ error: "ia" }, 502);
   }
 });
