@@ -26,14 +26,27 @@ function askPin(title, sub, cb, cancelable = false, back = null) {
   $("#lockCancel").onclick = (e) => { e.stopPropagation(); if (back) back(); else hideLock(); };
   paintDots();
 }
+/* Freno a las claves malas: a los 5 fallos seguidos hay que esperar (30 s, luego 1, 2, 4… hasta 5 min). */
+const PIN_FAIL = "cf-pin-fail";
+function pinFail() { try { return JSON.parse(localStorage.getItem(PIN_FAIL)) || { n: 0, until: 0 }; } catch (e) { return { n: 0, until: 0 }; } }
+function pinFailSave(f) { try { localStorage.setItem(PIN_FAIL, JSON.stringify(f)); } catch (e) {} }
+const pinWait = () => Math.max(0, Math.ceil((pinFail().until - Date.now()) / 1000));
+const pinOk = () => { const f = pinFail(); if (f.n || f.until) pinFailSave({ n: 0, until: 0 }); };
 function pinKey(k) {
   if (!pinCb) return;
+  const w = pinWait(); if (w > 0) { pinBuf = ""; paintDots(); return toast(`Muchos intentos. Espera ${w} s e intenta otra vez`, true); }
   if (k === "del") pinBuf = pinBuf.slice(0, -1);
   else if (pinBuf.length < 4) pinBuf += k;
   paintDots();
   if (pinBuf.length === 4) { const p = pinBuf, cb = pinCb; setTimeout(() => cb(p), 90); }
 }
-function pinBad() { pinBuf = ""; beep(false); paintDots(true); }
+function pinBad(count = true) {
+  pinBuf = ""; beep(false); paintDots(true);
+  if (!count) return;
+  const f = pinFail(); f.n += 1;
+  if (f.n % 5 === 0) { const s = Math.min(300, 30 * 2 ** (f.n / 5 - 1)); f.until = Date.now() + s * 1000; toast(`Muchos intentos. Espera ${s} s e intenta otra vez`, true); }
+  pinFailSave(f);
+}
 function loginScreen() {
   closeModalQuiet(); document.body.classList.remove("cart-open");
   const users = activeUsers();
@@ -48,7 +61,7 @@ function pickUser(id, only) {
   askPin(`Hola, ${u.name.split(" ")[0]}`, "Ingresa tu clave de 4 dígitos", (p) => { if (pinHash(p) === u.pin) login(u); else pinBad(); }, false, only ? null : loginScreen);
 }
 function login(u) {
-  ui.user = u.id; hideLock(); log("Ingreso al sistema", u.name);
+  pinOk(); ui.user = u.id; hideLock(); log("Ingreso al sistema", u.name);
   if (!tabOk(ui.tab)) ui.tab = "venta";
   render(); focusQ();
 }
@@ -63,14 +76,14 @@ function need(perm, cb, what) {
   askPin("Clave de supervisor", "Para: " + (what || SENSITIVE[perm] || perm), (p) => {
     const s = sups.find((u) => u.pin === pinHash(p));
     if (!s) return pinBad();
-    hideLock(); log("Autorización", `${s.name} autorizó a ${(me() || {}).name}: ${what || SENSITIVE[perm] || perm}`); cb(s);
+    pinOk(); hideLock(); log("Autorización", `${s.name} autorizó a ${(me() || {}).name}: ${what || SENSITIVE[perm] || perm}`); cb(s);
   }, true);
 }
 // Crear o cambiar la clave de un usuario (se pide dos veces).
 function setPinFor(u, done) {
   askPin(`Nueva clave para ${u.name}`, "4 dígitos que solo esa persona conozca", (a) => {
     askPin("Repite la clave", "", (b) => {
-      if (a !== b) { pinBad(); toast("No coinciden. Intenta otra vez"); return setPinFor(u, done); }
+      if (a !== b) { pinBad(false); toast("No coinciden. Intenta otra vez"); return setPinFor(u, done); }
       u.pin = pinHash(a); save(); hideLock(); log("Cambio de clave", u.name); toast("Clave guardada"); if (done) done();
     }, true);
   }, true);

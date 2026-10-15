@@ -604,14 +604,27 @@ function askPin(title, sub, cb, cancelable = false, back = null) {
   $("#lockCancel").onclick = (e) => { e.stopPropagation(); if (back) back(); else hideLock(); };
   paintDots();
 }
+/* Freno a las claves malas: a los 5 fallos seguidos hay que esperar (30 s, luego 1, 2, 4… hasta 5 min). */
+const PIN_FAIL = "cf-pin-fail";
+function pinFail() { try { return JSON.parse(localStorage.getItem(PIN_FAIL)) || { n: 0, until: 0 }; } catch (e) { return { n: 0, until: 0 }; } }
+function pinFailSave(f) { try { localStorage.setItem(PIN_FAIL, JSON.stringify(f)); } catch (e) {} }
+const pinWait = () => Math.max(0, Math.ceil((pinFail().until - Date.now()) / 1000));
+const pinOk = () => { const f = pinFail(); if (f.n || f.until) pinFailSave({ n: 0, until: 0 }); };
 function pinKey(k) {
   if (!pinCb) return;
+  const w = pinWait(); if (w > 0) { pinBuf = ""; paintDots(); return toast(`Muchos intentos. Espera ${w} s e intenta otra vez`, true); }
   if (k === "del") pinBuf = pinBuf.slice(0, -1);
   else if (pinBuf.length < 4) pinBuf += k;
   paintDots();
   if (pinBuf.length === 4) { const p = pinBuf, cb = pinCb; setTimeout(() => cb(p), 90); }
 }
-function pinBad() { pinBuf = ""; beep(false); paintDots(true); }
+function pinBad(count = true) {
+  pinBuf = ""; beep(false); paintDots(true);
+  if (!count) return;
+  const f = pinFail(); f.n += 1;
+  if (f.n % 5 === 0) { const s = Math.min(300, 30 * 2 ** (f.n / 5 - 1)); f.until = Date.now() + s * 1000; toast(`Muchos intentos. Espera ${s} s e intenta otra vez`, true); }
+  pinFailSave(f);
+}
 function loginScreen() {
   closeModalQuiet(); document.body.classList.remove("cart-open");
   const users = activeUsers();
@@ -626,7 +639,7 @@ function pickUser(id, only) {
   askPin(`Hola, ${u.name.split(" ")[0]}`, "Ingresa tu clave de 4 dígitos", (p) => { if (pinHash(p) === u.pin) login(u); else pinBad(); }, false, only ? null : loginScreen);
 }
 function login(u) {
-  ui.user = u.id; hideLock(); log("Ingreso al sistema", u.name);
+  pinOk(); ui.user = u.id; hideLock(); log("Ingreso al sistema", u.name);
   if (!tabOk(ui.tab)) ui.tab = "venta";
   render(); focusQ();
 }
@@ -641,14 +654,14 @@ function need(perm, cb, what) {
   askPin("Clave de supervisor", "Para: " + (what || SENSITIVE[perm] || perm), (p) => {
     const s = sups.find((u) => u.pin === pinHash(p));
     if (!s) return pinBad();
-    hideLock(); log("Autorización", `${s.name} autorizó a ${(me() || {}).name}: ${what || SENSITIVE[perm] || perm}`); cb(s);
+    pinOk(); hideLock(); log("Autorización", `${s.name} autorizó a ${(me() || {}).name}: ${what || SENSITIVE[perm] || perm}`); cb(s);
   }, true);
 }
 // Crear o cambiar la clave de un usuario (se pide dos veces).
 function setPinFor(u, done) {
   askPin(`Nueva clave para ${u.name}`, "4 dígitos que solo esa persona conozca", (a) => {
     askPin("Repite la clave", "", (b) => {
-      if (a !== b) { pinBad(); toast("No coinciden. Intenta otra vez"); return setPinFor(u, done); }
+      if (a !== b) { pinBad(false); toast("No coinciden. Intenta otra vez"); return setPinFor(u, done); }
       u.pin = pinHash(a); save(); hideLock(); log("Cambio de clave", u.name); toast("Clave guardada"); if (done) done();
     }, true);
   }, true);
@@ -3808,6 +3821,96 @@ act({
   }
 });
 
+/* ===================== 71 · AYUDA IA: chat de guía y diagnóstico ===================== */
+// El chat usa texto para no interferir con las voces existentes. No lee ni modifica ventas, clientes o inventario.
+let helpMessages = [], helpBusy = false;
+
+function helpAppend(role, text, temporary) {
+  const list = $("#helpMessages");
+  if (!list) return null;
+  const item = document.createElement("div");
+  item.className = "help-message " + (role === "assistant" ? "assistant" : "user") + (temporary ? " temporary" : "");
+  item.setAttribute("role", "listitem");
+  const body = document.createElement("span");
+  body.className = "help-message-text";
+  body.textContent = String(text || "");
+  item.appendChild(body);
+  list.appendChild(item);
+  list.scrollTop = list.scrollHeight;
+  return item;
+}
+function helpOpen() {
+  const panel = $("#helpChat"), launch = $("#helpLauncher");
+  if (!panel) return;
+  panel.hidden = false;
+  if (launch) launch.hidden = true;
+  if (!helpMessages.length) {
+    const hello = "Hola, soy Luis, el asistente de Caja Fácil. Puedes preguntarme cómo usar una sección o contarme qué error apareció. No puedo ver tus ventas ni cambiar datos.";
+    helpMessages.push({ role: "assistant", content: hello });
+    helpAppend("assistant", hello);
+  }
+  const input = $("#helpInput");
+  if (input) setTimeout(() => input.focus(), 0);
+}
+function helpClose() {
+  const panel = $("#helpChat"), launch = $("#helpLauncher");
+  if (panel) panel.hidden = true;
+  if (launch) launch.hidden = false;
+}
+function helpError(status, code) {
+  if (status === 401) return "Tu sesión venció. Vuelve a entrar con Google y prueba otra vez.";
+  if (status === 403 || status === 429) return "El chat no está disponible ahora para esta cuenta o alcanzó su límite diario. Consulta al proveedor de Caja Fácil.";
+  if (status === 503 || code === "sin_ia") return "El servicio de ayuda aún no está configurado. Consulta al proveedor de Caja Fácil.";
+  if (status === 502) return "La IA no pudo responder esta vez. Revisa tu conexión e inténtalo de nuevo.";
+  return "No se pudo enviar la pregunta. Revisa tu conexión e inténtalo otra vez.";
+}
+async function helpSend(value) {
+  const input = $("#helpInput"), textValue = String(value == null && input ? input.value : value || "").trim().slice(0, 1200);
+  if (!textValue || helpBusy) return;
+  if (input) input.value = "";
+  helpAppend("user", textValue);
+  helpMessages.push({ role: "user", content: textValue });
+  if (!cloudOn()) {
+    const offline = "Para consultar la IA necesitas internet y una sesión activa. Puedes seguir usando la caja sin internet.";
+    helpMessages.push({ role: "assistant", content: offline }); helpAppend("assistant", offline); return;
+  }
+  helpBusy = true;
+  const send = $("#helpSend");
+  if (send) send.disabled = true;
+  const waiting = helpAppend("assistant", "Estoy revisando tu pregunta…", true);
+  try {
+    const session = cloudLoad(), token = await cloudToken();
+    const r = await fetch(SB_URL + "/functions/v1/ayuda", {
+      method: "POST",
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ neg: session.neg, mensajes: helpMessages.slice(-8) }),
+      signal: AbortSignal.timeout(30000)
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error("ayuda"), { status: r.status, code: data.error });
+    const answer = String(data.respuesta || "").trim().slice(0, 2200) || "No recibí una respuesta. Cuéntame qué pantalla estás usando y qué pasó.";
+    helpMessages.push({ role: "assistant", content: answer });
+    if (helpMessages.length > 10) helpMessages = helpMessages.slice(-10);
+    helpAppend("assistant", answer);
+  } catch (e) {
+    const answer = helpError(e.status || 0, e.code || "");
+    helpMessages.push({ role: "assistant", content: answer });
+    if (helpMessages.length > 10) helpMessages = helpMessages.slice(-10);
+    helpAppend("assistant", answer);
+  } finally {
+    if (waiting) waiting.remove();
+    helpBusy = false;
+    if (send) send.disabled = false;
+    if (input) input.focus();
+  }
+}
+const helpForm = $("#helpForm");
+if (helpForm) helpForm.addEventListener("submit", (e) => { e.preventDefault(); helpSend(); });
+act({
+  ayudaAbrir: helpOpen,
+  ayudaCerrar: helpClose
+});
+
 /* ===================== 80 · REPORTES: ventas, ganancias, cajeros, comprobantes y tiendas ===================== */
 const catOfItem = (i) => i.cat || ((prod(i.id) || {}).cat) || "Sin categoría";
 function repSales(from, to, scope) {
@@ -4252,93 +4355,4 @@ async function boot() {
 }
 boot();
 
-/* ===================== 71 · AYUDA IA: chat de guía y diagnóstico ===================== */
-// El chat usa texto para no interferir con las voces existentes. No lee ni modifica ventas, clientes o inventario.
-let helpMessages = [], helpBusy = false;
-
-function helpAppend(role, text, temporary) {
-  const list = $("#helpMessages");
-  if (!list) return null;
-  const item = document.createElement("div");
-  item.className = "help-message " + (role === "assistant" ? "assistant" : "user") + (temporary ? " temporary" : "");
-  item.setAttribute("role", "listitem");
-  const body = document.createElement("span");
-  body.className = "help-message-text";
-  body.textContent = String(text || "");
-  item.appendChild(body);
-  list.appendChild(item);
-  list.scrollTop = list.scrollHeight;
-  return item;
-}
-function helpOpen() {
-  const panel = $("#helpChat"), launch = $("#helpLauncher");
-  if (!panel) return;
-  panel.hidden = false;
-  if (launch) launch.hidden = true;
-  if (!helpMessages.length) {
-    const hello = "Hola, soy Luis, el asistente de Caja Fácil. Puedes preguntarme cómo usar una sección o contarme qué error apareció. No puedo ver tus ventas ni cambiar datos.";
-    helpMessages.push({ role: "assistant", content: hello });
-    helpAppend("assistant", hello);
-  }
-  const input = $("#helpInput");
-  if (input) setTimeout(() => input.focus(), 0);
-}
-function helpClose() {
-  const panel = $("#helpChat"), launch = $("#helpLauncher");
-  if (panel) panel.hidden = true;
-  if (launch) launch.hidden = false;
-}
-function helpError(status, code) {
-  if (status === 401) return "Tu sesión venció. Vuelve a entrar con Google y prueba otra vez.";
-  if (status === 403 || status === 429) return "El chat no está disponible ahora para esta cuenta o alcanzó su límite diario. Consulta al proveedor de Caja Fácil.";
-  if (status === 503 || code === "sin_ia") return "El servicio de ayuda aún no está configurado. Consulta al proveedor de Caja Fácil.";
-  if (status === 502) return "La IA no pudo responder esta vez. Revisa tu conexión e inténtalo de nuevo.";
-  return "No se pudo enviar la pregunta. Revisa tu conexión e inténtalo otra vez.";
-}
-async function helpSend(value) {
-  const input = $("#helpInput"), textValue = String(value == null && input ? input.value : value || "").trim().slice(0, 1200);
-  if (!textValue || helpBusy) return;
-  if (input) input.value = "";
-  helpAppend("user", textValue);
-  helpMessages.push({ role: "user", content: textValue });
-  if (!cloudOn()) {
-    const offline = "Para consultar la IA necesitas internet y una sesión activa. Puedes seguir usando la caja sin internet.";
-    helpMessages.push({ role: "assistant", content: offline }); helpAppend("assistant", offline); return;
-  }
-  helpBusy = true;
-  const send = $("#helpSend");
-  if (send) send.disabled = true;
-  const waiting = helpAppend("assistant", "Estoy revisando tu pregunta…", true);
-  try {
-    const session = cloudLoad(), token = await cloudToken();
-    const r = await fetch(SB_URL + "/functions/v1/ayuda", {
-      method: "POST",
-      headers: { apikey: SB_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ neg: session.neg, mensajes: helpMessages.slice(-8) }),
-      signal: AbortSignal.timeout(30000)
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw Object.assign(new Error("ayuda"), { status: r.status, code: data.error });
-    const answer = String(data.respuesta || "").trim().slice(0, 2200) || "No recibí una respuesta. Cuéntame qué pantalla estás usando y qué pasó.";
-    helpMessages.push({ role: "assistant", content: answer });
-    if (helpMessages.length > 10) helpMessages = helpMessages.slice(-10);
-    helpAppend("assistant", answer);
-  } catch (e) {
-    const answer = helpError(e.status || 0, e.code || "");
-    helpMessages.push({ role: "assistant", content: answer });
-    if (helpMessages.length > 10) helpMessages = helpMessages.slice(-10);
-    helpAppend("assistant", answer);
-  } finally {
-    if (waiting) waiting.remove();
-    helpBusy = false;
-    if (send) send.disabled = false;
-    if (input) input.focus();
-  }
-}
-const helpForm = $("#helpForm");
-if (helpForm) helpForm.addEventListener("submit", (e) => { e.preventDefault(); helpSend(); });
-act({
-  ayudaAbrir: helpOpen,
-  ayudaCerrar: helpClose
-});
 })();
