@@ -66,20 +66,57 @@ function imgKind(p) {
   if (p.img && p.img.startsWith("lib:")) return "art";
   return FOTO()[imgKey(p)] ? "foto" : "art";
 }
+// Las imágenes viven como texto (data:) en img.js, fotos.js y en la ficha del producto. Pegarlas tal cual en el HTML
+// obliga al navegador a leer cientos de KB en cada pintada; se convierten una sola vez en una dirección corta (blob:).
+const imgBlob = new Map();
+function bu(key, uri) {
+  if (!uri || uri.slice(0, 5) !== "data:") return uri || "";
+  key += "|" + uri.length;
+  let u = imgBlob.get(key); if (u) return u;
+  try {
+    const i = uri.indexOf(","), bin = atob(uri.slice(i + 1)), b = new Uint8Array(bin.length);
+    for (let j = 0; j < bin.length; j++) b[j] = bin.charCodeAt(j);
+    u = URL.createObjectURL(new Blob([b], { type: uri.slice(5, uri.indexOf(";")) }));
+  } catch (e) { return uri; }
+  imgBlob.set(key, u); return u;
+}
+const IB = (k) => bu("i:" + k, (window.CF_IMG || {})[k]);
+const FB = (k) => bu("f:" + k, FOTO()[k]);
 function imgSrc(p) {
-  if (p && p.img && p.img.startsWith("data:")) return p.img;
-  const I = window.CF_IMG || {}, k = imgKey(p);
-  if (imgKind(p) === "foto") return FOTO()[k];
-  return I[k] || I.caja || "";
+  if (p && p.img && p.img.startsWith("data:")) return bu("p:" + p.id, p.img);
+  const k = imgKey(p);
+  if (imgKind(p) === "foto") return FB(k);
+  return IB(k) || IB("caja");
 }
 const catImg = (c) => {
-  const I = window.CF_IMG || {}, F = FOTO();
-  if (c === "__top") return I.carrito; if (c === "__fav") return I.canasta;
+  if (c === "__top") return IB("carrito"); if (c === "__fav") return IB("canasta");
   const p = DB.products.find((x) => x.cat === c && imgKind(x) === "foto") || DB.products.find((x) => x.cat === c);
   if (p) return imgSrc(p);
-  const n = norm(c); for (const [re, k] of CATMAP) if (re.test(n)) return F[k] || I[k];
-  return I.caja;
+  const n = norm(c); for (const [re, k] of CATMAP) if (re.test(n)) return FB(k) || IB(k);
+  return IB("caja");
 };
+// img.js y fotos.js pesan más de 900 KB: se bajan DESPUÉS de que la caja ya está lista (con la cola libre) y, al llegar,
+// se vuelve a pintar la pantalla para que salgan las imágenes. Mientras tanto se ven las letras de cada producto.
+const libUrl = (n) => n + ((window.CF_V || {})[n] ? "?v=" + window.CF_V[n] : "");
+function libsLater() {
+  const falta = [["img.js", "CF_IMG"], ["fotos.js", "CF_FOTO"]].filter(([, g]) => !window[g]);
+  if (!falta.length) return;
+  let n = falta.length;
+  const fin = () => { if (!--n) calentar(DB.products.slice(), 0); };
+  const bajar = () => falta.forEach(([f]) => { const s = document.createElement("script"); s.src = libUrl(f); s.async = true; s.onload = fin; s.onerror = fin; document.head.appendChild(s); });
+  if (window.requestIdleCallback) requestIdleCallback(bajar, { timeout: 2500 }); else setTimeout(bajar, 600);
+}
+// Convierte las imágenes de los productos en tandas chicas (así la primera pintada con fotos no se traba en equipos lentos).
+function calentar(l, i) {
+  const fin = Math.min(l.length, i + 6);
+  for (; i < fin; i++) try { imgSrc(l[i]); } catch (e) {}
+  if (i < l.length) setTimeout(() => calentar(l, i), 0); else imgRefresh(0);
+}
+function imgRefresh(tries) {
+  const a = document.activeElement, lk = $("#lock"), escribiendo = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.value;
+  if (ui.locked || (lk && !lk.hidden) || escribiendo || modalOpen()) { if (tries < 24) setTimeout(() => imgRefresh(tries + 1), 1500); return; }
+  render();
+}
 // Cartulinas fosforescentes de mercado: el color del precio de cada producto.
 const CARDS = ["#FFE53D", "#9BEA5A", "#FF9A3D", "#6FD3FF", "#FF6FB0", "#FFFFFF"];
 const CARDNAME = ["Amarillo", "Verde", "Naranja", "Celeste", "Rosado", "Blanco"];

@@ -395,20 +395,57 @@ function imgKind(p) {
   if (p.img && p.img.startsWith("lib:")) return "art";
   return FOTO()[imgKey(p)] ? "foto" : "art";
 }
+// Las imágenes viven como texto (data:) en img.js, fotos.js y en la ficha del producto. Pegarlas tal cual en el HTML
+// obliga al navegador a leer cientos de KB en cada pintada; se convierten una sola vez en una dirección corta (blob:).
+const imgBlob = new Map();
+function bu(key, uri) {
+  if (!uri || uri.slice(0, 5) !== "data:") return uri || "";
+  key += "|" + uri.length;
+  let u = imgBlob.get(key); if (u) return u;
+  try {
+    const i = uri.indexOf(","), bin = atob(uri.slice(i + 1)), b = new Uint8Array(bin.length);
+    for (let j = 0; j < bin.length; j++) b[j] = bin.charCodeAt(j);
+    u = URL.createObjectURL(new Blob([b], { type: uri.slice(5, uri.indexOf(";")) }));
+  } catch (e) { return uri; }
+  imgBlob.set(key, u); return u;
+}
+const IB = (k) => bu("i:" + k, (window.CF_IMG || {})[k]);
+const FB = (k) => bu("f:" + k, FOTO()[k]);
 function imgSrc(p) {
-  if (p && p.img && p.img.startsWith("data:")) return p.img;
-  const I = window.CF_IMG || {}, k = imgKey(p);
-  if (imgKind(p) === "foto") return FOTO()[k];
-  return I[k] || I.caja || "";
+  if (p && p.img && p.img.startsWith("data:")) return bu("p:" + p.id, p.img);
+  const k = imgKey(p);
+  if (imgKind(p) === "foto") return FB(k);
+  return IB(k) || IB("caja");
 }
 const catImg = (c) => {
-  const I = window.CF_IMG || {}, F = FOTO();
-  if (c === "__top") return I.carrito; if (c === "__fav") return I.canasta;
+  if (c === "__top") return IB("carrito"); if (c === "__fav") return IB("canasta");
   const p = DB.products.find((x) => x.cat === c && imgKind(x) === "foto") || DB.products.find((x) => x.cat === c);
   if (p) return imgSrc(p);
-  const n = norm(c); for (const [re, k] of CATMAP) if (re.test(n)) return F[k] || I[k];
-  return I.caja;
+  const n = norm(c); for (const [re, k] of CATMAP) if (re.test(n)) return FB(k) || IB(k);
+  return IB("caja");
 };
+// img.js y fotos.js pesan más de 900 KB: se bajan DESPUÉS de que la caja ya está lista (con la cola libre) y, al llegar,
+// se vuelve a pintar la pantalla para que salgan las imágenes. Mientras tanto se ven las letras de cada producto.
+const libUrl = (n) => n + ((window.CF_V || {})[n] ? "?v=" + window.CF_V[n] : "");
+function libsLater() {
+  const falta = [["img.js", "CF_IMG"], ["fotos.js", "CF_FOTO"]].filter(([, g]) => !window[g]);
+  if (!falta.length) return;
+  let n = falta.length;
+  const fin = () => { if (!--n) calentar(DB.products.slice(), 0); };
+  const bajar = () => falta.forEach(([f]) => { const s = document.createElement("script"); s.src = libUrl(f); s.async = true; s.onload = fin; s.onerror = fin; document.head.appendChild(s); });
+  if (window.requestIdleCallback) requestIdleCallback(bajar, { timeout: 2500 }); else setTimeout(bajar, 600);
+}
+// Convierte las imágenes de los productos en tandas chicas (así la primera pintada con fotos no se traba en equipos lentos).
+function calentar(l, i) {
+  const fin = Math.min(l.length, i + 6);
+  for (; i < fin; i++) try { imgSrc(l[i]); } catch (e) {}
+  if (i < l.length) setTimeout(() => calentar(l, i), 0); else imgRefresh(0);
+}
+function imgRefresh(tries) {
+  const a = document.activeElement, lk = $("#lock"), escribiendo = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.value;
+  if (ui.locked || (lk && !lk.hidden) || escribiendo || modalOpen()) { if (tries < 24) setTimeout(() => imgRefresh(tries + 1), 1500); return; }
+  render();
+}
 // Cartulinas fosforescentes de mercado: el color del precio de cada producto.
 const CARDS = ["#FFE53D", "#9BEA5A", "#FF9A3D", "#6FD3FF", "#FF6FB0", "#FFFFFF"];
 const CARDNAME = ["Amarillo", "Verde", "Naranja", "Celeste", "Rosado", "Blanco"];
@@ -1487,7 +1524,7 @@ const camOk = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserM
 function loadScanLib() {
   return new Promise((res, rej) => {
     if (window.__Html5QrcodeLibrary__) return res(window.__Html5QrcodeLibrary__);
-    const s = document.createElement("script"); s.src = "escaner.js"; s.async = true;
+    const s = document.createElement("script"); s.src = libUrl("escaner.js"); s.async = true;
     s.onload = () => (window.__Html5QrcodeLibrary__ ? res(window.__Html5QrcodeLibrary__) : rej(new Error("lib")));
     s.onerror = () => rej(new Error("lib"));
     document.head.appendChild(s);
@@ -1739,7 +1776,7 @@ function imgPicker() {
   const fk = Object.keys(F).filter((k) => k[0] !== "_"), ik = Object.keys(I);
   const ok = (q, k) => !q || norm(IMGNAME[k] || k).includes(norm(q));
   const cell = (pre, k, src) => `<button class="imgc ${pre}" data-a="imgset" data-k="${pre}:${k}"><img src="${src}" alt=""><span>${esc(IMGNAME[k] || k)}</span></button>`;
-  const draw = (q) => { const a = fk.filter((k) => ok(q, k)), b = ik.filter((k) => ok(q, k)); return (a.length ? `<p class="igh">Fotos reales</p>` + a.map((k) => cell("foto", k, F[k])).join("") : "") + (b.length ? `<p class="igh">Ilustraciones</p>` + b.map((k) => cell("lib", k, I[k])).join("") : "") || `<p class="muted">No hay imágenes con ese nombre. Toma una foto de tu producto.</p>`; };
+  const draw = (q) => { const a = fk.filter((k) => ok(q, k)), b = ik.filter((k) => ok(q, k)); return (a.length ? `<p class="igh">Fotos reales</p>` + a.map((k) => cell("foto", k, FB(k))).join("") : "") + (b.length ? `<p class="igh">Ilustraciones</p>` + b.map((k) => cell("lib", k, IB(k))).join("") : "") || `<p class="muted">No hay imágenes con ese nombre. Toma una foto de tu producto.</p>`; };
   openModal(`<h2>Elige una imagen</h2><input class="inp" id="imgq" type="search" placeholder="Buscar: tomate, gaseosa, pan…" autofocus style="margin-bottom:10px"><div class="imggrid" id="imggrid">${draw("")}</div>
     <div class="btns"><button class="btn sec" data-a="imgback">Volver</button></div>
     <p class="muted sm" style="margin-top:8px">Fotos: Grocery Store Dataset de Marcus Klasson (MIT). Ilustraciones: Fluent Emoji de Microsoft (MIT). Para tus productos envasados, lo mejor es una foto tuya.</p>`, "wide");
@@ -1796,7 +1833,7 @@ function paintLow() {
     ${G.map((g) => `<div class="lgrp"><div class="lgh"><b>${g.s ? esc(g.s.name) : "Sin proveedor"}</b><button class="btn sm" data-a="lowwa" data-s="${g.s ? g.s.id : ""}">${svg("wa", "bi")}${g.s ? "Pedir por WhatsApp" : "Enviar por WhatsApp"}</button></div><div class="list">${g.l.map(row).join("")}</div></div>`).join("")}
     ${sinProv ? `<p class="muted sm" style="margin-top:10px">Elige el proveedor de cada producto en su ficha (Más opciones) para armar un pedido por proveedor.</p>` : ""}
     <div class="row wrap" style="margin-top:12px"><button class="btn sec" data-a="lowprint">${svg("print", "bi")}Imprimir lista</button></div>`
-    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Todo en orden</h2><p>Ningún producto está por debajo de su mínimo.</p></div>`;
+    : `<div class="empty"><img class="eimg" src="${IB("canasta")}" alt=""><h2>Todo en orden</h2><p>Ningún producto está por debajo de su mínimo.</p></div>`;
 }
 
 // Una vez al día, al abrir la caja: avisa lo que vence esta semana.
@@ -1813,13 +1850,13 @@ function paintExp() {
   const l = expItems(), el = $("#pbody");
   el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos vencidos o que vencen en los próximos 7 días. Ponle la fecha en su ficha (Más opciones).</p>
     <div class="list">${l.map((p) => `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>${dmy(p.exp)}${p.stock != null ? ` · quedan ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""}` : ""}</small></div><span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span></button>`).join("")}</div>`
-    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Nada por vencer</h2><p>${DB.products.some((p) => p.exp) ? "Ningún producto vence esta semana." : "Pon la fecha de vencimiento en la ficha de tus productos (Más opciones) y aquí verás lo que vence pronto."}</p></div>`;
+    : `<div class="empty"><img class="eimg" src="${IB("canasta")}" alt=""><h2>Nada por vencer</h2><p>${DB.products.some((p) => p.exp) ? "Ningún producto vence esta semana." : "Pon la fecha de vencimiento en la ficha de tus productos (Más opciones) y aquí verás lo que vence pronto."}</p></div>`;
 }
 function paintIdle() {
   const l = idleItems(), el = $("#pbody"), tot = r2(l.reduce((a, x) => a + x.val, 0));
   el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos con stock que no se mueven hace 30 días o más.${can("costos") ? ` Plata parada al costo: <b class="num">${money(tot)}</b>.` : ""}</p>
     <div class="list">${l.map(({ p, days, val }) => `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>Sin movimiento hace ${days} días · ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : " und."}</small></div>${can("costos") && val > 0 ? `<div class="v num">${money(val)}<small>parado</small></div>` : ""}</button>`).join("")}</div>`
-    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Todo se mueve</h2><p>Ningún producto con stock lleva 30 días sin venderse ni moverse.</p></div>`;
+    : `<div class="empty"><img class="eimg" src="${IB("canasta")}" alt=""><h2>Todo se mueve</h2><p>Ningún producto con stock lleva 30 días sin venderse ni moverse.</p></div>`;
 }
 
 /* ---------- importar / exportar ---------- */
@@ -2158,7 +2195,7 @@ const countTotal = (q) => r2(DENOMS.reduce((a, d) => a + d * (q[d] || 0), 0));
 /* ---------- abrir y cerrar caja ---------- */
 function openShift(after) {
   const last = DB.shifts.filter((s) => s.t1).sort((a, b) => b.t1 - a.t1)[0];
-  openModal(`<div class="qhead"><img class="qimg" src="${(window.CF_IMG || {}).dinero || ""}" alt=""><div><h2>Abrir caja</h2><p class="muted">${esc(me().name)} · ${fmtDT(Date.now())}</p></div></div>
+  openModal(`<div class="qhead"><img class="qimg" src="${IB("dinero")}" alt=""><div><h2>Abrir caja</h2><p class="muted">${esc(me().name)} · ${fmtDT(Date.now())}</p></div></div>
     <label class="fld"><span>¿Con cuánto efectivo empiezas? (sencillo en el cajón)</span><input class="inp num big" id="shopen" inputmode="decimal" placeholder="0.00" autofocus></label>
     ${last ? `<p class="muted" style="margin:-4px 0 12px">El último cierre (${esc(last.un)}) contó ${money(last.counted)}.</p>` : ""}
     <div class="btns h"><button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-enter id="shok">Abrir caja</button></div>`);
@@ -2812,6 +2849,49 @@ act({
     ev.prompt();
     const r = await ev.userChoice.catch(() => ({ outcome: "dismissed" }));
     if (r.outcome !== "accepted") toast("No se instaló. Puedes hacerlo cuando quieras desde Ajustes.");
+    if (ui.tab === "aj") render();
+  }
+});
+
+/* ---------- Modo rápido: menos adornos para celulares y PC lentos ---------- */
+// «cf-lite»: "1" siempre, "0" nunca, sin valor = automático (equipo de 2 núcleos o poca memoria, o la prueba de velocidad de abajo).
+// Cada equipo decide por sí mismo: no viaja a la nube ni a otras cajas.
+const liteGet = () => { try { return localStorage.getItem("cf-lite"); } catch (e) { return null; } };
+function liteApply() {
+  const f = liteGet(); let on;
+  if (f === "1") on = true; else if (f === "0") on = false;
+  else { let a = null; try { a = localStorage.getItem("cf-lite-auto"); } catch (e) {} const n = navigator; on = a === "1" || n.hardwareConcurrency <= 2 || n.deviceMemory <= 2; }
+  document.documentElement.classList.toggle("lite", !!on);
+}
+// Mide cuánto tarda este equipo en una cuenta corta. Se hace una vez (y cada 30 días), con la caja ya lista y sin molestar.
+function liteBench(force) {
+  if (liteGet() !== null) return;
+  try { const t = +localStorage.getItem("cf-lite-auto-t") || 0; if (!force && t && Date.now() - t < 30 * 864e5) return; } catch (e) {}
+  const run = () => {
+    const t0 = performance.now(); let s = 0;
+    for (let i = 0; i < 2e6; i++) s += Math.sqrt(i) * ((i & 7) + 1) % 3;
+    const a = []; for (let i = 0; i < 30000; i++) a.push((i * 7919) % 10007); a.sort((x, y) => x - y);
+    return performance.now() - t0 + (s < 0 ? 1 : 0);
+  };
+  const go = () => {
+    if (document.hidden) return setTimeout(go, 5000);
+    const ms = Math.min(run(), run(), run());
+    try { localStorage.setItem("cf-lite-auto", ms > 70 ? "1" : "0"); localStorage.setItem("cf-lite-auto-t", String(Date.now())); } catch (e) {}
+    liteApply();
+  };
+  setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(go, { timeout: 4000 }) : go()), 3000);
+}
+function liteHtml() {
+  const f = liteGet(), m = f === "1" ? "1" : f === "0" ? "0" : "auto", on = document.documentElement.classList.contains("lite");
+  return `<div class="card"><h2>Modo rápido</h2><p class="muted" style="margin-bottom:12px">Quita sombras, transparencias y movimientos para que la caja vaya fluida en celulares y computadoras lentas. Ahora está <b>${on ? "encendido" : "apagado"}</b>${m === "auto" ? " (automático según tu equipo)" : ""}.</p>
+    <div class="seg tabs2">${[["auto", "Automático"], ["1", "Encendido"], ["0", "Apagado"]].map(([v, l]) => `<button class="${m === v ? "on" : ""}" data-a="liteset" data-v="${v}">${l}</button>`).join("")}</div></div>`;
+}
+act({
+  liteset: (el) => {
+    const v = el.dataset.v;
+    try { if (v === "auto") { localStorage.removeItem("cf-lite"); localStorage.removeItem("cf-lite-auto"); localStorage.removeItem("cf-lite-auto-t"); } else localStorage.setItem("cf-lite", v); } catch (e) {}
+    liteApply(); if (v === "auto") liteBench(true);
+    toast(v === "1" ? "Modo rápido encendido" : v === "0" ? "Modo rápido apagado" : "Modo rápido automático");
     if (ui.tab === "aj") render();
   }
 });
@@ -4542,7 +4622,7 @@ function ajNav(t) {
 VIEWS.aj = function viewSettings(v) {
   const t = ui.atab, C = DB.cfg, B = DB.biz;
   let body = "";
-  if (t === "negocio") body = `${installHtml()}<div class="card"><h2>Datos del negocio</h2><p class="muted" style="margin-bottom:10px">Salen en los comprobantes y reportes.</p>
+  if (t === "negocio") body = `${installHtml()}${liteHtml()}<div class="card"><h2>Datos del negocio</h2><p class="muted" style="margin-bottom:10px">Salen en los comprobantes y reportes.</p>
       ${fld("Nombre comercial", inp("biz.name", B.name, { max: 50 }))}
       <div class="two">${fld("RUC", inp("biz.ruc", B.ruc, { ph: "Opcional", max: 11 }))}${fld("Teléfono", inp("biz.phone", B.phone, { max: 20 }))}</div>
       ${fld("Dirección", inp("biz.addr", B.addr, { max: 100 }))}
@@ -4867,14 +4947,7 @@ document.addEventListener("keydown", (e) => {
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register(/Electron\/|CajaFacilEscritorio/.test(navigator.userAgent) ? "sw.js?escritorio=1" : "sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
 window.CF = { get DB() { return DB; }, ui, flush, save, dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan };
-// Fondo: foto del puesto (nítida en la pantalla de ingreso, suave detrás de la app).
-function paintBg() {
-  const F = window.CF_FOTO || {}; if (!F._puesto) return;
-  const st = document.documentElement.style;
-  st.setProperty("--puesto", `url("${F._puesto}")`); st.setProperty("--puesto-suave", `url("${F._puesto_suave}")`);
-}
 async function boot() {
-  paintBg();
   await loadDB();
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; a.on = true; a.role = "admin"; }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
@@ -4885,6 +4958,8 @@ async function boot() {
   if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");
   cloudBoot();
+  libsLater();
+  liteBench();
 }
 boot();
 

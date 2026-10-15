@@ -5,10 +5,10 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 ## Cómo está armado
 - **Edita solo `src/`**. `script.js` y `style.css` de la raíz son GENERADOS: nunca los edites a mano.
 - `src/*.js` se unen en orden alfabético dentro de una IIFE → `script.js`.
-- `src/style.css` → `style.css` con las fuentes de `src/fonts/` incrustadas en base64.
+- `src/style.css` → `style.css` (copia tal cual). Las fuentes de `src/fonts/` se copian a `fonts/` y el CSS las pide por archivo (antes iban en base64 y el CSS pesaba 370 KB). `index.html` precarga `fonts/geist.woff2`.
 - Después de cualquier cambio corre: `sh build.sh` (necesita python3) y luego `node --check script.js`.
-- `img.js` (ilustraciones), `fotos.js` (fotos de frutas/verduras) y `escaner.js` (lector de códigos html5-qrcode) son librerías de datos: no se tocan.
-- `sw.js` es el service worker (red primero). Si agregas archivos nuevos, súmalos a su lista.
+- `img.js` (ilustraciones), `fotos.js` (fotos de frutas/verduras) y `escaner.js` (lector de códigos html5-qrcode) son librerías de datos: no se tocan (a `fotos.js` solo se le quitaron las fotos de fondo `_puesto*`, que ya no se usaban).
+- `sw.js` es el service worker (red primero; `img.js`, `fotos.js`, `escaner.js` y `fonts/` van primero desde la copia del equipo porque su nombre lleva `?v=huella`). Si agregas archivos nuevos, súmalos a su lista y sube `CACHE`.
 
 ## Módulos (src/)
 00-core datos, migraciones y ejemplos · 10-ui navegación, íconos, ventanas · 20-auth usuarios y PIN · 30-cart ticket · 31-sale pantalla de venta y cobro · 32-scale cajita de peso por kilo y balanza · 33-camera escanear con cámara · 40-products · 50-clients (crédito) · 60-cash caja, arqueo, cierres · 65-prov proveedores (deuda y abonos) · 67-cloud nube · 68-install botón «Instalar Caja Fácil» (Ajustes › Negocio) · 69-voz voz con IA (extra de pago) · 70-sales · 80-reports · 90-settings · 99-events teclado y eventos.
@@ -62,6 +62,12 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Tres modos en el mismo chat: (1) **órdenes escritas** («anota 2 leches», «cuánto vendí hoy») con el mismo intérprete de la voz (`vzParse`/`vzPlan`), solo si hay extra de voz (`vozOk`); lo simple sale como tarjeta «Entendí» dentro del chat con Aceptar/Cancelar (`ayudaSi`/`ayudaNo` → `vozAccept`), y cobrar/elegir entre parecidos/abrir ficha se delega a la ventana de la voz (`vzShowPlan`); las preguntas empiezan con cómo/dónde/qué… (`HELP_Q`) y van a la IA. (2) **IA** (`ayuda`): recibe `pantalla` y `ordenes`, conoce toda la caja en su prompt y puede terminar con marcas `[[ir:prod.exp]]` que el chat vuelve botones «Ir a…» (`HELP_DEST`: solo navega, nunca cambia datos). (3) **Sin internet** o si la IA falla: pasos guardados en `HELP_KB` (palabras clave sin tildes).
 - «Llévame a productos» se resuelve local (`helpNavIntent`, sin IA). Sugerencias por pantalla: `HELP_CHIPS`. Los avisos largos de error (`toast(msg, true)`) muestran «Pedir ayuda a Luis» (`helpToastAdd`), que manda solo el texto del aviso.
 - Si cambias funciones de la caja, actualiza `HELP_KB` y el prompt de `ayuda` (hay que volver a desplegar la función con el index.ts completo).
+
+## Rendimiento (equipos lentos)
+- Arranque liviano: `img.js` y `fotos.js` (≈900 KB) NO bloquean el inicio; `libsLater()` (10-ui.js) los baja cuando la caja ya está lista y `imgRefresh` vuelve a pintar sin molestar (no si estás escribiendo, hay ventana abierta o está el candado). `build.sh` pone sus huellas en `window.CF_V` de `index.html` (`libUrl`). Mientras llegan, cada producto muestra su letra.
+- Imágenes en el HTML: nunca pegar `data:` en los `src`. `imgSrc`/`catImg`/`IB()`/`FB()` las convierten una vez en `blob:` (`bu`) y `calentar()` lo hace por tandas. Antes, Fichas con fotos generaba ≈480 KB de HTML por pintada y Productos ≈400 KB.
+- **Modo rápido** (`html.lite`, `src/68-install.js`): quita transparencias, animaciones y sombras grandes (variables `--sh*`). `localStorage` `cf-lite` = "1" siempre / "0" nunca / vacío = automático (2 núcleos, ≤2 GB, o `liteBench()`: una cuenta corta que tarde >70 ms, una vez cada 30 días, guarda `cf-lite-auto`). Interruptor en Ajustes › Negocio. Es por equipo, no va a la nube.
+- Para medir: Playwright con `Emulation.setCPUThrottlingRate` y red 3G; en 3G + CPU 4x la caja pasó de 6.6 s a 1.6 s hasta estar lista.
 
 ## Programa de Windows
 - `desktop/` (Electron): ventana que abre la caja publicada (se actualiza sola). El .exe lo fabrica GitHub Actions (`.github/workflows/escritorio.yml`) y lo publica en Releases como `CajaFacil-Setup.exe`. Para una versión nueva del programa sube `version` en `desktop/package.json`.

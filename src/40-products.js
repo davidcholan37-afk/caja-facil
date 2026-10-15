@@ -151,7 +151,7 @@ function imgPicker() {
   const fk = Object.keys(F).filter((k) => k[0] !== "_"), ik = Object.keys(I);
   const ok = (q, k) => !q || norm(IMGNAME[k] || k).includes(norm(q));
   const cell = (pre, k, src) => `<button class="imgc ${pre}" data-a="imgset" data-k="${pre}:${k}"><img src="${src}" alt=""><span>${esc(IMGNAME[k] || k)}</span></button>`;
-  const draw = (q) => { const a = fk.filter((k) => ok(q, k)), b = ik.filter((k) => ok(q, k)); return (a.length ? `<p class="igh">Fotos reales</p>` + a.map((k) => cell("foto", k, F[k])).join("") : "") + (b.length ? `<p class="igh">Ilustraciones</p>` + b.map((k) => cell("lib", k, I[k])).join("") : "") || `<p class="muted">No hay imágenes con ese nombre. Toma una foto de tu producto.</p>`; };
+  const draw = (q) => { const a = fk.filter((k) => ok(q, k)), b = ik.filter((k) => ok(q, k)); return (a.length ? `<p class="igh">Fotos reales</p>` + a.map((k) => cell("foto", k, FB(k))).join("") : "") + (b.length ? `<p class="igh">Ilustraciones</p>` + b.map((k) => cell("lib", k, IB(k))).join("") : "") || `<p class="muted">No hay imágenes con ese nombre. Toma una foto de tu producto.</p>`; };
   openModal(`<h2>Elige una imagen</h2><input class="inp" id="imgq" type="search" placeholder="Buscar: tomate, gaseosa, pan…" autofocus style="margin-bottom:10px"><div class="imggrid" id="imggrid">${draw("")}</div>
     <div class="btns"><button class="btn sec" data-a="imgback">Volver</button></div>
     <p class="muted sm" style="margin-top:8px">Fotos: Grocery Store Dataset de Marcus Klasson (MIT). Ilustraciones: Fluent Emoji de Microsoft (MIT). Para tus productos envasados, lo mejor es una foto tuya.</p>`, "wide");
@@ -208,7 +208,7 @@ function paintLow() {
     ${G.map((g) => `<div class="lgrp"><div class="lgh"><b>${g.s ? esc(g.s.name) : "Sin proveedor"}</b><button class="btn sm" data-a="lowwa" data-s="${g.s ? g.s.id : ""}">${svg("wa", "bi")}${g.s ? "Pedir por WhatsApp" : "Enviar por WhatsApp"}</button></div><div class="list">${g.l.map(row).join("")}</div></div>`).join("")}
     ${sinProv ? `<p class="muted sm" style="margin-top:10px">Elige el proveedor de cada producto en su ficha (Más opciones) para armar un pedido por proveedor.</p>` : ""}
     <div class="row wrap" style="margin-top:12px"><button class="btn sec" data-a="lowprint">${svg("print", "bi")}Imprimir lista</button></div>`
-    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Todo en orden</h2><p>Ningún producto está por debajo de su mínimo.</p></div>`;
+    : `<div class="empty"><img class="eimg" src="${IB("canasta")}" alt=""><h2>Todo en orden</h2><p>Ningún producto está por debajo de su mínimo.</p></div>`;
 }
 
 // Una vez al día, al abrir la caja: avisa lo que vence esta semana.
@@ -225,13 +225,13 @@ function paintExp() {
   const l = expItems(), el = $("#pbody");
   el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos vencidos o que vencen en los próximos 7 días. Ponle la fecha en su ficha (Más opciones).</p>
     <div class="list">${l.map((p) => `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>${dmy(p.exp)}${p.stock != null ? ` · quedan ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""}` : ""}</small></div><span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span></button>`).join("")}</div>`
-    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Nada por vencer</h2><p>${DB.products.some((p) => p.exp) ? "Ningún producto vence esta semana." : "Pon la fecha de vencimiento en la ficha de tus productos (Más opciones) y aquí verás lo que vence pronto."}</p></div>`;
+    : `<div class="empty"><img class="eimg" src="${IB("canasta")}" alt=""><h2>Nada por vencer</h2><p>${DB.products.some((p) => p.exp) ? "Ningún producto vence esta semana." : "Pon la fecha de vencimiento en la ficha de tus productos (Más opciones) y aquí verás lo que vence pronto."}</p></div>`;
 }
 function paintIdle() {
   const l = idleItems(), el = $("#pbody"), tot = r2(l.reduce((a, x) => a + x.val, 0));
   el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos con stock que no se mueven hace 30 días o más.${can("costos") ? ` Plata parada al costo: <b class="num">${money(tot)}</b>.` : ""}</p>
     <div class="list">${l.map(({ p, days, val }) => `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>Sin movimiento hace ${days} días · ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : " und."}</small></div>${can("costos") && val > 0 ? `<div class="v num">${money(val)}<small>parado</small></div>` : ""}</button>`).join("")}</div>`
-    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Todo se mueve</h2><p>Ningún producto con stock lleva 30 días sin venderse ni moverse.</p></div>`;
+    : `<div class="empty"><img class="eimg" src="${IB("canasta")}" alt=""><h2>Todo se mueve</h2><p>Ningún producto con stock lleva 30 días sin venderse ni moverse.</p></div>`;
 }
 
 /* ---------- importar / exportar ---------- */

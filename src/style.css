@@ -1885,3 +1885,9 @@ html[data-input=kbd] .help-message{animation:none}
 .lgrp{margin-bottom:16px}
 .lgh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 8px}
 .lgh b{font-size:1.02rem;letter-spacing:-.01em}
+
+/* ---------- Modo rápido (html.lite): sombras grandes fuera, bordes finos en su lugar ---------- */
+html.lite{--sh2:0 0 0 1px var(--line,rgba(0,0,0,.1));--sh3:0 0 0 1px var(--line,rgba(0,0,0,.14));--sh-paper:0 0 0 1px var(--line,rgba(0,0,0,.1));--sh-tile:0 0 0 1px var(--line,rgba(0,0,0,.1))}
+html.lite .help-chat{box-shadow:0 0 0 1px var(--hsep)}
+html.lite .help-launcher{box-shadow:0 0 0 1px var(--hsep)}
+html.lite .hl-orb .h{display:none}
