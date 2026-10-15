@@ -126,6 +126,7 @@ let toastT;
 function toast(msg, long) {
   const t = $("#toast"); if (!t) return;
   t.textContent = msg; t.classList.add("show");
+  if (long && typeof helpToastAdd === "function") helpToastAdd(t, msg); // «Pedir ayuda a Luis» (71-ayuda.js)
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), long ? 4200 : 2400);
 }
 
@@ -195,6 +196,7 @@ const IC = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  next: '<path d="M5 12h13M13 6l6 6-6 6"/>',
   hold: '<path d="M6 4h12v16l-6-4-6 4z"/><path d="M12 8v4"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
