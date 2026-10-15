@@ -421,9 +421,9 @@ function vzConsulta(a) {
     const lbl = a.medio ? METHODS[a.medio] || a.medio : "";
     return vzAns(a.medio ? `Ver cuánto entró hoy por ${lbl}` : "Ver las ventas de hoy", () => {
       const t = dayTotals(dkey()), by = { efectivo: t.efectivo, yape: t.yapeAll, plin: t.plin, tarjeta: t.tarjeta, transferencia: (t.by || {}).transferencia || 0 };
-      const rows = [["Total", money(t.total)], ["Ventas", String(t.n)], ["Efectivo", money(t.efectivo)], ["Yape", money(t.yapeAll)], ["Plin", money(t.plin)], ["Tarjeta", money(t.tarjeta)]];
+      const rows = [...(a.medio ? [["Total", money(t.total)]] : []), ["Ventas", String(t.n)], ["Efectivo", money(t.efectivo)], ["Yape", money(t.yapeAll)], ["Plin", money(t.plin)], ["Tarjeta", money(t.tarjeta)]];
       const m = vzMk((d) => a.medio ? `Hoy entraron ${d(by[a.medio] || 0)} por ${lbl}.` : t.n ? `Hoy vendiste ${d(t.total)} en ${t.n} ${t.n === 1 ? "venta" : "ventas"}.` : "Hoy todavía no hay ventas.");
-      return { title: "Ventas de hoy", w: m.w, say: m.say, rows };
+      return { title: "Ventas de hoy", w: m.w, say: m.say, rows, big: t.n || a.medio ? money(a.medio ? by[a.medio] || 0 : t.total) : "" };
     });
   }
   if (k === "ganancia") {
@@ -433,7 +433,7 @@ function vzConsulta(a) {
       const A = aggregate(repSales(g.from, g.to, "local")), sinCosto = Object.values(A.prod).filter((o) => o.m > 0 && !(o.c > 0)).length;
       const nota = A.n && sinCosto ? ` Ojo: ${sinCosto === 1 ? "un producto no tiene" : sinCosto + " productos no tienen"} costo, así que es aproximada.` : "";
       const m = vzMk((d) => A.n ? `${cap(g.label)} vendiste ${d(A.net)} y ganaste unos ${d(A.profit)}.${nota}` : `${cap(g.label)} no hay ventas.`);
-      return { title: "Ganancia", w: m.w, say: m.say, rows: A.n ? [["Vendido", money(A.net)], ["Costo", money(A.cost)], ["Ganancia", money(A.profit)], ["Margen", `${A.net ? Math.round((A.profit / A.net) * 100) : 0} %`]] : [] };
+      return { title: "Ganancia", w: m.w, say: m.say, big: A.n ? money(A.profit) : "", rows: A.n ? [["Vendido", money(A.net)], ["Costo", money(A.cost)], ["Ganancia", money(A.profit)], ["Margen", `${A.net ? Math.round((A.profit / A.net) * 100) : 0} %`]] : [] };
     });
   }
   if (k === "mas_vendidos") {
@@ -443,7 +443,8 @@ function vzConsulta(a) {
       const A = aggregate(repSales(g.from, g.to, "local")), l = Object.entries(A.prod).sort((x, y) => y[1].q - x[1].q).slice(0, 5);
       const fq = (o) => `${fmtQ(o.q)}${o.unit === "kg" ? " kg" : " und"}`;
       const m = vzMk(() => l.length ? `Lo más vendido ${g.label} es ${l[0][0]}, ${fq(l[0][1])}.${l.length > 1 ? ` Luego ${l.slice(1, 3).map((x) => x[0]).join(" y ")}.` : ""}` : `${g.label === "hoy" ? "Hoy" : "En ese tiempo"} todavía no hay ventas.`);
-      return { title: "Lo más vendido", w: m.w, say: m.say, rows: l.map(([n, o]) => [n, `${fq(o)} · ${money(o.m)}`]) };
+      const mx = l.length ? l[0][1].q || 1 : 1;
+      return { title: "Lo más vendido", w: m.w, say: m.say, rows: l.map(([n, o]) => [n, `${fq(o)} · ${money(o.m)}`, Math.max(.06, o.q / mx)]) };
     });
   }
   if (k === "caja") {
@@ -452,7 +453,7 @@ function vzConsulta(a) {
       const abiertos = DB.shifts.filter((s) => !s.t1);
       if (!abiertos.length) return { title: "Caja", w: "No hay una caja abierta ahora.", say: "No hay una caja abierta ahora.", rows: [] };
       const ef = r2(abiertos.reduce((x, s) => x + shiftSummary(s).expected, 0)), m = vzMk((d) => `En caja deberías tener ${d(ef)} en efectivo.`);
-      return { title: "Caja", w: m.w, say: m.say, rows: [["Efectivo en caja", money(ef)]] };
+      return { title: "Caja", w: m.w, say: m.say, big: money(ef), rows: [] };
     });
   }
   if (k === "deuda") {
@@ -523,7 +524,7 @@ function vzPlan(acc, prev) {
       if (kg && !a.cantidad && a.monto) { if (!(p.price > 0)) return { ok: false, txt: `${p.name}: dime cuánto pesa` }; a.cantidad = r3(a.monto / p.price); }
       const qty = r3(a.cantidad || 1);
       willAdd = true; pend.push(p);
-      return { ok: true, txt: `${fmtQ(qty)}${kg ? " kg" : ""} × ${p.name}${vzAp(r, a.nombre)}`, add: [p, qty] };
+      return { ok: true, txt: `${fmtQ(qty)}${kg ? " kg" : ""} × ${p.name}${vzAp(r, a.nombre)}`, add: [p, qty], rc: { q: `${fmtQ(qty)}${kg ? " kg" : ""}`, n: p.name, amt: r2(qty * (p.price || 0)) } };
     }
     if (a.tipo === "quitar" && (a.ultimo || pend.length)) {
       // algo que acabas de decir en esta misma frase («anota 2 atunes, quita 1»): se quita al aceptar, ya anotado
@@ -771,13 +772,30 @@ function vzGrammar() {
 
 /* ---------- pantallas: escuchando, entendí, errores ---------- */
 function vzShow(html) { openModal(html); ui.mk = "voz"; }
-const vzListenHtml = (txt) => `<div class="vzbox" role="status"><div class="vzmic">${svg("mic")}</div><h2>Te escucho…</h2><p class="vzt" id="vzt" aria-live="polite">${txt}</p>
+const vzListenHtml = (txt) => `<div class="vzbox" role="status"><div class="vzmic"><i class="vzo"></i><i class="vzo b"></i><i class="vzo c"></i><span class="vzg">${svg("mic")}</span></div><h2>Te escucho…</h2><p class="vzt" id="vzt" aria-live="polite">${txt}</p>
   <div class="btns h"><button class="btn sec" data-a="vozpausa" id="vzp">Pausar</button><button class="btn" data-a="vozstop">Listo</button></div>
   <p class="sm" style="margin-top:6px"><button class="link" data-a="${vzKeep ? "vozback" : "close"}">Cancelar</button>${vzInstalled() || vzElectron ? "" : `<button class="link" data-a="vozinstall">Instalar voz sin internet (34 MB)</button>`}</p></div>`;
 let vzKeep = null; // lista de la tarjeta «Entendí» que se conserva al tocar «Agregar más»
 const VZ_PAUSA = 2500; // ms en silencio para dar por terminada la frase
 const VZ_EJ = "Di, por ejemplo: «anota un yogurt y un cuarto de arroz» o «cobra con yape»";
-function vzSet(t) { const e = $("#vzt"); if (e) e.textContent = t; }
+let vzKn = null; // palabras de tus productos, clientes y proveedores (para marcar lo que la caja reconoce)
+const vzNorm = (w) => w.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+function vzKnown() {
+  if (vzKn) return vzKn; vzKn = new Set();
+  const add = (n) => String(n || "").split(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+/).forEach((x) => { if (x.length > 2) vzKn.add(vzNorm(x)); });
+  DB.products.filter((p) => p.on !== false).forEach((p) => add(p.name)); DB.clients.forEach((c) => add(c.name)); DB.supp.forEach((c) => add(c.name));
+  return vzKn;
+}
+// Lo que dices sale grande; los productos y nombres que la caja reconoce se marcan.
+function vzSet(t) {
+  const e = $("#vzt"); if (!e) return;
+  if (/^«.*»$/s.test(t)) {
+    const k = vzKnown(); e.classList.add("live");
+    e.innerHTML = esc(t.slice(1, -1)).split(/(\s+)/).map((w) => (/^\s*$/.test(w) ? w : (k.has(vzNorm(w.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/g, ""))) || /^\d+([.,]\d+)?$/.test(w)) ? `<mark class="vzw">${w}</mark>` : w)).join("");
+    return;
+  }
+  e.classList.remove("live"); e.textContent = t;
+}
 
 function vozStart() {
   if (!vozOk()) return toast("La voz no está activada en tu caja. Pídela a tu proveedor.", true);
@@ -789,12 +807,12 @@ function vozStart() {
 }
 function vzOfrecer(msg) {
   if (!navigator.onLine) return vzError(msg || "Sin internet. Conéctate una vez para instalar la voz sin internet.");
-  vzShow(`<div class="vzbox"><div class="vzmic">${svg("mic")}</div><h2>Voz sin internet</h2><p class="muted" style="margin:6px 0 14px">${esc(msg || "")} Se instala una sola vez (34 MB) y después funciona sin internet.</p>
+  vzShow(`<div class="vzbox"><div class="vzmic"><i class="vzo"></i><i class="vzo b"></i><i class="vzo c"></i><span class="vzg">${svg("mic")}</span></div><h2>Voz sin internet</h2><p class="muted" style="margin:6px 0 14px">${esc(msg || "")} Se instala una sola vez (34 MB) y después funciona sin internet.</p>
     <div class="btns h"><button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-a="vozinstall" data-enter>Instalar (34 MB)</button></div></div>`);
 }
 async function vzDoInstall() {
   stopVoz();
-  vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Instalando voz…</h2><div class="vzbar"><i id="vzbar"></i></div><p class="vzt" id="vzt">0 %</p></div>`);
+  vzShow(`<div class="vzbox" role="status"><div class="vzmic busy"><i class="vzo"></i><i class="vzo b"></i><i class="vzo c"></i><span class="vzg">${svg("mic")}</span></div><h2>Instalando voz…</h2><div class="vzbar"><i id="vzbar"></i></div><p class="vzt" id="vzt">0 %</p></div>`);
   const mk = ui.mk;
   try { await vzInstall((f) => { const b = $("#vzbar"); if (b) b.style.transform = `scaleX(${f})`; vzSet(Math.round(f * 100) + " %"); }); }
   catch (e) { if (ui.mk === mk) vzError("No se pudo instalar. Revisa tu internet e intenta otra vez."); return; }
@@ -804,7 +822,7 @@ async function vzDoInstall() {
 /* oído de Chrome (con internet) */
 function vzWeb() {
   const s = vz = { eng: "web", texto: "", base: "" };
-  vzShow(vzListenHtml(VZ_EJ));
+  vzKn = null; vzShow(vzListenHtml(VZ_EJ));
   s.max = setTimeout(() => vz === s && vzStop(), 30000);
   vzWebRec(s);
 }
@@ -850,12 +868,12 @@ const vzNubeOn = () => { try { return localStorage.getItem("cf-voz-nube") !== "0
 function vzMedidor(s, ac, src) {
   try {
     const an = ac.createAnalyser(); an.fftSize = 1024; src.connect(an); s.an = an; const buf = new Float32Array(an.fftSize);
-    s.lvT = setInterval(() => { an.getFloatTimeDomainData(buf); let q = 0; for (let i = 0; i < buf.length; i++) q += buf[i] * buf[i]; s.rms = Math.sqrt(q / buf.length); const m = $(".vzmic"); if (m) m.style.transform = `scale(${(1 + Math.min(.3, s.rms * 5)).toFixed(3)})`; }, 70);
+    s.lvT = setInterval(() => { an.getFloatTimeDomainData(buf); let q = 0; for (let i = 0; i < buf.length; i++) q += buf[i] * buf[i]; s.rms = Math.sqrt(q / buf.length); const m = $(".vzmic"); if (m) m.style.setProperty("--lv", (1 + Math.min(.3, s.rms * 5)).toFixed(3)); }, 70);
   } catch (e) {}
 }
 async function vzNubeRec() {
   const s = vz = { eng: "nube", texto: "", heard: 0, last: 0, t0: Date.now(), floor: null };
-  vzShow(vzListenHtml("Preparando el micrófono…"));
+  vzKn = null; vzShow(vzListenHtml("Preparando el micrófono…"));
   let ms;
   try { ms = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
   catch (e) { if (vz !== s) return; stopVoz(); return vzError(e && e.name === "NotAllowedError" ? "Permite el micrófono y vuelve a intentar." : e && e.name === "NotFoundError" ? "No encuentro el micrófono." : "No se pudo prender el micrófono."); }
@@ -892,7 +910,7 @@ async function vzNubeTexto(blob) {
 async function vzNubeSend(s, blob) {
   if (s.sent) return; s.sent = true; const dur = Date.now() - s.t0, oyo = s.heard >= 300; if (vz === s) vz = null; vzCleanVosk(s);
   if (!blob || blob.size < 1500 || !oyo) { const k = vzKeep; if (k) { vzKeep = null; toast("No te escuché. Tu lista sigue igual"); return vzShowPlan(k.plan, k.texto); } return vzError("No te escuché. Acércate al micrófono e intenta otra vez."); }
-  vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Entendiendo…</h2></div>`);
+  vzShow(`<div class="vzbox" role="status"><div class="vzmic busy"><i class="vzo"></i><i class="vzo b"></i><i class="vzo c"></i><span class="vzg">${svg("mic")}</span></div><h2>Entendiendo…</h2></div>`);
   const mk = ui.mk; let texto = "";
   try { texto = await vzNubeTexto(blob); }
   catch (e) {
@@ -908,7 +926,7 @@ async function vzNubeSend(s, blob) {
 /* oído sin internet (Vosk) */
 async function vzVosk() {
   const s = vz = { eng: "vosk", texto: "", fin: [], part: "" };
-  vzShow(vzListenHtml("Preparando la voz…"));
+  vzKn = null; vzShow(vzListenHtml("Preparando la voz…"));
   let model, ms;
   try {
     model = await vzGetModel(); // primero el modelo, después el micrófono: así no se pierde lo que dices
@@ -962,7 +980,7 @@ async function vozSend(s) {
   // Si la caja no entendió todo y hay IA, se le pide ayuda; me quedo con lo que entienda mejor (nunca empeora).
   const prev = vzKeep && vzKeep.plan, valor = (x) => { const pl = vzPlan(x, prev); return pl.filter((i) => i.ok).length * 3 - pl.filter((i) => !i.ok).length * 2; };
   if (navigator.onLine && vzIaOn() && (!acc.length || vzPlan(acc, prev).some((i) => !i.ok))) {
-    vzShow(`<div class="vzbox" role="status"><div class="vzmic busy">${svg("mic")}</div><h2>Entendiendo…</h2><p class="vzt">«${esc(texto)}»</p></div>`);
+    vzShow(`<div class="vzbox" role="status"><div class="vzmic busy"><i class="vzo"></i><i class="vzo b"></i><i class="vzo c"></i><span class="vzg">${svg("mic")}</span></div><h2>Entendiendo…</h2><p class="vzt">«${esc(texto)}»</p></div>`);
     const ia = await vzNube(texto);
     if (ia.length && (!acc.length || valor(ia) > valor(acc))) acc = ia;
   }
@@ -998,7 +1016,7 @@ function vzResponder(plan, texto) {
   vz = null;
   const rs = plan.map((x) => { try { return x.ans(); } catch (e) { return null; } }).filter(Boolean);
   if (!rs.length) return closeModal();
-  vzShow(`<div class="vzbox vzres" role="status">${rs.map((r) => `<h2>${esc(r.title)}</h2><p class="vzans">${esc(r.w)}</p>${r.rows.length ? `<div class="vzrows">${r.rows.map(([l, v]) => `<div class="kv"><span>${esc(l)}</span><b class="num">${esc(v)}</b></div>`).join("")}</div>` : ""}`).join("")}
+  vzShow(`<div class="vzbox vzres" role="status">${rs.map((r) => `<h2>${esc(r.title)}</h2>${r.big ? `<div class="vzbig num">${esc(r.big)}</div><p class="vzans sm2">${esc(r.w)}</p>` : `<p class="vzans">${esc(r.w)}</p>`}${r.rows.length ? `<div class="vzrows">${r.rows.map(([l, v, f], i) => `<div class="kv${f ? " vzbr" : ""}"${f ? ` style="--f:${f.toFixed(3)};--i:${i}"` : ""}><span>${esc(l)}</span><b class="num">${esc(v)}</b></div>`).join("")}</div>` : ""}`).join("")}
     <p class="sm" style="margin-top:8px"><button class="link" data-a="vozhabla">${vzHabla() ? "Silenciar las respuestas habladas" : "Activar las respuestas habladas"}</button></p>
     <div class="btns h"><button class="btn sec" data-a="voz">Preguntar otra cosa</button><button class="btn" data-a="close" data-enter>Listo</button></div></div>`);
   vzDi(rs.map((r) => r.say).join(" "));
@@ -1009,17 +1027,25 @@ function vzShowPlan(plan, texto) {
   const ok = plan.filter((x) => x.ok), modales = ok.filter((x) => x.modal).length;
   if (modales > 1) plan.forEach((x) => { if (x.modal && x !== ok.find((y) => y.modal)) { x.ok = false; x.txt += " (hazlo por separado, uno por vez)"; } });
   const hay = plan.some((x) => x.ok);
+  const rc = plan.filter((x) => x.ok && x.rc), suma = r2(rc.reduce((t, x) => t + x.rc.amt, 0));
   vzShow(`<h2>Entendí</h2><p class="muted sm" style="margin-bottom:8px">«${esc(texto)}»</p>
-    <div class="vzlist">${plan.map((x, i) => `<div class="vzl ${x.ok ? "" : "bad"}"><span class="vzi">${x.ok ? svg("check") : svg("close")}</span><span>${esc(x.txt)}${x.pick ? `<span class="vzpick">${x.pick.map((pk, k) => `<button class="btn sec sm" data-a="vozpick" data-i="${i}" data-j="${k}">${esc(pk.label)}</button>`).join("")}</span>` : ""}</span></div>`).join("")}</div>
+    <div class="vzlist">${plan.map((x, i) => `<div class="vzl ${x.ok ? "" : "bad"}" style="--i:${i}"><span class="vzi">${x.ok ? svg("check") : svg("close")}</span>${x.rc ? `<span class="vzn"><b class="vzq">${esc(x.rc.q)}</b> ${esc(x.rc.n)}${x.txt.slice(x.txt.indexOf(x.rc.n) + x.rc.n.length) ? `<small>${esc(x.txt.slice(x.txt.indexOf(x.rc.n) + x.rc.n.length).trim())}</small>` : ""}</span><b class="num vzm">${money(x.rc.amt)}</b>` : `<span>${esc(x.txt)}${x.pick ? `<span class="vzpick">${x.pick.map((pk, k) => `<button class="btn sec sm" data-a="vozpick" data-i="${i}" data-j="${k}">${esc(pk.label)}</button>`).join("")}</span>` : ""}</span>`}</div>`).join("")}${rc.length ? `<div class="vzsum"><span>Suma de lo que anotas</span><b class="num">${money(suma)}</b></div>` : ""}</div>
     ${hay ? `<button class="btn sec" data-a="vozmas" style="width:100%;margin-top:10px">+ Agregar más</button>` : ""}
     <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button>${hay ? `<button class="btn" data-a="vozok" data-enter>Aceptar</button>` : `<button class="btn" data-a="voz">Hablar otra vez</button>`}</div>`);
+}
+// Un ✓ que aparece y se va, y una vibración corta si el equipo la tiene.
+function vzTic() {
+  try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+  if (document.documentElement.dataset.input === "kbd") return;
+  const d = document.createElement("div"); d.className = "vztic"; d.setAttribute("aria-hidden", "true"); d.innerHTML = svg("check");
+  document.body.appendChild(d); setTimeout(() => d.remove(), 900);
 }
 function vozAccept() {
   const plan = ((vz && vz.plan) || []).filter((x) => x.ok); vz = null; if (!plan.length) return closeModal();
   closeModal();
   let n = 0; // en el orden en que lo dijiste: anotar, quitar, cambiar...
   plan.forEach((x) => { if (x.add) { addToCart(x.add[0], x.add[1]); n++; } else if (x.exec) { x.exec(); n++; } });
-  if (n) { paintSale(); beep(true); toast(n === 1 ? "Listo" : `Listo: ${n} cambios en el ticket`); }
+  if (n) { paintSale(); beep(true); vzTic(); toast(n === 1 ? "Listo" : `Listo: ${n} cambios en el ticket`); }
   const m = plan.find((x) => x.run); if (m) m.run();
 }
 act({
