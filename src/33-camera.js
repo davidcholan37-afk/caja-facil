@@ -5,7 +5,7 @@ const camOk = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserM
 function loadScanLib() {
   return new Promise((res, rej) => {
     if (window.__Html5QrcodeLibrary__) return res(window.__Html5QrcodeLibrary__);
-    const s = document.createElement("script"); s.src = "escaner.js"; s.async = true;
+    const s = document.createElement("script"); s.src = libUrl("escaner.js"); s.async = true;
     s.onload = () => (window.__Html5QrcodeLibrary__ ? res(window.__Html5QrcodeLibrary__) : rej(new Error("lib")));
     s.onerror = () => rej(new Error("lib"));
     document.head.appendChild(s);

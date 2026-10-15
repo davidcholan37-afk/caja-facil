@@ -139,14 +139,7 @@ document.addEventListener("keydown", (e) => {
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register(/Electron\/|CajaFacilEscritorio/.test(navigator.userAgent) ? "sw.js?escritorio=1" : "sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
 window.CF = { get DB() { return DB; }, ui, flush, save, dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan };
-// Fondo: foto del puesto (nítida en la pantalla de ingreso, suave detrás de la app).
-function paintBg() {
-  const F = window.CF_FOTO || {}; if (!F._puesto) return;
-  const st = document.documentElement.style;
-  st.setProperty("--puesto", `url("${F._puesto}")`); st.setProperty("--puesto-suave", `url("${F._puesto_suave}")`);
-}
 async function boot() {
-  paintBg();
   await loadDB();
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; a.on = true; a.role = "admin"; }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
@@ -157,5 +150,7 @@ async function boot() {
   if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");
   cloudBoot();
+  libsLater();
+  liteBench();
 }
 boot();

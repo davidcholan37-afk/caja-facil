@@ -32,7 +32,7 @@ const countTotal = (q) => r2(DENOMS.reduce((a, d) => a + d * (q[d] || 0), 0));
 /* ---------- abrir y cerrar caja ---------- */
 function openShift(after) {
   const last = DB.shifts.filter((s) => s.t1).sort((a, b) => b.t1 - a.t1)[0];
-  openModal(`<div class="qhead"><img class="qimg" src="${(window.CF_IMG || {}).dinero || ""}" alt=""><div><h2>Abrir caja</h2><p class="muted">${esc(me().name)} · ${fmtDT(Date.now())}</p></div></div>
+  openModal(`<div class="qhead"><img class="qimg" src="${IB("dinero")}" alt=""><div><h2>Abrir caja</h2><p class="muted">${esc(me().name)} · ${fmtDT(Date.now())}</p></div></div>
     <label class="fld"><span>¿Con cuánto efectivo empiezas? (sencillo en el cajón)</span><input class="inp num big" id="shopen" inputmode="decimal" placeholder="0.00" autofocus></label>
     ${last ? `<p class="muted" style="margin:-4px 0 12px">El último cierre (${esc(last.un)}) contó ${money(last.counted)}.</p>` : ""}
     <div class="btns h"><button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-enter id="shok">Abrir caja</button></div>`);
