@@ -57,6 +57,12 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - `sw.js` no toca `/voz/` ni borra `cf-voz-1`.
 - Oído en la nube (`supabase/functions/voz-oido/index.ts`, Whisper tipo OpenAI; secretos opcionales `STT_URL`, `STT_KEY`, `STT_MODEL`, si faltan usa los de IA): en el programa de Windows y cuando no hay Web Speech se graba con el micrófono (volumen automático + detector de silencio) y se manda el audio con el catálogo como pista. Si falla (403 sin voz, 429, 5xx) se avisa y por 10 min se usa Vosk. Se apaga con localStorage `cf-voz-nube`="0". Cuenta en el mismo límite diario (`voz_usar`).
 
+## Luis (chat de ayuda)
+- `src/71-ayuda.js` + `supabase/functions/ayuda/index.ts`. Cara «tecnológica» (vidrio oscuro, orbe, `.hl-*` y `.help-*` en `src/style.css`); solo transform/opacity.
+- Tres modos en el mismo chat: (1) **órdenes escritas** («anota 2 leches», «cuánto vendí hoy») con el mismo intérprete de la voz (`vzParse`/`vzPlan`), solo si hay extra de voz (`vozOk`); lo simple sale como tarjeta «Entendí» dentro del chat con Aceptar/Cancelar (`ayudaSi`/`ayudaNo` → `vozAccept`), y cobrar/elegir entre parecidos/abrir ficha se delega a la ventana de la voz (`vzShowPlan`); las preguntas empiezan con cómo/dónde/qué… (`HELP_Q`) y van a la IA. (2) **IA** (`ayuda`): recibe `pantalla` y `ordenes`, conoce toda la caja en su prompt y puede terminar con marcas `[[ir:prod.exp]]` que el chat vuelve botones «Ir a…» (`HELP_DEST`: solo navega, nunca cambia datos). (3) **Sin internet** o si la IA falla: pasos guardados en `HELP_KB` (palabras clave sin tildes).
+- «Llévame a productos» se resuelve local (`helpNavIntent`, sin IA). Sugerencias por pantalla: `HELP_CHIPS`. Los avisos largos de error (`toast(msg, true)`) muestran «Pedir ayuda a Luis» (`helpToastAdd`), que manda solo el texto del aviso.
+- Si cambias funciones de la caja, actualiza `HELP_KB` y el prompt de `ayuda` (hay que volver a desplegar la función con el index.ts completo).
+
 ## Programa de Windows
 - `desktop/` (Electron): ventana que abre la caja publicada (se actualiza sola). El .exe lo fabrica GitHub Actions (`.github/workflows/escritorio.yml`) y lo publica en Releases como `CajaFacil-Setup.exe`. Para una versión nueva del programa sube `version` en `desktop/package.json`.
 - Google no deja entrar dentro del programa: abre el navegador en `#login-escritorio` y vuelve con `cajafacil://auth#...` (ver `src/67-cloud.js`).
