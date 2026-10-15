@@ -159,6 +159,15 @@ function vzParseAsk(toks, j, raw) {
     const nombre = toks.filter((t) => !VZ_FN.has(t) && !vzIsNum(t) && !["debe", "deben", "debo", "debemos", "debes", "deuda", "deudas", "deudor", "deudores", "moroso", "morosos", "fiado", "fiados", "quien", "quienes", "lista", "total", "le", "les", "cliente", "clientes", "proveedor", "proveedores", "todos", "todas", "tengo", "hay", "cuanto", "cuantos", "fia", "fiaron", "con", "nos", "te", "se"].includes(t)).join(" ");
     return [{ tipo: "consulta", consulta: "deuda", ...(nombre ? { nombre } : {}), ...(prov ? { prov: true } : {}) }];
   }
+  // qué comprar, qué vence, qué no se mueve
+  if (!toks.some(vzIsNum)) {
+    if (j.includes("que comprar") || j.includes("que compro") || j.includes("lista de compra") || j.includes("que tengo que comprar") || j.includes("que debo comprar") || j.includes("que necesito comprar") || j.includes("que hay que comprar") || j.includes("que me falta comprar") || j.includes("que falta comprar") || j.includes("que pedir") || j.includes("que pido") || j.includes("que tengo que pedir")) return [{ tipo: "consulta", consulta: "comprar" }];
+    if (j.includes("no se vende") || j.includes("no se venden") || j.includes("no se mueve") || j.includes("no se mueven") || j.includes("sin mover") || j.includes("no vendo") || j.includes("no rota") || j.includes("no rotan") || j.includes("productos parados") || j.includes("plata parada") || j.includes("dinero parado") || j.includes("mercaderia parada")) return [{ tipo: "consulta", consulta: "sin_mover" }];
+    if (has(/^(vence|vencen|vencer|venceran|vencera|vencimiento|vencimientos|vencido|vencidos|vencida|vencidas|caduca|caducan|caducado|caducados|vencio)$/)) {
+      const nombre = toks.filter((t) => !VZ_FN.has(t) && !VZ_ASK_RUIDO.has(t) && !/^(vence|vencen|vencer|venceran|vencera|vencimiento|vencimientos|vencido|vencidos|vencida|vencidas|caduca|caducan|caducado|caducados|vencio|cuando|pronto|esta|semana|productos|producto|algo|alguno|alguna|que|cual|cuales|hay|tengo|proximo|proximos|dias|dia|ya|por)$/.test(t)).join(" ");
+      return [{ tipo: "consulta", consulta: "vence", ...(nombre ? { nombre } : {}) }];
+    }
+  }
   // qué se está acabando
   const lista = j.includes("poco stock") || j.includes("stock bajo") || j.includes("queda poco") || j.includes("quedan pocos") || j.includes("quedan pocas") || j.includes("que falta") || j.includes("que me falta");
   if ((has(VZ_BAJO) || lista) && !toks.some(vzIsNum)) {
@@ -483,6 +492,29 @@ function vzConsulta(a) {
       return { title: "Quién te debe", w: m.w, say: m.say, rows: l.slice(0, 8).map((y) => [y.x.name, money(y.b)]) };
     });
   }
+  if (k === "comprar") {
+    return vzAns("Ver qué te falta comprar", () => {
+      const G = lowGroups(), n = G.reduce((x, g) => x + g.l.length, 0);
+      const m = vzMk((d, q) => n ? `Te falta comprar ${n} ${n === 1 ? "producto" : "productos"}: ${G.flatMap((g) => g.l).slice(0, 4).map((p) => `${p.name} (${q(suggest(p))}${p.unit === "kg" ? " kilos" : ""})`).join(", ")}${n > 4 ? " y otros más" : ""}.` : "No te falta comprar nada: todo está sobre su mínimo.");
+      return { title: "Qué comprar", w: m.w, say: m.say, rows: G.flatMap((g) => g.l.map((p) => [p.name + (g.s ? ` · ${g.s.name}` : ""), `pedir ${fmtQ(suggest(p))}${p.unit === "kg" ? " kg" : ""}`])).slice(0, 10) };
+    });
+  }
+  if (k === "vence") {
+    let pr = null;
+    if (a.nombre) { const r = vzFind(DB.products, a.nombre, (x) => x.name); if (r.amb) return amb(r, a); if (!r.it) return { ok: false, txt: `No encontré el producto «${a.nombre}»` }; pr = r.it; }
+    return vzAns(pr ? `Ver cuándo vence ${pr.name}` : "Ver qué vence pronto", () => {
+      if (pr) { const m = vzMk(() => pr.exp ? `${pr.name}: ${expTxt(pr).toLowerCase()} (${dmy(pr.exp)}).` : `${pr.name} no tiene fecha de vencimiento.`); return { title: pr.name, w: m.w, say: m.say, rows: pr.exp ? [["Vence", dmy(pr.exp)]] : [] }; }
+      const l = expItems(), m = vzMk(() => l.length ? `${l.length === 1 ? "Vence pronto 1 producto" : `Vencen pronto ${l.length} productos`}: ${l.slice(0, 4).map((p) => `${p.name} (${expTxt(p).toLowerCase()})`).join(", ")}${l.length > 4 ? " y otros más" : ""}.` : "No hay productos por vencer esta semana.");
+      return { title: "Por vencer", w: m.w, say: m.say, rows: l.slice(0, 10).map((p) => [p.name, expTxt(p)]) };
+    });
+  }
+  if (k === "sin_mover") {
+    return vzAns("Ver qué no se mueve", () => {
+      const l = idleItems(), tot = r2(l.reduce((x, y) => x + y.val, 0));
+      const m = vzMk((d) => l.length ? `Tienes ${l.length} ${l.length === 1 ? "producto" : "productos"} sin moverse hace más de 30 días${can("costos") && tot > 0 ? `, con ${d(tot)} parados` : ""}: ${l.slice(0, 3).map((y) => y.p.name).join(", ")}${l.length > 3 ? " y otros más" : ""}.` : "Todo se está moviendo: ningún producto lleva 30 días parado.");
+      return { title: "Sin mover", w: m.w, say: m.say, big: l.length && can("costos") && tot > 0 ? money(tot) : "", rows: l.slice(0, 8).map((y) => [y.p.name, `${y.days} días${can("costos") && y.val > 0 ? " · " + money(y.val) : ""}`]) };
+    });
+  }
   if (k === "bajos") {
     return vzAns("Ver qué se está acabando", () => {
       const l = lowItems(), m = vzMk((d, q) => l.length ? `Se están acabando ${l.length} ${l.length === 1 ? "producto" : "productos"}: ${l.slice(0, 4).map((p) => p.stock <= 0 ? `${p.name} (ya no queda)` : `${p.name} (${q(p.stock)})`).join(", ")}${l.length > 4 ? " y otros más" : ""}.` : "Todo bien: ningún producto está bajo de stock.");
@@ -529,7 +561,7 @@ function vzPlan(acc, prev) {
       if (kg && !a.cantidad && a.monto) { if (!(p.price > 0)) return { ok: false, txt: `${p.name}: dime cuánto pesa` }; a.cantidad = r3(a.monto / p.price); }
       const qty = r3(a.cantidad || 1);
       willAdd = true; pend.push(p);
-      return { ok: true, txt: `${fmtQ(qty)}${kg ? " kg" : ""} × ${p.name}${vzAp(r, a.nombre)}`, add: [p, qty], rc: { q: `${fmtQ(qty)}${kg ? " kg" : ""}`, n: p.name, amt: r2(qty * (p.price || 0)) } };
+      return { ok: true, txt: `${fmtQ(qty)}${kg ? " kg" : ""} × ${p.name}${vzAp(r, a.nombre)}`, add: [p, qty], rc: { q: `${fmtQ(qty)}${kg ? " kg" : ""}`, n: p.name, amt: r2(qty * (mayorOf(p, r3(qty + (cartLines().find((x) => x.l.id === p.id && !x.l.pres) || { l: { qty: 0 } }).l.qty)) ?? p.price ?? 0)) } };
     }
     if (a.tipo === "quitar" && (a.ultimo || pend.length)) {
       // algo que acabas de decir en esta misma frase («anota 2 atunes, quita 1»): se quita al aceptar, ya anotado

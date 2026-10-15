@@ -63,7 +63,7 @@ function pickUser(id, only) {
 function login(u) {
   pinOk(); ui.user = u.id; hideLock(); log("Ingreso al sistema", u.name);
   if (!tabOk(ui.tab)) ui.tab = "venta";
-  render(); focusQ();
+  render(); focusQ(); avisoDia();
 }
 function closeModalQuiet() { const m = $("#modal"); if (!m.hidden) { m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll"); ui.pay = null; modalBack = null; stopScaleRead(); stopCam(); stopVoz(); } }
 function lockNow() { if (!needLogin()) return toast("Pon una clave a tu usuario en Ajustes para poder bloquear"); log("Salió / bloqueó", (me() || {}).name || ""); loginScreen(); }

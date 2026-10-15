@@ -152,7 +152,7 @@ async function boot() {
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   $("#lockPad").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button data-a="lockkey" data-k="${n}">${n}</button>`).join("") + `<button class="ghost" tabindex="-1" aria-hidden="true"></button><button data-a="lockkey" data-k="0">0</button><button data-a="lockkey" data-k="del" aria-label="Borrar">⌫</button>`;
   if (needLogin()) { ui.user = null; render(); loginScreen(); }
-  else { ui.user = activeUsers()[0].id; render(); }
+  else { ui.user = activeUsers()[0].id; render(); avisoDia(); }
   if (serialOk() && DESK()) connectScale(false);
   if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");

@@ -31,7 +31,7 @@ VIEWS.cli = function viewClients(v) {
   const debtors = all.filter((x) => x.a.debt > 0), late = all.filter((x) => x.a.late), tot = r2(debtors.reduce((a, x) => a + x.a.debt, 0));
   const F = [["todos", "Todos"], ["deuda", `Con deuda (${debtors.length})`], ["vencidos", `Vencidos (${late.length})`]];
   ui.cf = ui.cf || "todos";
-  v.innerHTML = `<div class="ph"><h1>Clientes</h1><div class="row wrap">${can("clientes") ? `<button class="btn sm" data-a="clinewv">+ Nuevo cliente</button>` : ""}</div></div>
+  v.innerHTML = `<div class="ph"><h1>Clientes</h1><div class="row wrap">${debtors.length ? `<button class="btn sec sm" data-a="clirem">${svg("wa", "bi")}Recordar deudas</button>` : ""}${can("clientes") ? `<button class="btn sm" data-a="clinewv">+ Nuevo cliente</button>` : ""}</div></div>
     <div class="sumrow"><div class="sum"><b>${DB.clients.length}</b><span>Clientes</span></div><div class="sum ${tot > 0 ? "warn" : ""}"><b class="num">${money(tot)}</b><span>Te deben (fiado)</span></div><div class="sum ${late.length ? "bad" : ""}"><b>${late.length}</b><span>Con pago vencido</span></div></div>
     <div class="seg tabs2">${F.map(([k, l]) => `<button class="${ui.cf === k ? "on" : ""}" data-a="cfil" data-f="${k}">${l}</button>`).join("")}</div>
     <input class="inp" id="cq" type="search" placeholder="Buscar por nombre, DNI, RUC o celular" style="margin-bottom:12px" value="${esc(ui.cq)}">
@@ -91,6 +91,13 @@ function clientDetail(id, tab) {
     : (sales.length ? `<div class="list">${sales.slice(0, 100).map((s) => `<button class="it sm" data-a="sale" data-id="${s.id}"><div class="t"><b>${DOCS[s.doc.type]} ${docShort(s)}</b><small>${dmy(s.date)} ${hhmm(s.t)} · ${esc(methodLabel(s))} · ${s.items.length} ítems</small>${s.void ? ` <span class="tag void">Anulada</span>` : ""}</div><div class="v num">${money(s.total)}</div></button>`).join("")}</div>` : `<p class="muted">Aún no compra nada.</p>`)}
     <div class="btns"><button class="btn sec" data-a="close">Cerrar</button></div>`, "wide");
 }
+// «Recordar deudas»: todos los que deben, con un botón de WhatsApp cada uno (marca a quién ya le avisaste hoy).
+function openRem() {
+  const l = DB.clients.map((c) => ({ c, a: agingOf(c) })).filter((x) => x.a.debt > 0).sort((x, y) => y.a.debt - x.a.debt);
+  openModal(`<h2>Recordar deudas</h2><p class="muted" style="margin-bottom:12px">Toca «WhatsApp» y se abre el mensaje ya escrito. Tú solo lo envías.</p>
+    <div class="list" id="remlist">${l.map(({ c, a }) => `<div class="it"><span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span><div class="t"><b>${esc(c.name)}</b><small>Debe ${money(a.debt)}${a.days ? ` · hace ${a.days} días` : ""}${c.rem === dkey() ? " · ya le avisaste hoy" : ""}</small></div>${c.phone ? `<button class="btn ${c.rem === dkey() ? "sec " : ""}sm" data-a="cliwa" data-id="${c.id}">${svg("wa", "bi")}WhatsApp</button>` : `<small class="muted">Sin celular</small>`}</div>`).join("")}</div>
+    <div class="btns"><button class="btn sec" data-a="remclose">Cerrar</button></div>`, "wide");
+}
 function openAbono(id) {
   const c = cli(id); if (!c) return; const debt = balanceOf(c);
   ui.ab = { id, m: "efectivo" };
@@ -133,7 +140,14 @@ act({
     ui.abhtml = $(".rcpt").innerHTML; if (ui.tab === "cli") VIEWS.cli($("#view"));
   },
   abprint: () => printHtml(ui.abhtml || ""),
-  cliwa: (el) => { const c = cli(el.dataset.id); if (!c) return; window.open(`https://wa.me/51${c.phone.replace(/\D/g, "").slice(-9)}?text=` + encodeURIComponent(`Hola ${c.name.split(" ")[0]}, te saluda ${DB.biz.name}. Tu saldo pendiente es de ${money(balanceOf(c))}. ¡Gracias por tu preferencia!`), "_blank", "noopener"); },
+  cliwa: (el) => {
+    const c = cli(el.dataset.id); if (!c) return;
+    const a = agingOf(c), desde = a.oldest ? ` desde el ${dmy(a.oldest)}` : "";
+    window.open(`https://wa.me/51${c.phone.replace(/\D/g, "").slice(-9)}?text=` + encodeURIComponent(`Hola ${c.name.split(" ")[0]}, te saluda ${DB.biz.name}. Tienes pendiente ${money(a.debt)}${desde}. Cuando puedas, pásate a pagar. ¡Gracias por tu preferencia!`), "_blank", "noopener");
+    c.rem = dkey(); save(); if ($("#remlist")) openRem();
+  },
+  clirem: () => openRem(),
+  remclose: () => closeModal(),
   cliprint: (el) => { const c = cli(el.dataset.id); if (c) printHtml(stmtHtml(c), "rep"); },
   ptsadj: (el) => { const c = cli(el.dataset.id); promptBox({ title: "Ajustar puntos", text: `${esc(c.name)} tiene ${pointsOf(c)} puntos. Escribe cuántos sumar (o con signo menos para restar).`, label: "Puntos", num: true, ph: "Ej: 50 o -20" }, (v) => { const n = parseInt(v, 10); if (!n) return; c.ptsAdj = (+c.ptsAdj || 0) + n; log("Ajuste de puntos", `${c.name}: ${n}`); save(); clientDetail(c.id); }); }
 });

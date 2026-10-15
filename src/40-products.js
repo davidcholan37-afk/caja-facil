@@ -1,15 +1,34 @@
 /* ===================== 40 · PRODUCTOS E INVENTARIO ===================== */
 const lowItems = () => DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, "es"));
+// Por vencer (hasta n días, ya vencidos incluidos) y sin mover (con stock y sin movimiento hace n días o más).
+const daysTo = (d) => Math.round((pk(d) - pk(dkey())) / 864e5);
+const expItems = (n = 7) => DB.products.filter((p) => p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= n).sort((a, b) => a.exp.localeCompare(b.exp) || a.name.localeCompare(b.name, "es"));
+const expTxt = (p) => { const d = daysTo(p.exp); return d < 0 ? `Vencido hace ${-d} ${d === -1 ? "día" : "días"}` : d === 0 ? "Vence hoy" : d === 1 ? "Vence mañana" : `Vence en ${d} días`; };
+const idleItems = (n = 30) => {
+  const last = {}; DB.kx.forEach((x) => { if (x.t > (last[x.p] || 0)) last[x.p] = x.t; });
+  const lim = Date.now() - n * 864e5;
+  return DB.products.filter((p) => p.stock > 0 && last[p.id] && last[p.id] < lim).map((p) => ({ p, days: Math.floor((Date.now() - last[p.id]) / 864e5), val: r2(p.stock * costOf(p)) })).sort((a, b) => b.val - a.val || b.days - a.days);
+};
+// Pedido por proveedor: agrupa lo que se está acabando según el proveedor de cada producto.
+function lowGroups() {
+  const g = new Map();
+  lowItems().forEach((p) => { const s = p.sup && typeof supp === "function" ? supp(p.sup) : null, k = s ? s.id : ""; if (!g.has(k)) g.set(k, { s, l: [] }); g.get(k).l.push(p); });
+  return [...g.values()].sort((a, b) => (a.s ? 0 : 1) - (b.s ? 0 : 1) || (a.s ? a.s.name.localeCompare(b.s.name, "es") : 0));
+}
+const waNum = (t) => { const d = String(t || "").replace(/\D/g, ""); return d.length >= 9 ? "51" + d.slice(-9) : ""; };
 const suggest = (p) => Math.max(1, Math.ceil(Math.max((p.min || 0) * 2 - p.stock, p.min || 1)));
 VIEWS.prod = function viewProducts(v) {
-  const low = lowItems(), val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0));
-  const T = [["lista", "Inventario"], ["kx", "Movimientos (kardex)"], ["low", `Por reponer${low.length ? ` (${low.length})` : ""}`]];
+  const low = lowItems(), val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0)), nExp = expItems().length, nIdle = idleItems().length;
+  const T = [["lista", "Inventario"], ["low", `Por reponer${low.length ? ` (${low.length})` : ""}`], ["exp", `Por vencer${nExp ? ` (${nExp})` : ""}`], ["idle", `Sin mover${nIdle ? ` (${nIdle})` : ""}`], ["kx", "Movimientos (kardex)"]];
   v.innerHTML = `<div class="ph"><h1>Productos</h1><div class="row wrap">
       <button class="btn sec sm" data-a="prodmas">Más</button>${can("precios") ? `<button class="btn sm" data-a="pnew">+ Nuevo producto</button>` : ""}</div></div>
     <div class="seg tabs2">${T.map(([k, l]) => `<button class="${ui.ptab === k ? "on" : ""}" data-a="ptab" data-t="${k}">${l}</button>`).join("")}</div>
     <div id="pbody"></div>`;
+  { const on = $(".tabs2 .on"); if (on && on.scrollIntoView) on.scrollIntoView({ inline: "center", block: "nearest" }); }
   if (ui.ptab === "kx") return paintKardex();
   if (ui.ptab === "low") return paintLow();
+  if (ui.ptab === "exp") return paintExp();
+  if (ui.ptab === "idle") return paintIdle();
   $("#pbody").innerHTML = `<div class="sumrow"><div class="sum"><b>${DB.products.length}</b><span>Productos</span></div><button class="sum lowbtn ${low.length ? "warn" : ""}" data-a="ptab" data-t="low"><b>${low.length}</b><span>Stock bajo · ver</span></button>${can("costos") ? `<div class="sum"><b class="num">${money(val)}</b><span>Inventario al costo</span></div>` : `<div class="sum"><b>${[...new Set(DB.products.map((p) => p.cat).filter(Boolean))].length}</b><span>Categorías</span></div>`}</div>
     <input class="inp" id="pq" type="search" placeholder="Buscar por nombre, categoría o código" style="margin-bottom:12px" value="${esc(ui.pq)}">
     <div class="list" id="plist"></div>`;
@@ -22,7 +41,7 @@ function paintPList() {
   const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(raw) || (p.pres || []).some((x) => (x.code || "").includes(raw)))
     .sort((a, b) => (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   el.innerHTML = list.slice(0, 120).map((p) => {
-    const kgp = p.unit === "kg", tag = p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "";
+    const kgp = p.unit === "kg", tag = (p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "") + (p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= 7 ? ` <span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span>` : "");
     const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
     return `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}${p.fav ? " ★" : ""}</b><small>${esc(extra)}</small> ${tag}</div><div class="v num">${money(p.price)}${kgp ? " /kg" : ""}<small>${p.stock == null ? "Sin control" : fmtQ(p.stock) + (kgp ? " kg" : " und.")}</small></div></button>`;
   }).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
@@ -33,6 +52,7 @@ function openProduct(id) {
   const p = id ? prod(id) : null;
   if (p && !can("precios")) return productInfo(p);
   const base = p ? JSON.parse(JSON.stringify(p)) : { id: "", name: "", price: "", cost: "", stock: "", min: 5, cat: ui.cat && !ui.cat.startsWith("__") ? ui.cat : "", code: "", unit: "u", pres: [], recipe: [], igv: true, img: "", fav: false, color: "", on: true };
+  base.mq = base.mayor ? base.mayor.q : ""; base.mp = base.mayor ? base.mayor.p : ""; base.sup = base.sup || ""; base.exp = base.exp || "";
   ui.pe = { id: id || "", d: base, stock0: p ? p.stock : null };
   paintPE();
 }
@@ -60,7 +80,11 @@ function paintPE() {
       <label class="fld"><span>Costo (S/${kg ? " por kilo" : ""})</span><input class="inp num" data-f="cost" inputmode="decimal" value="${esc(d.cost)}" placeholder="${(d.recipe || []).length ? "Se calcula de la receta" : "Opcional"}"></label></div>
     <div class="two"><label class="fld"><span>Código rápido o de barras</span><span class="codein"><input class="inp" data-f="code" value="${esc(d.code)}" placeholder="Ej: ${nextCode()}" autocomplete="off"><button type="button" class="scanb" data-a="camcode" title="Leer el código con la cámara" aria-label="Leer el código con la cámara">${svg("scan")}</button></span></label>
       <label class="fld"><span>Stock actual${kg ? " (kg)" : ""}</span><input class="inp num" data-f="stock" inputmode="decimal" value="${d.stock == null ? "" : esc(d.stock)}" placeholder="Vacío = sin control"></label></div>
-    <details class="box"><summary><b>Más opciones</b><small>Aviso de stock bajo, IGV, favorito y mostrar en venta</small></summary>
+    <details class="box" ${d.mq || d.sup || d.exp ? "open" : ""}><summary><b>Más opciones</b><small>Precio por mayor, proveedor, vencimiento, stock bajo, IGV y favorito</small></summary>
+    <div class="two"><label class="fld"><span>Precio por mayor: desde${kg ? " (kg)" : " (unidades)"}</span><input class="inp num" data-f="mq" inputmode="decimal" value="${esc(d.mq)}" placeholder="Ej: 12"></label>
+      <label class="fld"><span>Cada ${kg ? "kilo" : "una"} cuesta (S/)</span><input class="inp num" data-f="mp" inputmode="decimal" value="${esc(d.mp)}" placeholder="Ej: 0.80"></label></div>
+    <div class="two"><label class="fld"><span>Proveedor</span><select class="inp" data-f="sup"><option value="">Sin proveedor</option>${DB.supp.slice().sort((a, b) => a.name.localeCompare(b.name, "es")).map((s) => `<option value="${s.id}" ${s.id === d.sup ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
+      <label class="fld"><span>Fecha de vencimiento</span><input class="inp" type="date" data-f="exp" value="${esc(d.exp)}"></label></div>
     <div class="two"><label class="fld"><span>Avisar si baja de</span><input class="inp num" data-f="min" inputmode="decimal" value="${esc(d.min)}"></label>
       <div class="checks"><label class="ck"><input type="checkbox" data-f="igv" ${d.igv !== false ? "checked" : ""}> Afecto a IGV</label><label class="ck"><input type="checkbox" data-f="fav" ${d.fav ? "checked" : ""}> Favorito (sale primero)</label><label class="ck"><input type="checkbox" data-f="on" ${d.on !== false ? "checked" : ""}> Mostrar en venta</label></div></div></details>
     <details class="box" ${(d.pres || []).length ? "open" : ""}><summary><b>Presentaciones</b><small>Ej: paquete x6, caja x12, jaba x30 — cada una con su precio y código</small></summary>
@@ -96,7 +120,11 @@ function saveProduct() {
   }
   const recipe = (d.recipe || []).filter((x) => x.id && x.qty > 0).map((x) => ({ id: x.id, qty: r3(x.qty) }));
   const stockStr = String(d.stock ?? "").trim(), stock = stockStr === "" ? null : r3(num(stockStr));
-  const data = { name, price, cost: r2(num(d.cost)), min: Math.max(0, r3(num(d.min))), cat: String(d.cat || "").trim(), code, unit: d.unit === "kg" ? "kg" : "u", pres, recipe, igv: !!d.igv, fav: !!d.fav, on: !!d.on, img: d.img || "", color: d.color || "" };
+  const mq = String(d.mq ?? "").trim(), mp = String(d.mp ?? "").trim();
+  if ((mq || mp) && !(num(mq) >= 2 && num(mp) > 0)) return toast("Precio por mayor: escribe desde cuánto (2 o más) y el precio de cada uno");
+  if (mq && num(mp) >= price) return toast("El precio por mayor debe ser menor al precio normal");
+  const mayor = mq ? { q: r3(num(mq)), p: r2(num(mp)) } : null;
+  const data = { mayor, sup: d.sup || "", exp: d.exp || "", name, price, cost: r2(num(d.cost)), min: Math.max(0, r3(num(d.min))), cat: String(d.cat || "").trim(), code, unit: d.unit === "kg" ? "kg" : "u", pres, recipe, igv: !!d.igv, fav: !!d.fav, on: !!d.on, img: d.img || "", color: d.color || "" };
   const apply = () => {
     let p = id ? prod(id) : null;
     if (p) {
@@ -174,10 +202,36 @@ function paintKardex() {
 }
 function paintLow() {
   const l = lowItems(), el = $("#pbody");
-  el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos que llegaron a su mínimo. «Pedir» es una sugerencia para cubrir el doble del mínimo.</p>
-    <div class="list">${l.map((p) => `<div class="it"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>Quedan ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""} · mínimo ${fmtQ(p.min || 0)} · pedir ${suggest(p)}${p.unit === "kg" ? " kg" : ""}</small></div>${can("stock") ? `<button class="btn sm" data-a="restock" data-id="${p.id}" data-back="1">Ingreso</button>` : ""}</div>`).join("")}</div>
-    <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="lowwa">${svg("wa", "bi")}Enviar pedido por WhatsApp</button><button class="btn sec" data-a="lowprint">${svg("print", "bi")}Imprimir lista</button></div>`
+  const G = lowGroups(), sinProv = !DB.supp.length || G.some((g) => !g.s);
+  const row = (p) => `<div class="it"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>Quedan ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""} · mínimo ${fmtQ(p.min || 0)} · pedir ${suggest(p)}${p.unit === "kg" ? " kg" : ""}</small></div>${can("stock") ? `<button class="btn sm" data-a="restock" data-id="${p.id}" data-back="1">Ingreso</button>` : ""}</div>`;
+  el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos que llegaron a su mínimo, separados por proveedor. «Pedir» es una sugerencia para cubrir el doble del mínimo.</p>
+    ${G.map((g) => `<div class="lgrp"><div class="lgh"><b>${g.s ? esc(g.s.name) : "Sin proveedor"}</b><button class="btn sm" data-a="lowwa" data-s="${g.s ? g.s.id : ""}">${svg("wa", "bi")}${g.s ? "Pedir por WhatsApp" : "Enviar por WhatsApp"}</button></div><div class="list">${g.l.map(row).join("")}</div></div>`).join("")}
+    ${sinProv ? `<p class="muted sm" style="margin-top:10px">Elige el proveedor de cada producto en su ficha (Más opciones) para armar un pedido por proveedor.</p>` : ""}
+    <div class="row wrap" style="margin-top:12px"><button class="btn sec" data-a="lowprint">${svg("print", "bi")}Imprimir lista</button></div>`
     : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Todo en orden</h2><p>Ningún producto está por debajo de su mínimo.</p></div>`;
+}
+
+// Una vez al día, al abrir la caja: avisa lo que vence esta semana.
+function avisoDia() {
+  try {
+    if (DB.cfg.avisoDia === dkey()) return;
+    const l = expItems(); if (!l.length) return;
+    DB.cfg.avisoDia = dkey(); save();
+    const n = l.slice(0, 3).map((p) => p.name).join(", ") + (l.length > 3 ? ` y ${l.length - 3} más` : "");
+    setTimeout(() => { if (!ui.locked && !modalOpen()) toast(`Por vencer: ${n}. Míralos en Productos`, true); }, 1500);
+  } catch (e) {}
+}
+function paintExp() {
+  const l = expItems(), el = $("#pbody");
+  el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos vencidos o que vencen en los próximos 7 días. Ponle la fecha en su ficha (Más opciones).</p>
+    <div class="list">${l.map((p) => `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>${dmy(p.exp)}${p.stock != null ? ` · quedan ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""}` : ""}</small></div><span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span></button>`).join("")}</div>`
+    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Nada por vencer</h2><p>${DB.products.some((p) => p.exp) ? "Ningún producto vence esta semana." : "Pon la fecha de vencimiento en la ficha de tus productos (Más opciones) y aquí verás lo que vence pronto."}</p></div>`;
+}
+function paintIdle() {
+  const l = idleItems(), el = $("#pbody"), tot = r2(l.reduce((a, x) => a + x.val, 0));
+  el.innerHTML = l.length ? `<p class="muted" style="margin-bottom:10px">Productos con stock que no se mueven hace 30 días o más.${can("costos") ? ` Plata parada al costo: <b class="num">${money(tot)}</b>.` : ""}</p>
+    <div class="list">${l.map(({ p, days, val }) => `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>Sin movimiento hace ${days} días · ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : " und."}</small></div>${can("costos") && val > 0 ? `<div class="v num">${money(val)}<small>parado</small></div>` : ""}</button>`).join("")}</div>`
+    : `<div class="empty"><img class="eimg" src="${(window.CF_IMG || {}).canasta || ""}" alt=""><h2>Todo se mueve</h2><p>Ningún producto con stock lleva 30 días sin venderse ni moverse.</p></div>`;
 }
 
 /* ---------- importar / exportar ---------- */
@@ -311,7 +365,11 @@ act({
   },
   kxof: (el) => { ui.kxp = el.dataset.id; ui.ptab = "kx"; closeModal(); render(); },
   kxcsv: () => { const from = ui.kxfrom || addD(dkey(), -30), to = ui.kxto || dkey(); csvOut([["fecha", "hora", "producto", "movimiento", "cantidad", "saldo", "referencia", "usuario"], ...DB.kx.filter((x) => x.d >= from && x.d <= to && (!ui.kxp || x.p === ui.kxp)).sort((a, b) => a.t - b.t).map((x) => { const p = prod(x.p); return [x.d, hhmm(x.t), p ? p.name : "", KXL[x.ty] || x.ty, x.q, x.b, x.r, x.u]; })], `kardex-${dkey()}.csv`); },
-  lowwa: () => { const l = lowItems(); window.open("https://wa.me/?text=" + encodeURIComponent(`*Pedido - ${DB.biz.name}*\n` + l.map((p) => `- ${p.name}: ${suggest(p)}${p.unit === "kg" ? " kg" : ""}`).join("\n")), "_blank", "noopener"); },
+  lowwa: (el) => {
+    const k = (el && el.dataset.s) || "", g = lowGroups().find((x) => (x.s ? x.s.id : "") === k); if (!g) return;
+    const txt = `*Pedido - ${DB.biz.name}*\n${g.s ? `Hola ${g.s.name}, necesito:\n` : ""}` + g.l.map((p) => `- ${p.name}: ${suggest(p)}${p.unit === "kg" ? " kg" : ""}`).join("\n");
+    window.open(`https://wa.me/${g.s ? waNum(g.s.phone) : ""}?text=` + encodeURIComponent(txt), "_blank", "noopener");
+  },
   lowprint: () => printHtml(`<h2>Lista de reposición · ${esc(DB.biz.name)}</h2><p>${fmtDT(Date.now())}</p><table class="tbl"><thead><tr><th>Producto</th><th class="r">Quedan</th><th class="r">Mínimo</th><th class="r">Pedir</th></tr></thead><tbody>${lowItems().map((p) => `<tr><td>${esc(p.name)}</td><td class="r">${fmtQ(p.stock)}</td><td class="r">${fmtQ(p.min || 0)}</td><td class="r"><b>${suggest(p)}</b></td></tr>`).join("")}</tbody></table>`, "rep"),
   impopen: () => need("precios", openImport),
   impok: applyImport,

@@ -119,7 +119,7 @@ function paintCart() {
       <div class="lines">${lines.length ? `<div class="lh" aria-hidden="true"><span>Cant.</span><span>Producto</span><span>P. unit.</span><span>Importe</span><span></span></div>` + lines.map(({ l, r }) => { const k = lineKey(l.id, l.pres); return `<div class="ln ${ui.sel === k ? "sel" : ""} ${fresh === k ? "fresh" : ""}" data-a="sel" data-k="${k}">
         <span class="qc step"><button class="sb" data-a="dec" data-k="${k}" aria-label="Quitar uno">−</button><button class="qv num" data-a="qedit" data-k="${k}" aria-label="Cambiar cantidad">${fmtQ(l.qty)}${unitTxt(r)}</button><button class="sb" data-a="inc" data-k="${k}" aria-label="Agregar uno">+</button></span>
         <span class="nm">${r.p ? pimg(r.p, "lim") : ""}<span><b>${esc(r.name)}</b>${r.code ? `<small>Cód. ${esc(r.code)}</small>` : ""}</span></span>
-        <button class="pu num ${l.pr != null ? "chg" : ""}" data-a="lprice" data-k="${k}" title="Cambiar precio">${money(r.price)}${r.unit === "kg" ? "<small>/kg</small>" : ""}</button>
+        <button class="pu num ${l.pr != null || r.tier ? "chg" : ""}" data-a="lprice" data-k="${k}" title="${r.tier ? "Precio por mayor" : "Cambiar precio"}">${money(r.price)}${r.unit === "kg" ? "<small>/kg</small>" : r.tier ? "<small>mayor</small>" : ""}</button>
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
         <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Escanea o busca un producto</b></p></div>`}</div>
       <div class="tot">

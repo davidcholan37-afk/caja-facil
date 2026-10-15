@@ -1,13 +1,15 @@
 /* ===================== 30 · TICKET: líneas, presentaciones, totales con IGV, mesas y preventas ===================== */
 const lineKey = (id, pres) => id + (pres ? ":" + pres : "");
 const costOf = (p) => (p.recipe && p.recipe.length && !(p.cost > 0) ? r2(p.recipe.reduce((a, rc) => { const i = prod(rc.id); return a + (i ? (i.cost || 0) * rc.qty : 0); }, 0)) : p.cost || 0);
+// Precio por mayor: desde cierta cantidad, cada unidad cuesta menos (solo producto sin presentación y sin precio cambiado a mano).
+const mayorOf = (p, qty) => (p && p.mayor && p.mayor.q > 0 && p.mayor.p > 0 && qty >= p.mayor.q ? p.mayor.p : null);
 function resolveLine(l) {
   if (l.quick) return { name: l.name, price: l.price, base: l.price, cost: 0, stock: null, quick: true, unit: "u", code: "", f: 1, igv: true, p: null };
   const p = prod(l.id); if (!p) return null;
   const ps = l.pres ? (p.pres || []).find((x) => x.id === l.pres) : null;
   if (l.pres && !ps) return null;
-  const base = ps ? ps.price : p.price;
-  return { p, ps, name: ps ? `${p.name} (${ps.name})` : p.name, price: l.pr != null ? l.pr : base, base, cost: r2(costOf(p) * (ps ? ps.f : 1)), stock: p.stock, unit: ps ? "u" : p.unit, code: ps ? ps.code : p.code, f: ps ? ps.f : 1, igv: p.igv !== false, quick: false };
+  const base = ps ? ps.price : p.price, my = !ps && l.pr == null ? mayorOf(p, l.qty) : null;
+  return { p, ps, name: ps ? `${p.name} (${ps.name})` : p.name, price: l.pr != null ? l.pr : my != null ? my : base, tier: my != null, base, cost: r2(costOf(p) * (ps ? ps.f : 1)), stock: p.stock, unit: ps ? "u" : p.unit, code: ps ? ps.code : p.code, f: ps ? ps.f : 1, igv: p.igv !== false, quick: false };
 }
 const linesOf = (t) => t.items.map((l) => ({ l, r: resolveLine(l) })).filter((x) => x.r);
 const cartLines = () => linesOf(DB.cart);
