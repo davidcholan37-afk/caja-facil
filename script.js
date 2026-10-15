@@ -2854,6 +2854,14 @@ const VZ_FN = new Set(["el", "la", "los", "las", "de", "del", "un", "una", "unos
 /* ---------- preguntas y descuento: «cuánto me debe Rosa», «qué se está acabando», «cuánto hay en caja», «descuento de 2 soles» ---------- */
 const VZ_BAJO = /^(acabando|acaba|acabar|acabarse|acabaron|acabado|acabados|agotando|agotado|agotados|agotarse|faltan|faltando|escasea|escasos|reponer|pedir|comprar)$/;
 const VZ_ASK_RUIDO = new Set(["que", "se", "esta", "estan", "por", "ya", "queda", "quedan", "poco", "pocos", "pocas", "poca", "stock", "bajo", "bajos", "hay", "tengo", "tenemos", "falta", "faltan", "me", "mi", "mis", "lo", "los", "las", "el", "la", "de", "del", "dime", "dame", "cuales", "cual", "cuanto", "cuantos", "cosas", "productos", "producto", "mercaderia", "algo", "toca", "debo", "hoy", "lista", "un", "una", "a", "para", "estoy", "estamos", "voy", "vamos", "tiene", "tienes", "tienen"]);
+const vzPeriodo = (toks) => (toks.includes("ayer") ? "ayer" : toks.includes("semana") ? "semana" : toks.includes("mes") ? "mes" : "hoy");
+function vzRango(per) {
+  const d = new Date(), k = (x) => dkey(x);
+  if (per === "ayer") { const y = new Date(d.getTime() - 864e5); return { from: k(y), to: k(y), label: "ayer" }; }
+  if (per === "semana") return { from: k(new Date(d.getTime() - 6 * 864e5)), to: k(d), label: "en los últimos 7 días" };
+  if (per === "mes") return { from: k(new Date(d.getFullYear(), d.getMonth(), 1)), to: k(d), label: "este mes" };
+  return { from: k(d), to: k(d), label: "hoy" };
+}
 function vzParseAsk(toks, j, raw) {
   const has = (re) => toks.some((t) => re.test(t));
   const medio = toks.find((t) => VZ_MEDIOS.has(t));
@@ -2872,6 +2880,15 @@ function vzParseAsk(toks, j, raw) {
     return v > 0 ? out.concat({ tipo: "descuento", ...(pct ? { pct: v } : { monto: v }) }) : out;
   }
   if (!toks.length) return null;
+  // repetir la última venta: «repite la última venta», «ponme lo mismo de antes», «repite y cobra con yape»
+  if ((has(/^(repite|repiteme|repetir|repitele|repitelo|repetime)$/) || (toks.includes("mismo") && toks.includes("lo") && has(/^(antes|anterior|ultima|ultimo|nuevo|vez|igual)$/))) && !has(/^(precio|cuesta|vale|cuanto)$/)) {
+    const cob = toks.some((t) => VZ_COBRA.has(t) || t === "cobra") ? [{ tipo: "cobrar", medio: medio || "efectivo" }] : [];
+    return [{ tipo: "repetir" }, ...cob];
+  }
+  // ganancia y más vendidos: «cuánto gané hoy», «qué se vende más esta semana» (si nombras un producto, no es esto)
+  const per = vzPeriodo(toks), sobra = toks.filter((t) => !VZ_FN.has(t) && !VZ_ASK_RUIDO.has(t) && !/^(gane|ganamos|gano|ganancia|ganancias|utilidad|utilidades|vende|vendido|vendidos|vendo|vendemos|venden|vendio|vendieron|vendi|mas|hoy|ayer|semana|mes|esta|este|dia|total|neta|ahora|producto|productos|mejor|cosa|cosas|lo|se|le|ultimos|dias|siete|pasada|pasado|actual|va|llevo|llevamos|top|estrella|favorito|favoritos|que|cual|cuales|quien|cuanta|cuantas)$/.test(t) && !vzIsNum(t));
+  if (!sobra.length && has(/^(gane|ganamos|gano|ganancia|ganancias|utilidad|utilidades)$/)) return [{ tipo: "consulta", consulta: "ganancia", per }];
+  if (!sobra.length && ((has(/^(vende|vendido|vendidos|vendo|vendemos|venden|vendio|vendieron|vendi)$/) && toks.includes("mas")) || has(/^(top|estrella|favorito|favoritos)$/)) && !toks.includes("cuanto")) return [{ tipo: "consulta", consulta: "mas_vendidos", per }];
   // ventas del día (total o por medio de pago)
   const hoy = has(/^(hoy|dia)$/) || j.includes("resumen del dia");
   if ((toks.includes("cuanto") && has(/^vend/)) || (toks.includes("ventas") && hoy) || j.includes("resumen del dia")) return [{ tipo: "consulta", consulta: "ventas_hoy", ...(medio ? { medio } : {}) }];
@@ -2900,10 +2917,24 @@ function vzParseAsk(toks, j, raw) {
   if (toks[0] === "cuanto" && toks.length <= 6 && toks.every((t) => ["cuanto", "es", "seria", "sera", "va", "llevo", "llevamos", "sale", "son", "me", "lo", "en", "total", "todo", "la", "el", "cuenta", "ticket", "le", "cobro", "cobras", "mas", "ahora", "ya"].includes(t))) return [{ tipo: "consulta", consulta: "ticket" }];
   return null;
 }
+const VZ_ABONO = /^(pago|pagaron|pagan|abono|abonaron|abona|cancelo|cancelaron|dejo|dejaron|entrego|entregaron|dio|dieron)$/;
+const VZ_NOMBRE_RUIDO = new Set(["me", "le", "nos", "ya", "hoy", "ahora", "con", "de", "del", "su", "sus", "la", "el", "los", "las", "un", "una", "deuda", "fiado", "cuenta", "parte", "a", "por", "en", "soles", "sol", "cliente", "clientes", "senora", "senor", "sra", "sr", "dona", "don", "yo", "nosotros", "y", "tambien", "ademas", "mas"]);
+// «Rosa me pagó diez soles», «Rosa abonó 20 con yape», «recibí diez soles de Rosa»: un cliente paga su deuda
+function vzParseAbono(toks) {
+  const medio = toks.find((t) => VZ_MEDIOS.has(t)), monto = vzMoney(toks.filter((t) => !VZ_MEDIOS.has(t)));
+  if (!(monto > 0)) return null;
+  const clean = (ts) => ts.filter((t) => !VZ_NOMBRE_RUIDO.has(t) && !vzIsNum(t) && !VZ_MEDIOS.has(t) && !VZ_UNI.test(t)).join(" ");
+  const iV = toks.findIndex((t) => VZ_ABONO.test(t));
+  if (iV > 0) { const nombre = clean(toks.slice(0, iV)); if (nombre) return [{ tipo: "abono", nombre, monto, ...(medio ? { medio } : {}) }]; }
+  const iR = toks.findIndex((t) => /^(recibi|cobre|recibimos|cobramos)$/.test(t));
+  if (iR >= 0) { const iD = toks.findIndex((t, i) => i > iR && (t === "de" || t === "a")); const nombre = iD >= 0 ? clean(toks.slice(iD + 1)) : ""; if (nombre) return [{ tipo: "abono", nombre, monto, ...(medio ? { medio } : {}) }]; }
+  return null;
+}
 function vzParse(text) {
   const toks = vzTokens(text), out = [], j = toks.join(" ");
   if (!toks.length) return out;
   const ask = vzParseAsk(toks, j, String(text)); if (ask) return ask;
+  const abo = vzParseAbono(toks); if (abo) return abo;
   // esconder o mostrar un producto en la venta: «desactiva el limón»
   if (toks.some((t) => VZ_OFF.has(t) || VZ_ON.has(t))) {
     const on = toks.some((t) => VZ_ON.has(t)), nombre = toks.filter((t) => !VZ_OFF.has(t) && !VZ_ON.has(t) && !VZ_FN.has(t) && !["producto", "articulo", "de", "la", "venta", "y"].includes(t) && !vzIsNum(t)).join(" ");
@@ -3137,6 +3168,26 @@ function vzConsulta(a) {
       return { title: "Ventas de hoy", w: m.w, say: m.say, rows };
     });
   }
+  if (k === "ganancia") {
+    if (!can("costos")) return { ok: false, txt: "Tu usuario no puede ver las ganancias" };
+    const g = vzRango(a.per), cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    return vzAns(`Ver la ganancia de ${g.label}`, () => {
+      const A = aggregate(repSales(g.from, g.to, "local")), sinCosto = Object.values(A.prod).filter((o) => o.m > 0 && !(o.c > 0)).length;
+      const nota = A.n && sinCosto ? ` Ojo: ${sinCosto === 1 ? "un producto no tiene" : sinCosto + " productos no tienen"} costo, así que es aproximada.` : "";
+      const m = vzMk((d) => A.n ? `${cap(g.label)} vendiste ${d(A.net)} y ganaste unos ${d(A.profit)}.${nota}` : `${cap(g.label)} no hay ventas.`);
+      return { title: "Ganancia", w: m.w, say: m.say, rows: A.n ? [["Vendido", money(A.net)], ["Costo", money(A.cost)], ["Ganancia", money(A.profit)], ["Margen", `${A.net ? Math.round((A.profit / A.net) * 100) : 0} %`]] : [] };
+    });
+  }
+  if (k === "mas_vendidos") {
+    if (!(can("caja") || can("reportes"))) return { ok: false, txt: "Tu usuario no puede ver las ventas" };
+    const g = vzRango(a.per);
+    return vzAns(`Ver lo más vendido ${g.label}`, () => {
+      const A = aggregate(repSales(g.from, g.to, "local")), l = Object.entries(A.prod).sort((x, y) => y[1].q - x[1].q).slice(0, 5);
+      const fq = (o) => `${fmtQ(o.q)}${o.unit === "kg" ? " kg" : " und"}`;
+      const m = vzMk(() => l.length ? `Lo más vendido ${g.label} es ${l[0][0]}, ${fq(l[0][1])}.${l.length > 1 ? ` Luego ${l.slice(1, 3).map((x) => x[0]).join(" y ")}.` : ""}` : `${g.label === "hoy" ? "Hoy" : "En ese tiempo"} todavía no hay ventas.`);
+      return { title: "Lo más vendido", w: m.w, say: m.say, rows: l.map(([n, o]) => [n, `${fq(o)} · ${money(o.m)}`]) };
+    });
+  }
   if (k === "caja") {
     if (!can("caja")) return { ok: false, txt: "Tu usuario no puede ver la caja" };
     return vzAns("Ver cuánto hay en caja", () => {
@@ -3328,9 +3379,22 @@ function vzPlan(acc, prev) {
       if (!can("caja")) return { ok: false, txt: "Tu usuario no puede pagar a proveedores" };
       const r = vzFind(DB.supp, a.nombre, (s) => s.name);
       if (r.amb) return amb(r, a);
-      if (!r.it) return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` };
+      if (!r.it) { const rc = vzFind(DB.clients, a.nombre, (c) => c.name); if (rc.it || rc.amb) return vzAbono({ ...a, tipo: "abono" }); return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` }; } // «abónale a Rosa»: si es cliente, es su deuda
       if (!a.monto) return { ok: false, txt: `Pago a ${r.it.name}: dime el monto` };
       return { ok: true, modal: true, txt: `Pagar ${money(a.monto)} a ${r.it.name}${vzAp(r, a.nombre)}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzPagar(r.it, a.monto, a.medio) };
+    }
+    if (a.tipo === "abono") return vzAbono(a);
+    if (a.tipo === "repetir") {
+      const sv = DB.sales.filter((x) => !x.void && x.items && x.items.length).sort((x, y) => y.t - x.t)[0];
+      if (!sv) return { ok: false, txt: "Todavía no hay ventas para repetir" };
+      const its = sv.items.filter((i) => i.quick || (prod(i.id) && prod(i.id).on !== false));
+      if (!its.length) return { ok: false, txt: "Los productos de la última venta ya no están" };
+      const nom = its.slice(0, 3).map((i) => String(i.name).replace(/ \(.*\)$/, "")).join(", ") + (its.length > 3 ? " y más" : "");
+      willAdd = true;
+      return { ok: true, txt: `Repetir la última venta: ${nom} (${its.length} ${its.length === 1 ? "producto" : "productos"}, ${money(sv.total)})`, exec: () => {
+        its.forEach((i) => { if (i.quick) DB.cart.items.push({ id: "q" + uid(), pres: "", quick: true, name: i.name, price: i.price, qty: i.qty }); else addToCart(prod(i.id), i.qty, i.pres || ""); });
+        save(); paintSale();
+      } };
     }
     if (a.tipo === "fiado") {
       const r = vzFind(DB.clients, a.nombre, (c) => c.name);
@@ -3348,6 +3412,22 @@ function vzPagar(s, monto, medio) {
   suppMoney("pago", s.id);
   const i = $("#spa"); if (i) i.value = r2(monto).toFixed(2);
   if (medio && $(`#spm [data-m="${medio}"]`)) $(`#spm [data-m="${medio}"]`).click();
+}
+function vzAbono(a) {
+  if (!can("abonos")) return { ok: false, txt: "Tu usuario no puede cobrar deudas" };
+  const r = vzFind(DB.clients, a.nombre, (c) => c.name);
+  if (r.amb) return amb(r, a);
+  if (!r.it) return { ok: false, txt: `No encontré al cliente «${a.nombre}»` };
+  const c = r.it, debt = balanceOf(c);
+  if (!(debt > 0)) return { ok: false, txt: `${c.name} no te debe nada` };
+  if (!a.monto) return { ok: false, txt: `Pago de ${c.name}: dime el monto` };
+  if (a.monto > debt + 0.001) return { ok: false, txt: `${c.name} solo debe ${money(debt)}` };
+  return { ok: true, modal: true, txt: `Cobrar ${money(a.monto)} de la deuda de ${c.name}${vzAp(r, a.nombre)}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzAbonar(c, a.monto, a.medio) };
+}
+function vzAbonar(c, monto, medio) {
+  openAbono(c.id);
+  const i = $("#abq"); if (i) i.value = r2(monto).toFixed(2);
+  if (medio && $(`#abm [data-m="${medio}"]`)) $(`#abm [data-m="${medio}"]`).click();
 }
 function vzFiar(c, monto) {
   setClient(c.id);
