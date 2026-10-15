@@ -24,11 +24,11 @@ function vzCleanVosk(s) {
 
 /* ---------- intérprete en español (sin IA, sin internet) ---------- */
 const VZ_N = { cero: 0, un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiun: 21, veintiuno: 21, veintiuna: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900 };
-const VZ_ANOTA = new Set(["anota", "anotame", "agrega", "agregame", "pon", "ponme", "anade", "anademe", "suma", "apunta", "apuntame", "dame", "registra", "crea", "crear", "ponle", "agregale", "sumale", "anotale", "mete", "metele", "llevo", "lleva", "quiero", "echa", "echame", "echale", "alcanzame", "pasame", "marcame", "cargame", "cargale"]);
-const VZ_PAGA = new Set(["paga", "pagale", "pagar", "pagame", "abona", "abonale", "abonar", "cancela"]);
+const VZ_ANOTA = new Set(["anota", "anotame", "agrega", "agregame", "pon", "ponme", "anade", "anademe", "suma", "apunta", "apuntame", "dame", "registra", "crea", "crear", "ponle", "agregale", "sumale", "anotale", "mete", "metele", "llevo", "lleva", "quiero", "echa", "echame", "echale", "alcanzame", "pasame", "marcame", "cargame", "cargale", "despacha", "despachame", "vende", "vendeme", "necesito", "quisiera", "queria", "regalame", "sirveme"]);
+const VZ_PAGA = new Set(["paga", "pagale", "pagar", "pagame", "abona", "abonale", "abonar", "cancela", "pago", "pagaron", "pagan"]);
 const VZ_FIA = new Set(["fia", "fiale", "fiar", "fiado", "fiame", "credito"]);
 const VZ_COBRA = new Set(["cobra", "cobrar", "cobrame", "cobrale", "cobrarle", "cobramos"]);
-const VZ_QUITA = new Set(["quita", "quitale", "quitame", "quitar", "saca", "sacame", "elimina", "borra", "borrame", "retira", "sacale", "restale", "resta", "descuenta", "devuelve", "devuelvo"]);
+const VZ_QUITA = new Set(["quita", "quitale", "quitame", "quitar", "saca", "sacame", "elimina", "borra", "borrame", "retira", "sacale", "restale", "resta", "descuenta", "devuelve", "devuelvo", "anula", "anulame", "anulale", "anular", "tacha", "tachame", "tachale", "descarta", "descartale", "olvida"]);
 const VZ_ULT = new Set(["eso", "ese", "esa", "esto", "ultimo", "ultima", "anterior", "mismo", "misma"]); // «quita 1» = del último producto
 const VZ_VACIA = new Set(["vacia", "vaciar", "limpia", "limpiar"]);
 const VZ_CAMBIA = new Set(["cambia", "cambiale", "cambiar", "modifica", "corrige"]);
@@ -60,10 +60,32 @@ function vzQty(toks) {
   return { val: r3(val), kg, sol };
 }
 // Como lo dice la gente: «yapéame», «en cash», «con visa»…
-const VZ_ALIAS = { yapeo: "yape", yapeado: "yape", yapea: "yape", yapeame: "yape", yapear: "yape", yapeando: "yape", yapes: "yape", plineo: "plin", plineado: "plin", plinea: "plin", plineame: "plin", cash: "efectivo", contado: "efectivo", visa: "tarjeta", pos: "tarjeta", mastercard: "tarjeta" };
+const VZ_ALIAS = { yapeo: "yape", yapeado: "yape", yapea: "yape", yapeame: "yape", yapear: "yape", yapeando: "yape", yapes: "yape", plineo: "plin", plineado: "plin", plinea: "plin", plineame: "plin", cash: "efectivo", contado: "efectivo", visa: "tarjeta", pos: "tarjeta", mastercard: "tarjeta", llape: "yape", jape: "yape", yapi: "yape", yapee: "yape", plim: "plin", pling: "plin", plinn: "plin", debito: "tarjeta", transfer: "transferencia", transferi: "transferencia", transferencias: "transferencia", deposito: "transferencia", billete: "efectivo", billetes: "efectivo", monedas: "efectivo", cuartito: "cuarto", cuartitos: "cuartos" };
+const VZ_DROP = new Set(["unidad", "unidades", "unid", "und", "unds"]); // «dos unidades de atún» = «dos atún»
+const VZ_INI = new Set(["oye", "oe", "mira", "hola", "buenas", "bueno", "entonces", "pues", "ya", "porfa", "porfis", "disculpa", "perdon", "joven", "amigo"]);
+const VZ_FIN = new Set(["porfa", "porfis", "gracias", "nomas", "pues", "oe"]);
+const VZ_CIERRA = new Set(["cierra", "cierrame", "cerrar", "cerremos", "finaliza", "finalizar", "termina", "terminar", "terminemos"]);
 function vzTokens(text) {
   const t = String(text).toLowerCase().replace(/\b1\s*\/\s*2\b/g, " medio ").replace(/\b1\s*\/\s*4\b/g, " un cuarto ").replace(/\b3\s*\/\s*4\b/g, " tres cuartos ");
-  return norm(t).replace(/(\d)[.,](\d)/g, "$1#$2").replace(/(^|\s)s\//g, " ").replace(/[^a-z0-9# ]/g, " ").split(/\s+/).filter(Boolean).map((w) => VZ_ALIAS[w] || w);
+  let w = norm(t).replace(/(\d)[.,](\d)/g, "$1#$2").replace(/(^|\s)s\//g, " ").replace(/\bya\s*pe\b/g, "yape").replace(/[^a-z0-9# ]/g, " ").split(/\s+/).filter(Boolean).map((x) => VZ_ALIAS[x] || x).filter((x) => !VZ_DROP.has(x));
+  // «mejor no el queso», «ya no quiero la gaseosa» = quita
+  const neg = [["mejor", "no"], ["ya", "no", "quiero"], ["ya", "no"], ["no", "quiero"]].find((n) => n.every((x, i) => w[i] === x));
+  if (neg && w.length > neg.length) w = ["quita"].concat(w.slice(neg.length));
+  // saludos y cortesías: «oye, dos panes por favor»
+  while (w.length > 1 && VZ_INI.has(w[0])) w.shift();
+  if (w[0] === "a" && w[1] === "ver") w = w.slice(2);
+  for (;;) {
+    if (w.length > 2 && w[w.length - 2] === "por" && w[w.length - 1] === "favor") w.splice(-2);
+    else if (w.length > 1 && VZ_FIN.has(w[w.length - 1])) w.pop();
+    else break;
+  }
+  // «cincuenta céntimos» = 0.50 soles
+  const c = [];
+  w.forEach((x) => { if (/^(centimo|centimos|centavo|centavos)$/.test(x) && c.length && vzIsNum(c[c.length - 1])) { const n = vzNumVal(c.pop()); c.push(n > 0 && n < 100 ? "0#" + String(Math.round(n)).padStart(2, "0") : String(n)); c.push("soles"); } else c.push(x); });
+  w = c;
+  // «cierra la venta», «termina la cuenta» = cobra
+  if (w.some((x) => /^(venta|cuenta|ticket|pedido)$/.test(x))) w = w.map((x) => (VZ_CIERRA.has(x) ? "cobra" : x));
+  return w;
 }
 // Nombre = lo que sigue a «a/al/para» hasta el primer número o palabra de pago.
 function vzNameAfterA(toks) {
@@ -188,6 +210,13 @@ function vzParse(text) {
     const res = items.map((it) => { const q = vzQty(it.q); return q && q.val > 0 && !q.sol ? { tipo: "ingreso", nombre: it.n.join(" "), cantidad: q.val, unidad: q.kg ? "kg" : "unid" } : null; }).filter(Boolean);
     if (res.length) return res;
   }
+  // «el precio del huevo a siete soles» (sin verbo) cambia el precio
+  const iPr = toks.indexOf("precio");
+  if (iPr >= 0 && !toks.includes("cuanto") && !j.includes("a como") && !toks.some((t) => /^(cuesta|cuestan|vale|valen|sale|salen)$/.test(t))) {
+    const iA = toks.findIndex((t, i) => i > iPr && (t === "a" || t === "en" || t === "por")), m = iA > iPr ? vzMoney(toks.slice(iA + 1)) : 0;
+    const nombre = iA > iPr ? toks.slice(iPr + 1, iA).filter((t) => !VZ_FN.has(t) && !vzIsNum(t)).join(" ") : "";
+    if (m > 0 && nombre) return [{ tipo: "actualizar", nombre, precio: m }];
+  }
   // precio y stock de un producto
   const pr = toks.some((t) => /^(cuesta|cuestan|vale|valen|precio|sale|salen|cobran|cobras|cobro)$/.test(t)) || j.includes("a como") || (toks.includes("cuanto") && toks.some((t) => /^(esta|estan|es|son|sera|seria|lo|la|los|las|el|un|una)$/.test(t))), st = toks.some((t) => /^(quedan|queda|quedo|hay|stock|tengo|tenemos)$/.test(t));
   if ((pr || st) && !toks.some((t) => VZ_ANOTA.has(t) || VZ_PAGA.has(t) || VZ_FIA.has(t) || VZ_COBRA.has(t) || VZ_QUITA.has(t))) {
@@ -234,13 +263,16 @@ function vzParse(text) {
       const q = vzQty(seg.slice(ia + 1).filter(vzIsQty)), nombre = seg.slice(0, ia).filter((t) => !VZ_FN.has(t) && !vzIsQty(t)).join(" ");
       return nombre && q && q.val > 0 && !q.sol && out.push({ tipo: "cambiar", nombre, cantidad: q.val, unidad: q.kg ? "kg" : "unid" });
     }
-    if (c < 0) { const f = seg.findIndex(vzIsQty); if (f < 0 || f > 2 || !seg.slice(0, f).every((t) => VZ_FN.has(t) || t === "y")) return; seg.splice(0, f); } // sin verbo vale si empieza con cantidad (ignorando «los», «y»…)
+    const pi = seg.indexOf("por"), porOk = pi > 0 && !seg.slice(0, pi).some(vzIsQty) && seg.slice(pi + 1).some(vzIsQty); // «pan por un sol cincuenta»
+    if (c < 0 && !porOk) { const f = seg.findIndex(vzIsQty); if (f < 0 || f > 2 || !seg.slice(0, f).every((t) => VZ_FN.has(t) || t === "y")) return; seg.splice(0, f); } // sin verbo vale si empieza con cantidad (ignorando «los», «y»…)
     // anotar: partir en productos cuando aparece una cantidad nueva o «y/con/más»
     let cur = { q: [], n: [] }; const items = [];
     const push = () => { if (cur.n.length) items.push(cur); cur = { q: [], n: [] }; };
+    let por = false;
     seg.forEach((t, i) => {
-      if (vzIsQty(t)) { if (cur.n.length) push(); cur.q.push(t); }
-      else if (["y", "e", "mas", "con", "tambien"].includes(t)) { if (cur.n.length) push(); }
+      if (vzIsQty(t)) { if (cur.n.length && !por) push(); cur.q.push(t); }
+      else if (t === "por" && cur.n.length && seg.slice(i + 1).some(vzIsQty)) { por = true; cur.q = []; } // «pan POR un sol»: lo que sigue es el monto
+      else if (["y", "e", "mas", "con", "tambien"].includes(t)) { if (cur.n.length) { push(); por = false; } }
       else if ((t === "de" || t === "del") && !cur.n.length) { /* «un cuarto DE arroz» */ }
       else cur.n.push(t);
     });
