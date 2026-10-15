@@ -2841,7 +2841,7 @@ function vzCleanVosk(s) {
 /* ---------- intérprete en español (sin IA, sin internet) ---------- */
 const VZ_N = { cero: 0, un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiun: 21, veintiuno: 21, veintiuna: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900 };
 const VZ_ANOTA = new Set(["anota", "anotame", "agrega", "agregame", "pon", "ponme", "anade", "anademe", "suma", "apunta", "apuntame", "dame", "registra", "crea", "crear", "ponle", "agregale", "sumale", "anotale", "mete", "metele", "llevo", "lleva", "quiero", "echa", "echame", "echale", "alcanzame", "pasame", "marcame", "cargame", "cargale", "despacha", "despachame", "vende", "vendeme", "necesito", "quisiera", "queria", "regalame", "sirveme"]);
-const VZ_PAGA = new Set(["paga", "pagale", "pagar", "pagame", "abona", "abonale", "abonar", "cancela", "pago", "pagaron", "pagan"]);
+const VZ_PAGA = new Set(["paga", "pagale", "pagar", "pagame", "abona", "abonale", "abonar", "cancela", "pago", "pagaron", "pagan", "pague", "pagamos", "salda", "saldale", "saldar", "liquida", "liquidale", "liquidar", "deposita", "depositale", "adelanta", "adelantale"]);
 const VZ_FIA = new Set(["fia", "fiale", "fiar", "fiado", "fiame", "credito"]);
 const VZ_COBRA = new Set(["cobra", "cobrar", "cobrame", "cobrale", "cobrarle", "cobramos"]);
 const VZ_QUITA = new Set(["quita", "quitale", "quitame", "quitar", "saca", "sacame", "elimina", "borra", "borrame", "retira", "sacale", "restale", "resta", "descuenta", "devuelve", "devuelvo", "anula", "anulame", "anulale", "anular", "tacha", "tachame", "tachale", "descarta", "descartale", "olvida"]);
@@ -2905,9 +2905,12 @@ function vzTokens(text) {
 }
 // Nombre = lo que sigue a «a/al/para» hasta el primer número o palabra de pago.
 function vzNameAfterA(toks) {
-  const i = toks.findIndex((t) => t === "a" || t === "al" || t === "para");
+  let i = toks.findIndex((t) => t === "a" || t === "al" || t === "para");
+  const iDe = i < 0 ? toks.findIndex((t, k) => (t === "de" || t === "del") && toks.slice(0, k).includes("deuda")) : -1; // «cancela la deuda de Gloria»
+  if (iDe >= 0) i = iDe;
   const src = i >= 0 ? toks.slice(i + 1) : toks.filter((t) => !vzIsQty(t) && !VZ_MEDIOS.has(t));
-  const out = []; for (const t of src) { if (vzIsQty(t) || ["por", "en", "con", "de", "del", "soles", "sol"].includes(t) || VZ_MEDIOS.has(t)) { if (out.length) break; else continue; } out.push(t); }
+  const out = []; for (const t of src) {
+    if (/^(proveedor|proveedora|proveedores|cliente|clienta|dona|don|senor|senora|sra|sr)$/.test(t)) continue; if (vzIsQty(t) || ["por", "en", "con", "de", "del", "soles", "sol"].includes(t) || VZ_MEDIOS.has(t)) { if (out.length) break; else continue; } out.push(t); }
   return out.join(" ");
 }
 // Dinero: «dos con cincuenta» y «dos cincuenta» valen 2.50; «treinta y cinco» vale 35.
@@ -2970,7 +2973,7 @@ function vzParseAsk(toks, j, raw) {
   if (verbo) return null;
   // deudas: «cuánto me debe Rosa», «quién me debe», «cuánto le debo a Gloria»
   const dw = has(/^(debe|deben|debo|debemos|debes|deuda|deudas|deudor|deudores|moroso|morosos)$/) || (has(/^(fiado|fiados)$/) && has(/^(cuanto|cuantos|quien|quienes|lista|total|hay|tengo)$/));
-  if (dw && !has(VZ_BAJO)) {
+  if (dw && !has(VZ_BAJO) && !has(/^(cancelo|cancelaron|salde|saldo|pagaron|pago)$/)) {
     const prov = has(/^(debo|debemos|proveedor|proveedores)$/);
     const nombre = toks.filter((t) => !VZ_FN.has(t) && !vzIsNum(t) && !["debe", "deben", "debo", "debemos", "debes", "deuda", "deudas", "deudor", "deudores", "moroso", "morosos", "fiado", "fiados", "quien", "quienes", "lista", "total", "le", "les", "cliente", "clientes", "proveedor", "proveedores", "todos", "todas", "tengo", "hay", "cuanto", "cuantos", "fia", "fiaron", "con", "nos", "te", "se"].includes(t)).join(" ");
     return [{ tipo: "consulta", consulta: "deuda", ...(nombre ? { nombre } : {}), ...(prov ? { prov: true } : {}) }];
@@ -3005,13 +3008,30 @@ const VZ_NOMBRE_RUIDO = new Set(["me", "le", "nos", "ya", "hoy", "ahora", "con",
 // «Rosa me pagó diez soles», «Rosa abonó 20 con yape», «recibí diez soles de Rosa»: un cliente paga su deuda
 function vzParseAbono(toks) {
   const medio = toks.find((t) => VZ_MEDIOS.has(t)), monto = vzMoney(toks.filter((t) => !VZ_MEDIOS.has(t)));
-  if (!(monto > 0)) return null;
+  const todo = !(monto > 0) && (toks.some((t) => /^(todo|toda|completo|completa|entero|entera)$/.test(t)) || toks.some((t) => /^(cancelo|cancelaron|salde|saldo)$/.test(t)));
+  if (!(monto > 0) && !todo) return null;
   const clean = (ts) => ts.filter((t) => !VZ_NOMBRE_RUIDO.has(t) && !vzIsNum(t) && !VZ_MEDIOS.has(t) && !VZ_UNI.test(t)).join(" ");
   const iV = toks.findIndex((t) => VZ_ABONO.test(t));
+  if (iV > 0 && VZ_PAGA.has(toks[0]) && !VZ_ABONO.test(toks[0])) return null; // «paga a gloria 500 de abono»: el que paga eres tú
   if (iV > 0 && toks[iV + 1] === "con" && toks.some((t) => VZ_COBRA.has(t) || t === "cobra")) return null; // «cobra, pagó con veinte»: es con cuánto paga, no un abono
-  if (iV > 0) { const nombre = clean(toks.slice(0, iV)); if (nombre) return [{ tipo: "abono", nombre, monto, ...(medio ? { medio } : {}) }]; }
+  if (iV > 0) { const nombre = clean(toks.slice(0, iV)); if (nombre) return [{ tipo: "abono", nombre, ...(monto > 0 ? { monto } : { todo: true }), ...(medio ? { medio } : {}) }]; }
   const iR = toks.findIndex((t) => /^(recibi|cobre|recibimos|cobramos)$/.test(t));
   if (iR >= 0) { const iD = toks.findIndex((t, i) => i > iR && (t === "de" || t === "a")); const nombre = iD >= 0 ? clean(toks.slice(iD + 1)) : ""; if (nombre) return [{ tipo: "abono", nombre, monto, ...(medio ? { medio } : {}) }]; }
+  return null;
+}
+// «Gloria me fió 300», «me fiaron 300 de Gloria», «le quedo debiendo 200 a Gloria», «compré fiado a Gloria 300»: anota lo que le debes al proveedor
+function vzParseDeudaProv(toks) {
+  const j = toks.join(" "), monto = vzMoney(toks.filter((t) => !VZ_MEDIOS.has(t)));
+  if (!(monto > 0)) return null;
+  const sinRuido = (ts) => ts.filter((t) => !VZ_NOMBRE_RUIDO.has(t) && !vzIsNum(t) && !VZ_UNI.test(t) && !/^(mercaderia|mercancia|productos|producto|proveedor|proveedora|ayer|hoy|ahora|compre|compramos|fiaron|fio|fie)$/.test(t));
+  const iF = toks.findIndex((t) => /^(fio|fiaron|fie|fiamos)$/.test(t));
+  if (iF >= 0) {
+    const antes = sinRuido(toks.slice(0, iF)).join(" "), nombre = antes || vzNameAfterA(toks.slice(iF + 1));
+    return nombre ? [{ tipo: "deuda_proveedor", nombre, monto }] : null;
+  }
+  const iD = toks.findIndex((t, k) => /^debiendo$/.test(t) && /^(quedo|quede|quedamos|sigo|seguimos)$/.test(toks[k - 1] || ""));
+  if (iD >= 0) { const nombre = vzNameAfterA(toks.slice(iD + 1)); return nombre ? [{ tipo: "deuda_proveedor", nombre, monto }] : null; }
+  if (/^(compre|compramos)$/.test(toks[0] || "") && toks.some((t) => /^(fiado|credito)$/.test(t))) { const nombre = vzNameAfterA(toks.slice(toks.findIndex((t) => /^(fiado|credito)$/.test(t)) + 1)); return nombre ? [{ tipo: "deuda_proveedor", nombre, monto }] : null; }
   return null;
 }
 function vzParse(text) {
@@ -3019,6 +3039,7 @@ function vzParse(text) {
   if (!toks.length) return out;
   const ask = vzParseAsk(toks, j, String(text)); if (ask) return ask;
   const abo = vzParseAbono(toks); if (abo) return abo;
+  const dpv = vzParseDeudaProv(toks); if (dpv) return dpv;
   // esconder o mostrar un producto en la venta: «desactiva el limón»
   if (toks.some((t) => VZ_OFF.has(t) || VZ_ON.has(t))) {
     const on = toks.some((t) => VZ_ON.has(t)), nombre = toks.filter((t) => !VZ_OFF.has(t) && !VZ_ON.has(t) && !VZ_FN.has(t) && !["producto", "articulo", "de", "la", "venta", "y"].includes(t) && !vzIsNum(t)).join(" ");
@@ -3110,7 +3131,11 @@ function vzParse(text) {
       const medio = seg.find((t) => VZ_MEDIOS.has(t)) || "efectivo", monto = vzMoney(seg.filter((t) => !VZ_MEDIOS.has(t)));
       return out.push({ tipo: "cobrar", medio, ...(monto && medio === "efectivo" ? { monto } : {}) });
     }
-    if (k === "pagar") { const nombre = vzNameAfterA(seg), monto = vzMoney(seg), medio = seg.find((t) => VZ_MEDIOS.has(t)); return nombre && out.push({ tipo: "pagar_proveedor", nombre, ...(monto ? { monto } : {}), ...(medio ? { medio } : {}) }); }
+    if (k === "pagar") {
+      const nombre = vzNameAfterA(seg), monto = vzMoney(seg), medio = seg.find((t) => VZ_MEDIOS.has(t));
+      const todo = !monto && seg.some((t) => /^(todo|toda|completo|completa|total|deuda|saldo|entero|entera)$/.test(t)), prov = seg.some((t) => /^proveedor(a|es)?$/.test(t));
+      return nombre && out.push({ tipo: "pagar_proveedor", nombre, ...(monto ? { monto } : {}), ...(todo ? { todo: true } : {}), ...(prov ? { prov: true } : {}), ...(medio ? { medio } : {}) });
+    }
     if (k === "quitar") {
       const iq = seg.findIndex(vzIsQty), q = iq >= 0 ? vzQty(seg.filter(vzIsQty)) : null;
       const raw = seg.filter((t) => !vzIsQty(t) && !VZ_FN.has(t) && t !== "ticket" && t !== "y" && t !== "e"), nom = raw.filter((t) => !VZ_ULT.has(t)), nombre = nom.join(" ");
@@ -3491,9 +3516,19 @@ function vzPlan(acc, prev) {
       if (!can("caja")) return { ok: false, txt: "Tu usuario no puede pagar a proveedores" };
       const r = vzFind(DB.supp, a.nombre, (s) => s.name);
       if (r.amb) return amb(r, a);
-      if (!r.it) { const rc = vzFind(DB.clients, a.nombre, (c) => c.name); if (rc.it || rc.amb) return vzAbono({ ...a, tipo: "abono" }); return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` }; } // «abónale a Rosa»: si es cliente, es su deuda
-      if (!a.monto) return { ok: false, txt: `Pago a ${r.it.name}: dime el monto` };
-      return { ok: true, modal: true, txt: `Pagar ${money(a.monto)} a ${r.it.name}${vzAp(r, a.nombre)}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzPagar(r.it, a.monto, a.medio) };
+      if (!r.it) { if (!a.prov) { const rc = vzFind(DB.clients, a.nombre, (c) => c.name); if (rc.it || rc.amb) return vzAbono({ ...a, tipo: "abono" }); } return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` }; } // «abónale a Rosa»: si es cliente, es su deuda
+      let monto = a.monto;
+      if (!monto && a.todo) { const b = suppBal(r.it); if (!(b > 0)) return { ok: false, txt: `No le debes nada a ${r.it.name}` }; monto = b; }
+      if (!monto) return { ok: false, txt: `Pago a ${r.it.name}: dime el monto` };
+      return { ok: true, modal: true, txt: `Pagar ${money(monto)}${a.todo && !a.monto ? " (toda la deuda)" : ""} a ${r.it.name}${vzAp(r, a.nombre)}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzPagar(r.it, monto, a.medio) };
+    }
+    if (a.tipo === "deuda_proveedor") {
+      if (!can("caja")) return { ok: false, txt: "Tu usuario no puede anotar deudas de proveedores" };
+      const r = vzFind(DB.supp, a.nombre, (s) => s.name);
+      if (r.amb) return amb(r, a);
+      if (!r.it) return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` };
+      if (!a.monto) return { ok: false, txt: `${r.it.name}: dime cuánto te fió` };
+      return { ok: true, modal: true, txt: `Anotar que ${r.it.name}${vzAp(r, a.nombre)} te fió ${money(a.monto)} (lo confirmas antes de guardar)`, run: () => vzDeudaProv(r.it, a.monto) };
     }
     if (a.tipo === "abono") return vzAbono(a);
     if (a.tipo === "repetir") {
@@ -3525,6 +3560,10 @@ function vzPagar(s, monto, medio) {
   const i = $("#spa"); if (i) i.value = r2(monto).toFixed(2);
   if (medio && $(`#spm [data-m="${medio}"]`)) $(`#spm [data-m="${medio}"]`).click();
 }
+function vzDeudaProv(s, monto) {
+  suppMoney("deuda", s.id);
+  const i = $("#spa"); if (i) i.value = r2(monto).toFixed(2);
+}
 function vzAbono(a) {
   if (!can("abonos")) return { ok: false, txt: "Tu usuario no puede cobrar deudas" };
   const r = vzFind(DB.clients, a.nombre, (c) => c.name);
@@ -3532,6 +3571,7 @@ function vzAbono(a) {
   if (!r.it) return { ok: false, txt: `No encontré al cliente «${a.nombre}»` };
   const c = r.it, debt = balanceOf(c);
   if (!(debt > 0)) return { ok: false, txt: `${c.name} no te debe nada` };
+  if (!a.monto && a.todo) a = { ...a, monto: debt };
   if (!a.monto) return { ok: false, txt: `Pago de ${c.name}: dime el monto` };
   if (a.monto > debt + 0.001) return { ok: false, txt: `${c.name} solo debe ${money(debt)}` };
   return { ok: true, modal: true, txt: `Cobrar ${money(a.monto)} de la deuda de ${c.name}${vzAp(r, a.nombre)}${a.medio ? " (" + METHODS[a.medio].toLowerCase() + ")" : ""}`, run: () => vzAbonar(c, a.monto, a.medio) };
@@ -3617,7 +3657,7 @@ function vzGetModel() {
 function vzIdle() { clearTimeout(vzIdleT); vzIdleT = setTimeout(() => { const p = vzModelP; vzModelP = null; if (p) p.then((m) => m.terminate()).catch(() => {}); }, 120000); }
 // Lista corta de palabras: tus productos, clientes y proveedores + números y órdenes. Así el oído se equivoca mucho menos.
 function vzGrammar() {
-  const w = new Set("desactiva desactivar oculta esconde activa activar muestra categoría categoria código codigo barras mueve mover pasa asigna actualiza actualízale actualizar sube súbele baja bájale fija edita costo precio stock inventario llegaron llegó ingresa ingresaron ingresó repón repone reponer entraron recibí nuevo producto anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál debe deben debo debemos deuda deudas deudor deudores quién quiénes fiados acabando acaba acabar acabarse agotando agotado agotados faltan falta poco pocos descuento descuentito rebaja rebájale descuenta ciento porciento por ciento caja sale salen cobran cobras cobro cómo como total llevo sería seria va echa échame echame échale alcánzame pásame márcame cárgame yapeo yapeado yapéame plineo cash contado visa seiscientos setecientos ochocientos novecientos veintiséis veintisiete veintiocho veintinueve le les lo nos te se".split(" "));
+  const w = new Set("desactiva desactivar oculta esconde activa activar muestra categoría categoria código codigo barras mueve mover pasa asigna actualiza actualízale actualizar sube súbele baja bájale fija edita costo precio stock inventario llegaron llegó ingresa ingresaron ingresó repón repone reponer entraron recibí nuevo producto anota anótame agrega agrégame pon ponme añade añádeme suma apunta apúntame dame registra paga págale pagar abona abónale fía fíale fiado crédito cuánto cuanto vendí vendido vendimos ventas hoy resumen del día de la el un una uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiún veintiuno veintidós veintitrés veinticuatro veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos medio media cuarto cuartos kilo kilos gramos soles sol y a al por con más también yape plin efectivo transferencia para tarjeta quita quítale quitar saca sácame elimina borra bórrame retira vacía vaciar limpia limpiar cambia cámbiale cambiar modifica corrige cobra cóbrame cobrar cóbrale cuesta cuestan vale valen precio stock quedan queda quedó hay tengo tenemos producto nuevo crea crear docena docenas par pares kilito kilitos todo todos ticket cuenta mil cuántos cuántas es son están está qué cuál debe deben debo debemos deuda deudas deudor deudores quién quiénes fiados acabando acaba acabar acabarse agotando agotado agotados faltan falta poco pocos descuento descuentito rebaja rebájale descuenta ciento porciento por ciento caja sale salen cobran cobras cobro cómo como total llevo sería seria va echa échame echame échale alcánzame pásame márcame cárgame yapeo yapeado yapéame plineo cash contado visa seiscientos setecientos ochocientos novecientos veintiséis veintisiete veintiocho veintinueve le les lo nos te se proveedor proveedora fió fio fiaron debiendo quedo quedó salda saldar saldo liquida liquidar pagué pague pagamos deposita adelanta adelántale pagó completo completa entera canceló cancelo compré compre abono".split(" "));
   const add = (n) => String(n || "").toLowerCase().split(/[^a-záéíóúüñ]+/).forEach((x) => { if (x.length > 1) w.add(x); });
   DB.products.filter((p) => p.on !== false).forEach((p) => add(p.name)); DB.clients.forEach((c) => add(c.name)); DB.supp.forEach((c) => add(c.name));
   return [...w, "[unk]"];

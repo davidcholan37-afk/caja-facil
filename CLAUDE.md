@@ -45,6 +45,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Productos tiene pestañas: Inventario · Por reponer (agrupado por proveedor, botón «Pedir por WhatsApp» con el celular del proveedor, `lowGroups`) · Por vencer (`expItems`, 7 días) · Sin mover (`idleItems`, 30 días sin movimiento en el kardex, con la plata parada al costo) · Movimientos.
 - `avisoDia()`: una vez al día al abrir la caja avisa lo que vence esta semana (`DB.cfg.avisoDia`).
 - Clientes › «Recordar deudas»: lista de deudores con botón de WhatsApp (mensaje con monto y desde cuándo; marca `c.rem` = día en que se avisó). Ticket por WhatsApp ya existía (`wa` en el comprobante).
+- Voz de pagos: «paga a proveedor Gloria 500», «paga a Gloria 500 de abono», «le pagué 500 a Gloria», «salda/cancela la deuda de Gloria» o «págale todo» (`todo`: paga el saldo completo), «Rosa pagó todo» (abono por toda su deuda), y **deuda_proveedor**: «Gloria me fió 300», «me fiaron 300 de Gloria», «le quedo debiendo 200 a Gloria», «compré fiado a Gloria 300» (abre «Anotar lo que me fiaron» con el monto; se confirma antes de guardar). `vzNameAfterA` ignora «proveedor», «cliente», «doña»…
 - Voz: consultas `comprar`, `vence` (con o sin producto) y `sin_mover` (también en la función `voz` de la nube).
 
 ## Voz (gratis, con y sin internet; extra que el proveedor activa)
