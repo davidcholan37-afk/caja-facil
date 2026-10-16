@@ -1897,7 +1897,7 @@ function parseImport(text) {
     const cost = numv(c[2]), sr = (c[3] || "").trim(), st = sr === "" ? null : numv(sr), code = (c[5] || "").trim();
     if (code && seen.has(code)) { res.errs.push(ln); continue; }
     if (code) seen.add(code);
-    rows.push({ name, price: r2(price), cost: isNaN(cost) ? null : r2(cost), stock: st == null || isNaN(st) ? null : r3(st), cat: (c[4] || "").trim(), code, unit: /^k/i.test((c[6] || "").trim()) ? "kg" : "u", ln });
+    rows.push({ name, price: r2(price), cost: isNaN(cost) ? null : r2(cost), stock: st == null || isNaN(st) ? null : r3(st), cat: (c[4] || "").trim(), code, unit: /^k/i.test((c[6] || "").trim()) ? "kg" : "u", bar: (c[7] || "").split(/[\s|;,]+/).filter((x) => /^\d{6,}$/.test(x)), ln });
   }
   rows.forEach((r) => { r.ex = DB.products.find((p) => (r.code && p.code === r.code) || norm(p.name) === norm(r.name)) || null; });
   rows = rows.filter((r) => { if (r.code && DB.products.some((p) => p.code === r.code && p !== r.ex)) { res.errs.push(r.ln); return false; } return true; });
@@ -1907,7 +1907,7 @@ function parseImport(text) {
 function openImport() {
   openModal(`<h2>Importar productos</h2>
     <p class="muted" style="margin-bottom:8px">Copia las filas desde Excel y pégalas aquí, o elige un archivo CSV. Columnas en este orden:</p>
-    <p style="margin-bottom:10px"><b>Nombre · Precio · Costo · Stock · Categoría · Código · Unidad</b> <span class="muted">(Unidad: u o kg)</span></p>
+    <p style="margin-bottom:10px"><b>Nombre · Precio · Costo · Stock · Categoría · Código · Unidad</b> <span class="muted">(Unidad: u o kg; opcional al final: códigos de barras separados por espacio)</span></p>
     <textarea class="inp" id="imp" rows="7" placeholder="Tomate&#9;4.50&#9;3&#9;30&#9;Verduras&#9;1&#9;kg" autofocus></textarea>
     <div class="row wrap" style="margin:8px 0"><label class="btn sec sm">Elegir archivo CSV<input type="file" accept=".csv,.txt,text/csv,text/plain" data-in="impfile" hidden></label><button class="link" data-a="tpl">Descargar plantilla</button></div>
     <p class="muted" id="impsum" style="min-height:1.4em">Si un producto ya existe (mismo código o nombre) se actualizan su precio, costo y stock.</p>
@@ -1922,14 +1922,17 @@ function updImport() {
 }
 function applyImport() {
   const r = parseImport(($("#imp") || { value: "" }).value); if (!r.rows.length) return;
+  const own = new Map(); DB.products.forEach((p) => (p.bar || []).forEach((c) => own.set(c, p)));
   r.rows.forEach((x) => {
     if (x.ex) {
       Object.assign(x.ex, { name: x.name, price: x.price, unit: x.unit }); if (x.cost != null) x.ex.cost = x.cost; if (x.cat) x.ex.cat = x.cat; if (x.code) x.ex.code = x.code;
       if (x.stock != null) { if (x.ex.stock == null) x.ex.stock = 0; stockAdd(x.ex, r3(x.stock - x.ex.stock), "import", "Importación"); }
     } else {
       const p = { id: uid(), name: x.name, price: x.price, cost: x.cost || 0, stock: x.stock == null ? null : 0, min: x.stock == null ? 0 : x.unit === "kg" ? 3 : 5, cat: x.cat, code: x.code, unit: x.unit, pres: [], recipe: [], igv: true, img: "" };
-      DB.products.push(p); if (x.stock) stockAdd(p, x.stock, "import", "Importación");
+      DB.products.push(p); x.ex = p; if (x.stock) stockAdd(p, x.stock, "import", "Importación");
     }
+    // Códigos de barras (columna opcional 8): se suman al producto, salvo los que ya son de otro.
+    const t = x.ex; if (t && x.bar.length) { t.bar = t.bar || []; x.bar.forEach((c) => { const o = own.get(c); if ((!o || o === t) && !t.bar.includes(c) && t.code !== c) { t.bar.push(c); own.set(c, t); } }); }
   });
   log("Importación de productos", `${r.news} nuevos, ${r.upd} actualizados`);
   save(); closeModal(); toast(`Importados: ${r.news} nuevos, ${r.upd} actualizados`); render();
