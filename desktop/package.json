@@ -1,7 +1,7 @@
 {
   "name": "caja-facil-escritorio",
   "productName": "Caja Fácil",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "Caja Fácil: punto de venta para bodegas, minimarkets y fruterías",
   "author": "Caja Fácil",
   "homepage": "https://davidcholan37-afk.github.io/caja-facil/web/",
@@ -10,7 +10,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis --x64 --publish never"
+    "dist": "electron-builder --win nsis --x64 --ia32 --publish never"
   },
   "devDependencies": {
     "electron": "^33.2.0",
