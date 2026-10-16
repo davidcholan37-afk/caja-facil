@@ -1899,3 +1899,5 @@ body .paybox .paymini.pay4{grid-template-columns:1.25fr 1fr 1fr 1fr .8fr}
 .mth.culqi.on{background:#FF7A1A;border-color:#FF7A1A;color:#1D1D1F}
 .btn.go.culqi{background:#FF7A1A;color:#1D1D1F}
 body .paybox .pay4 .pm.culqi{background:#FF7A1A;color:#1D1D1F;text-shadow:none;border:0}
+
+.cfcode{font:700 2rem/1.2 var(--fm,monospace);letter-spacing:.06em;text-align:center;padding:14px 0 18px}

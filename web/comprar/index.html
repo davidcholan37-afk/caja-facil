@@ -20,6 +20,10 @@
 .buy-sub{color:var(--t2);font-size:1rem;max-width:34ch}
 .buy-steps{margin-top:30px;max-width:440px;text-align:left;display:grid;gap:12px;color:var(--t2);font-size:1rem}
 .buy-steps b{color:var(--t1)}
+.buy-code{margin-top:16px}
+.buy-in{width:100%;min-height:52px;border-radius:14px;border:1.5px solid var(--rule);background:var(--bg);color:var(--t1);text-align:center;font:600 1.25rem/1 var(--fm);letter-spacing:.08em;padding:0 12px}
+.buy-in:focus{outline:2px solid var(--ac);outline-offset:2px}
+.buy-msg{min-height:1.4em;font-size:.95rem;color:#B3261E}
 .buy-ok{display:none;flex-direction:column;align-items:center;gap:14px}
 .paid .buy-ok{display:flex}
 .paid .buy-pay{display:none}
@@ -47,21 +51,30 @@ button.tlink{background:none;border:0;cursor:pointer}
         <p class="buy-num" id="num">904 623 137</p>
         <p class="buy-sub">Yapea S/ 150 a David Cholan Ramos.</p>
         <button type="button" class="tlink" id="copiar">Copiar número</button>
-        <button type="button" class="pill" id="pagado">Ya pagué</button>
+        <a class="pill" href="https://wa.me/51904623137?text=Hola%2C%20ya%20yape%C3%A9%20S%2F%20150%20por%20Caja%20F%C3%A1cil.%20Te%20mando%20mi%20captura." target="_blank" rel="noopener">Ya yapeé: enviar captura</a>
       </div>
+
+      <form class="buy-card buy-code" id="form" autocomplete="off">
+        <label for="code" class="tag">Ingresar código</label>
+        <p class="buy-sub">Cuando confirme tu Yape, te mando un código por WhatsApp.</p>
+        <input id="code" class="buy-in" inputmode="text" autocapitalize="characters" maxlength="14" placeholder="XXXX-XXXX-XXXX" aria-describedby="msg">
+        <button type="submit" class="pill" id="go">Descargar el programa</button>
+        <p class="buy-msg" id="msg" role="status"></p>
+      </form>
+
       <ol class="buy-steps">
         <li><b>1. Yapea S/ 150</b> al número de arriba.</li>
-        <li><b>2. Toca «Ya pagué».</b> El programa de Windows se descarga solo.</li>
-        <li><b>3. Escríbeme por WhatsApp</b> con tu captura y activo tu caja.</li>
+        <li><b>2. Toca «Ya yapeé»</b> y mándame tu captura por WhatsApp.</li>
+        <li><b>3. Escribe tu código.</b> El programa de Windows se descarga solo.</li>
+        <li><b>4. Ábrelo y entra con Google.</b> Pon el mismo código para activar tu caja. Sirve una sola vez.</li>
       </ol>
     </div>
 
     <div class="buy-ok" role="status">
-      <h2 style="font-size:clamp(1.75rem,5vw,2.5rem);letter-spacing:-.03em">¡Gracias por tu compra!</h2>
-      <p class="buy-sub">Tu descarga empezó. Si no, toca el botón. Luego avísame por WhatsApp para activar tu caja.</p>
+      <h2 style="font-size:clamp(1.75rem,5vw,2.5rem);letter-spacing:-.03em">¡Código correcto!</h2>
+      <p class="buy-sub">Tu descarga empezó. Si no, toca el botón. Cuando abras el programa, entra con Google y escribe tu código.</p>
       <div class="ctas">
         <a class="pill" id="exe" href="https://github.com/davidcholan37-afk/caja-facil/releases/latest/download/CajaFacil-Setup.exe" download>Descargar para Windows</a>
-        <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20ya%20pagu%C3%A9%20Caja%20F%C3%A1cil%20con%20Yape.%20Te%20mando%20mi%20captura." target="_blank" rel="noopener">Avisar por WhatsApp</a>
       </div>
     </div>
   </div>
@@ -73,9 +86,24 @@ button.tlink{background:none;border:0;cursor:pointer}
   </div>
 </footer>
 <script>
-document.getElementById("pagado").addEventListener("click", function () {
-  document.getElementById("buy").classList.add("paid");
-  document.getElementById("exe").click();
+var SB = "https://ohdpfdzledddmhanscln.supabase.co/rest/v1/rpc/codigo_valido", KEY = "sb_publishable_ZTDGiZUQYzGXQ0Pv0J33pQ_759qa460";
+var code = document.getElementById("code"), msg = document.getElementById("msg"), go = document.getElementById("go");
+code.addEventListener("input", function () {
+  var v = code.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+  code.value = v.replace(/(.{4})(?=.)/g, "$1-");
+});
+document.getElementById("form").addEventListener("submit", function (e) {
+  e.preventDefault(); msg.textContent = "";
+  if (code.value.length < 14) { msg.textContent = "Escribe el código completo."; return; }
+  go.disabled = true; go.textContent = "Revisando…";
+  fetch(SB, { method: "POST", headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json" }, body: JSON.stringify({ c: code.value }) })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (ok) {
+      if (ok === true) { document.getElementById("buy").classList.add("paid"); document.getElementById("exe").click(); }
+      else { msg.textContent = "Ese código no sirve o ya se usó. Escríbeme por WhatsApp."; }
+    })
+    .catch(function () { msg.textContent = "No se pudo revisar. Revisa tu internet e inténtalo otra vez."; })
+    .then(function () { go.disabled = false; go.textContent = "Descargar el programa"; });
 });
 document.getElementById("copiar").addEventListener("click", function () {
   var b = this;
