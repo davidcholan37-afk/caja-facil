@@ -1900,3 +1900,14 @@ body .paybox .paymini.pay4{grid-template-columns:1.25fr 1fr 1fr 1fr .8fr}
 body .paybox .pay4 .pm.culqi{background:#FF7A1A;color:#1D1D1F;text-shadow:none;border:0}
 
 .cfcode{font:700 2rem/1.2 var(--fm,monospace);letter-spacing:.06em;text-align:center;padding:14px 0 18px}
+
+/* Más contraste (pantallas viejas o con brillo): fondo marcado, bordes visibles, textos más oscuros. */
+:root{--bg:#D9E0E9;--hl:rgba(15,23,42,.16);--hl2:rgba(15,23,42,.30);--t2:#2F3A4C;--t3:#47556B}
+html:not([data-theme=dark]) body{background:var(--bg)}
+html:not([data-theme=dark]) .paper,html:not([data-theme=dark]) .lastp,html:not([data-theme=dark]) .qk,html:not([data-theme=dark]) .prow,html:not([data-theme=dark]) .pt,html:not([data-theme=dark]) .sbox,html:not([data-theme=dark]) .chip,html:not([data-theme=dark]) .tool,html:not([data-theme=dark]) .it{border-color:var(--hl2)}
+html:not([data-theme=dark]) .sbox{border-width:1.5px}
+html:not([data-theme=dark]) .lastp{border-left:6px solid var(--ac,#1a6bff)}
+html:not([data-theme=dark]) .cart .nm b,html:not([data-theme=dark]) .qk b,html:not([data-theme=dark]) .prow b{font-weight:650;color:var(--t1)}
+body .paybox .pay4 .pm:disabled{opacity:.62}
+html:not([data-theme=dark]) .lastp{background:#EAF1FF}
+html:not([data-theme=dark]) .cart .tot b,html:not([data-theme=dark]) .cart .total{color:var(--t1)}
