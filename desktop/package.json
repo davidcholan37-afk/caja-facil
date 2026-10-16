@@ -1,7 +1,7 @@
 {
   "name": "caja-facil-escritorio",
   "productName": "Caja Fácil",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Caja Fácil: punto de venta para bodegas, minimarkets y fruterías",
   "author": "Caja Fácil",
   "homepage": "https://davidcholan37-afk.github.io/caja-facil/web/",
@@ -20,7 +20,7 @@
     "appId": "pe.cajafacil.escritorio",
     "productName": "Caja Fácil",
     "copyright": "© 2026 Caja Fácil",
-    "files": ["main.js", "build/icon.png"],
+    "files": ["main.js", "mascota.html", "mascota-preload.js", "build/icon.png"],
     "directories": { "output": "dist", "buildResources": "build" },
     "protocols": [{ "name": "Caja Fácil", "schemes": ["cajafacil"] }],
     "win": { "target": "nsis", "icon": "build/icon.ico", "artifactName": "CajaFacil-Setup.exe" },

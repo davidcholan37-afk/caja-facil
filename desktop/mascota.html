@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Luis</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; -webkit-user-select: none; }
+  canvas { display: block; width: 96px; height: 96px; image-rendering: pixelated; cursor: pointer; }
+</style>
+<canvas id="c" width="16" height="16" aria-label="Luis, tu ayudante de Caja Fácil" role="button"></canvas>
+<script>
+// Luis, tomatito pixelado (dibujo propio, 16×16). El mismo dibujo lo usa main.js para recortar la ventana.
+const COL = { K: "#3A1F1A", R: "#E5483A", H: "#FF8A7A", G: "#3FA34D", E: "#1B1B1F", P: "#FF9E9E" };
+const ARTE = [
+  ".......GG.......",
+  "....G..GG..G....",
+  ".....GGGGGG.....",
+  "...KKKGGGGKKK...",
+  "..KRRRKGGKRRRK..",
+  ".KRRRRRKKRRRRRK.",
+  ".KRHHRRRRRRRRRK.",
+  "KRRHRRRRRRRRRRRK",
+  "KRRREERRRREERRRK",
+  "KRRREERRRREERRRK",
+  "KRRRRRRRRRRRRRRK",
+  "KRPPRRRKKRRPPRRK",
+  ".KRRRRRRRRRRRRK.",
+  "..KRRRRRRRRRRK..",
+  "...KKRRRRRRKK...",
+  ".....KKKKKK....."
+];
+const cv = document.getElementById("c"), cx = cv.getContext("2d");
+function dibujar(ojosCerrados) {
+  cx.clearRect(0, 0, 16, 16);
+  ARTE.forEach((fila, y) => [...fila].forEach((ch, x) => {
+    if (ch === ".") return;
+    let c = COL[ch];
+    if (ch === "E" && ojosCerrados) c = y === 9 ? COL.E : COL.R; // parpadeo: queda una sola línea
+    cx.fillStyle = c; cx.fillRect(x, y, 1, 1);
+  }));
+}
+dibujar(false);
+// Parpadea de vez en cuando (solo dibujo; sin mover nada).
+const reducir = matchMedia("(prefers-reduced-motion: reduce)").matches;
+(function parpadeo() {
+  setTimeout(() => { if (!reducir) { dibujar(true); setTimeout(() => dibujar(false), 140); } parpadeo(); }, 2500 + Math.random() * 3500);
+})();
+
+// Arrastrar con el mouse; si casi no se movió, es un toque y abre a Luis.
+let abajo = null, movido = 0;
+cv.addEventListener("pointerdown", (e) => { if (e.button !== 0) return; abajo = { x: e.screenX, y: e.screenY }; movido = 0; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", (e) => {
+  if (!abajo) return;
+  const dx = e.screenX - abajo.x, dy = e.screenY - abajo.y;
+  if (!dx && !dy) return;
+  movido += Math.abs(dx) + Math.abs(dy);
+  abajo = { x: e.screenX, y: e.screenY };
+  if (movido > 4) window.mascota.mover(dx, dy);
+});
+cv.addEventListener("pointerup", () => { if (!abajo) return; abajo = null; movido > 4 ? window.mascota.fin() : window.mascota.tocar(); });
+cv.addEventListener("contextmenu", (e) => { e.preventDefault(); window.mascota.menu(); });
+cv.tabIndex = 0;
+cv.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") window.mascota.tocar(); });
+</script>

@@ -2,8 +2,9 @@
 // Así se actualiza sola (cada cambio del sistema llega sin reinstalar) y funciona sin internet gracias al service worker.
 // Google no permite iniciar sesión dentro de programas de escritorio, por eso el ingreso se hace en el navegador
 // normal y vuelve aquí con el enlace cajafacil://auth#... (ver «#login-escritorio» en src/67-cloud.js).
-const { app, BrowserWindow, Menu, shell, dialog, session } = require("electron");
+const { app, BrowserWindow, Menu, Tray, nativeImage, screen, ipcMain, shell, dialog, session } = require("electron");
 const path = require("path");
+const fs = require("fs");
 
 const APP_URL = "https://davidcholan37-afk.github.io/caja-facil/";
 const AUTH_URL = "https://ohdpfdzledddmhanscln.supabase.co/auth/v1/authorize";
@@ -14,7 +15,7 @@ app.disableHardwareAcceleration();
 // Se quitan los acentos y todo carácter no ASCII del nombre con que el programa se presenta en internet.
 const ascii = (s) => String(s).normalize("NFD").replace(/[^\x20-\x7E]/g, "");
 try { app.userAgentFallback = ascii(app.userAgentFallback); } catch (_) {}
-let win = null;
+let win = null, mascota = null, tray = null;
 let caidas = 0, modoTemporal = false, limpiado = false, etapa = "abriendo";
 const ultimos = [];
 let pendingLink = process.argv.find((a) => a.startsWith(PROTOCOL + "://")) || null;
@@ -44,6 +45,83 @@ function openLink(link) {
   const i = link.indexOf("#");
   if (!win || i < 0) { pendingLink = link; return; }
   win.loadURL(APP_URL + link.slice(i));
+}
+
+
+// ---- Luis, la mascota: un tomatito pixelado que flota en una esquina del escritorio ----
+// Al tocarlo abre el chat de Luis dentro de la caja. Se arrastra, se esconde con clic derecho y vuelve desde el ícono junto al reloj.
+// No roba el foco (no interrumpe al escanear o escribir) y la ventana se recorta con el contorno del dibujo (sin transparencia, por la tarjeta de video).
+const ARTE = [
+  ".......GG.......", "....G..GG..G....", ".....GGGGGG.....", "...KKKGGGGKKK...", "..KRRRKGGKRRRK..", ".KRRRRRKKRRRRRK.",
+  ".KRHHRRRRRRRRRK.", "KRRHRRRRRRRRRRRK", "KRRREERRRREERRRK", "KRRREERRRREERRRK", "KRRRRRRRRRRRRRRK", "KRPPRRRKKRRPPRRK",
+  ".KRRRRRRRRRRRRK.", "..KRRRRRRRRRRK..", "...KKRRRRRRKK...", ".....KKKKKK....."
+];
+const ESC = 6, LADO = 16 * ESC;
+const ajustes = () => path.join(app.getPath("userData"), "mascota.json");
+function leerAjustes() { try { return JSON.parse(fs.readFileSync(ajustes(), "utf8")) || {}; } catch (_) { return {}; } }
+function guardarAjustes(o) { try { fs.writeFileSync(ajustes(), JSON.stringify({ ...leerAjustes(), ...o })); } catch (_) {} }
+function formaMascota() {
+  const r = [];
+  ARTE.forEach((fila, y) => { let x = 0; while (x < 16) { if (fila[x] === ".") { x++; continue; } const i = x; while (x < 16 && fila[x] !== ".") x++; r.push({ x: i * ESC, y: y * ESC, width: (x - i) * ESC, height: ESC }); } });
+  return r;
+}
+function posicionLibre() {
+  const a = leerAjustes();
+  const pantallas = screen.getAllDisplays();
+  const vale = typeof a.x === "number" && typeof a.y === "number" && pantallas.some((d) => a.x >= d.workArea.x - 10 && a.y >= d.workArea.y - 10 && a.x <= d.workArea.x + d.workArea.width - 40 && a.y <= d.workArea.y + d.workArea.height - 40);
+  if (vale) return { x: a.x, y: a.y };
+  const w = screen.getPrimaryDisplay().workArea;
+  return { x: w.x + w.width - LADO - 24, y: w.y + w.height - LADO - 24 };
+}
+function mostrarMascota() {
+  if (mascota && !mascota.isDestroyed()) { mascota.showInactive(); return; }
+  const p = posicionLibre();
+  mascota = new BrowserWindow({
+    width: LADO, height: LADO, x: p.x, y: p.y, frame: false, resizable: false, maximizable: false, minimizable: false, fullscreenable: false,
+    skipTaskbar: true, focusable: false, alwaysOnTop: true, hasShadow: false, show: false, backgroundColor: "#E5483A", title: "Luis",
+    webPreferences: { preload: path.join(__dirname, "mascota-preload.js"), contextIsolation: true, sandbox: false, nodeIntegration: false, spellcheck: false }
+  });
+  try { mascota.setShape(formaMascota()); } catch (_) {}
+  mascota.setAlwaysOnTop(true, "floating");
+  mascota.loadFile(path.join(__dirname, "mascota.html"));
+  mascota.once("ready-to-show", () => { if (mascota && !mascota.isDestroyed()) mascota.showInactive(); });
+  mascota.on("closed", () => { mascota = null; });
+  guardarAjustes({ oculta: false });
+}
+function esconderMascota() { guardarAjustes({ oculta: true }); if (mascota && !mascota.isDestroyed()) mascota.close(); }
+function abrirLuis() {
+  if (!win || win.isDestroyed()) { createWindow(); return; }
+  if (win.isMinimized()) win.restore();
+  win.show(); win.focus();
+  win.webContents.executeJavaScript("(()=>{const l=document.getElementById('helpLauncher');if(l&&!l.hidden)l.click();else{const i=document.getElementById('helpInput');if(i)i.focus();}})()").catch(() => {});
+}
+ipcMain.on("mascota:mover", (e, dx, dy) => {
+  if (!mascota || mascota.isDestroyed() || e.sender !== mascota.webContents) return;
+  const [x, y] = mascota.getPosition();
+  mascota.setPosition(Math.round(x + (+dx || 0)), Math.round(y + (+dy || 0)));
+});
+ipcMain.on("mascota:fin", (e) => { if (mascota && !mascota.isDestroyed() && e.sender === mascota.webContents) { const [x, y] = mascota.getPosition(); guardarAjustes({ x, y }); } });
+ipcMain.on("mascota:tocar", (e) => { if (mascota && !mascota.isDestroyed() && e.sender === mascota.webContents) abrirLuis(); });
+ipcMain.on("mascota:menu", (e) => {
+  if (!mascota || mascota.isDestroyed() || e.sender !== mascota.webContents) return;
+  Menu.buildFromTemplate([
+    { label: "Hablar con Luis", click: abrirLuis },
+    { label: "Esconder a Luis", click: esconderMascota }
+  ]).popup({ window: mascota });
+});
+function crearBandeja() {
+  if (tray) return;
+  try {
+    tray = new Tray(nativeImage.createFromPath(path.join(__dirname, "build", "icon.png")).resize({ width: 16, height: 16 }));
+    tray.setToolTip("Caja Fácil");
+    const menu = () => Menu.buildFromTemplate([
+      { label: "Abrir Caja Fácil", click: () => { if (win && !win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } else createWindow(); } },
+      { label: "Mostrar a Luis", click: mostrarMascota },
+      { label: "Esconder a Luis", click: esconderMascota }
+    ]);
+    tray.on("click", () => { if (win && !win.isDestroyed()) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
+    tray.on("right-click", () => tray.popUpContextMenu(menu()));
+  } catch (_) { tray = null; }
 }
 
 function inApp(url) { return url.startsWith(APP_URL) || url === APP_URL.slice(0, -1); }
@@ -93,6 +171,7 @@ function createWindow(temporal) {
   wc.on("dom-ready", () => { etapa = "la página ya dibujó"; });
   wc.on("did-finish-load", () => { etapa = "la página cargó"; });
   wc.on("console-message", (_e, _nivel, msg) => { ultimos.push(String(msg).slice(0, 90)); if (ultimos.length > 4) ultimos.shift(); });
+  w.on("closed", () => { if (win === w && mascota && !mascota.isDestroyed()) mascota.close(); });
   let cerrando = false;
   wc.on("render-process-gone", (_e, d) => {
     if (d.reason === "clean-exit" || cerrando || win !== w) return;
@@ -113,5 +192,6 @@ function createWindow(temporal) {
   });
 }
 
-app.whenReady().then(() => createWindow()).catch((e) => avisar("No se pudo abrir el programa.\n\n" + (e && e.stack || e)));
+app.whenReady().then(() => { createWindow(); crearBandeja(); if (!leerAjustes().oculta) mostrarMascota(); }).catch((e) => avisar("No se pudo abrir el programa.\n\n" + (e && e.stack || e)));
 app.on("window-all-closed", () => app.quit());
+app.on("before-quit", () => { if (mascota && !mascota.isDestroyed()) mascota.destroy(); });
