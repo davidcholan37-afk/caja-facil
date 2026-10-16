@@ -74,7 +74,7 @@ const setInput = (k) => { if (document.documentElement.dataset.input !== k) docu
 document.addEventListener("pointerdown", () => setInput("ptr"), true);
 document.addEventListener("keydown", (e) => {
   if (e.key.length > 1 || e.ctrlKey || e.altKey) setInput("kbd");
-  if ($("#susp")) { if (e.key !== "Tab" && e.key !== "Enter" && e.key !== " ") e.preventDefault(); return; } // caja bloqueada: ni teclas ni lector
+  if ($("#susp")) { if (e.target.id === "gcode") { if (e.key === "Enter") { e.preventDefault(); A.codecanje(); } return; } if (e.key !== "Tab" && e.key !== "Enter" && e.key !== " ") e.preventDefault(); return; } // caja bloqueada: ni teclas ni lector
   if (ui.locked) { if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === "Backspace") pinKey("del"); else if (e.key === "Escape" && !$("#lockCancel").hidden) $("#lockCancel").click(); return; }
   const open = modalOpen(), field = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName), inQ = e.target.id === "q";
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k" && ui.tab === "venta") { e.preventDefault(); if (!open) A.tools(); else if ($("#modal .fgrid")) closeModal(); return; }
