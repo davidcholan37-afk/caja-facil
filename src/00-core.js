@@ -40,7 +40,7 @@ const parseQty = (v) => {
 const fmtPhone = (v) => String(v || "").replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ").trim();
 const parseAmounts = (s) => String(s).replace(/(\d),(\d{1,2})(?!\d)/g, "$1.$2").split(/[\s;,]+/).map((x) => parseFloat(x)).filter((n) => isFinite(n) && n > 0).map(r2);
 
-const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", tarjeta: "Tarjeta", transferencia: "Transferencia", credito: "Crédito", puntos: "Puntos" };
+const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", culqi: "Culqi", tarjeta: "Tarjeta", transferencia: "Transferencia", credito: "Crédito", puntos: "Puntos" };
 const FK = { efectivo: "F2", yape: "F8", tarjeta: "F9", plin: "F10" };
 const DOCS = { NV: "Nota de venta", B: "Boleta", F: "Factura" };
 const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];

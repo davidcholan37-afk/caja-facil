@@ -129,7 +129,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (open && ui.mk === "pay" && ui.pay && !ui.pay.split && !field && !e.ctrlKey && !e.metaKey) {
-    const m = { e: "efectivo", y: "yape", p: "plin", t: "tarjeta", r: "transferencia", c: "credito" }[e.key.toLowerCase()];
+    const m = { e: "efectivo", y: "yape", p: "plin", q: "culqi", t: "tarjeta", r: "transferencia", c: "credito" }[e.key.toLowerCase()];
     if (m) { ui.pay.method = m; paintPay(); }
   }
 });

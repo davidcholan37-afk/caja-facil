@@ -1751,7 +1751,7 @@ body .paybox .pay4 .pm.efectivo:not(:disabled){background:#16A34A}
 body .paybox .pay4 .pm.yape:not(:disabled){background:#742284;box-shadow:none}
 body .paybox .pay4 .pm.plin:not(:disabled){background:#00B8D9;box-shadow:none}
 body .paybox .pay4 .pm:disabled{opacity:.4}
-body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin){background:var(--s1,#fff);color:var(--t2,#444);border:1px solid var(--hl,#ddd);text-shadow:none}
+body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){background:var(--s1,#fff);color:var(--t2,#444);border:1px solid var(--hl,#ddd);text-shadow:none}
 
 /* Carrito más limpio: sin cabecera de columnas, «Vaciar» solo con el ícono, sin hora arriba en PC */
 .cart .lh{display:none!important}
@@ -1891,3 +1891,10 @@ html.lite{--sh2:0 0 0 1px var(--line,rgba(0,0,0,.1));--sh3:0 0 0 1px var(--line,
 html.lite .help-chat{box-shadow:0 0 0 1px var(--hsep)}
 html.lite .help-launcher{box-shadow:0 0 0 1px var(--hsep)}
 html.lite .hl-orb .h{display:none}
+
+/* Culqi: naranja (cobro, medios de pago y botón de confirmar) */
+body .paybox .pay4 .pm.culqi,body .paybox .pay4 .pm.culqi:not(:disabled){background:#FF7A1A;color:#1D1D1F;text-shadow:none;box-shadow:none}
+body .paybox .paymini.pay4{grid-template-columns:1.25fr 1fr 1fr 1fr .8fr}
+.mth.culqi.on{background:#FF7A1A;border-color:#FF7A1A;color:#1D1D1F}
+.btn.go.culqi{background:#FF7A1A;color:#1D1D1F}
+body .paybox .pay4 .pm.culqi{background:#FF7A1A;color:#1D1D1F;text-shadow:none;border:0}

@@ -27,6 +27,9 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Esta app es HTML/CSS/JS sin frameworks: NO instales Tailwind, React, npm ni librerías de íconos aunque una skill lo sugiera. Todo se hace en `src/style.css` y `src/*.js`.
 - Un rediseño cambia solo la apariencia; las funciones no se tocan.
 
+## Medios de pago
+- `METHODS` (00-core): efectivo, yape, plin, **culqi** (naranja #FF7A1A, texto oscuro), tarjeta, transferencia, crédito, puntos. Culqi es un medio sin integración: el cajero cobra con el enlace/QR/POS de Culqi y anota (N° de operación opcional); se suma en caja, reportes y abonos como Yape/Plin. Tecla Q dentro del cobro.
+
 ## Modos de la pantalla de venta
 - «Escáner (minimarket)» es el modo por defecto (`DB.cfg.view` distinto de "tiles"): sin fotos, lo último que pasaste, accesos para productos sin código y búsqueda en lista.
 - «Fichas con fotos» (`DB.cfg.view = "tiles"`) se elige en Ajustes › Pantalla de venta.
