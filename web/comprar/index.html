@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es-PE" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comprar Caja Fácil</title>
+<meta name="description" content="Compra Caja Fácil por S/ 150 al mes. Paga con Yape y descarga el programa de Windows al instante.">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="../../icon-192.png">
+<link rel="preload" href="../fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../web.css?v=20261012b">
+<style>
+.buy{padding:72px 0 96px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.buy h1{font-size:clamp(2.25rem,6vw,3.75rem);letter-spacing:-.04em;line-height:1.05}
+.buy .from{margin-top:14px}
+.buy-card{width:min(440px,100%);margin-top:36px;background:var(--gray);border-radius:22px;padding:26px 22px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.buy-card .tag{display:inline-flex;align-items:center;gap:10px;font:600 1.0625rem/1 var(--f)}
+.buy-card .dot{width:12px;height:12px;border-radius:50%;background:#742284}
+.buy-num{font:600 clamp(2rem,8vw,2.5rem)/1.1 var(--fd);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.buy-sub{color:var(--t2);font-size:1rem;max-width:34ch}
+.buy-steps{margin-top:30px;max-width:440px;text-align:left;display:grid;gap:12px;color:var(--t2);font-size:1rem}
+.buy-steps b{color:var(--t1)}
+.buy-ok{display:none;flex-direction:column;align-items:center;gap:14px}
+.paid .buy-ok{display:flex}
+.paid .buy-pay{display:none}
+button.pill{border:0;cursor:pointer}
+button.tlink{background:none;border:0;cursor:pointer}
+.buy .ctas{justify-content:center}
+</style>
+</head>
+<body>
+<a class="skip" href="#contenido">Saltar al contenido</a>
+<header class="nav">
+  <div class="navin">
+    <a class="brand" href="../" aria-label="Caja Fácil, inicio"><span class="mark" aria-hidden="true">S/</span><span>Caja Fácil</span></a>
+    <div class="navcta"><a class="tlink" href="../">Volver</a></div>
+  </div>
+</header>
+<main id="contenido">
+  <div class="wrap buy" id="buy">
+    <h1>Compra Caja Fácil.</h1>
+    <p class="from"><b>S/ 150</b> al mes. Pagas con Yape.</p>
+
+    <div class="buy-pay" style="width:100%;display:flex;flex-direction:column;align-items:center">
+      <div class="buy-card">
+        <span class="tag"><span class="dot" aria-hidden="true"></span>Yape</span>
+        <p class="buy-num" id="num">904 623 137</p>
+        <p class="buy-sub">Yapea S/ 150 a David Cholan Ramos.</p>
+        <button type="button" class="tlink" id="copiar">Copiar número</button>
+        <button type="button" class="pill" id="pagado">Ya pagué</button>
+      </div>
+      <ol class="buy-steps">
+        <li><b>1. Yapea S/ 150</b> al número de arriba.</li>
+        <li><b>2. Toca «Ya pagué».</b> El programa de Windows se descarga solo.</li>
+        <li><b>3. Escríbeme por WhatsApp</b> con tu captura y activo tu caja.</li>
+      </ol>
+    </div>
+
+    <div class="buy-ok" role="status">
+      <h2 style="font-size:clamp(1.75rem,5vw,2.5rem);letter-spacing:-.03em">¡Gracias por tu compra!</h2>
+      <p class="buy-sub">Tu descarga empezó. Si no, toca el botón. Luego avísame por WhatsApp para activar tu caja.</p>
+      <div class="ctas">
+        <a class="pill" id="exe" href="https://github.com/davidcholan37-afk/caja-facil/releases/latest/download/CajaFacil-Setup.exe" download>Descargar para Windows</a>
+        <a class="tlink" href="https://wa.me/51904623137?text=Hola%2C%20ya%20pagu%C3%A9%20Caja%20F%C3%A1cil%20con%20Yape.%20Te%20mando%20mi%20captura." target="_blank" rel="noopener">Avisar por WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="foot">
+  <div class="footin">
+    <p class="fine">Caja Fácil emite notas de venta internas y no reemplaza las boletas ni facturas electrónicas de SUNAT. Precios en soles.</p>
+    <p class="copy">© 2026 Caja Fácil. Lima, Perú. · <a href="https://wa.me/51904623137" target="_blank" rel="noopener">WhatsApp 904 623 137</a></p>
+  </div>
+</footer>
+<script>
+document.getElementById("pagado").addEventListener("click", function () {
+  document.getElementById("buy").classList.add("paid");
+  document.getElementById("exe").click();
+});
+document.getElementById("copiar").addEventListener("click", function () {
+  var b = this;
+  try { navigator.clipboard.writeText("904623137").then(function () { b.textContent = "Copiado"; }); } catch (e) { b.textContent = "904 623 137"; }
+});
+</script>
+</body>
+</html>
