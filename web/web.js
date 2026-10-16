@@ -198,24 +198,3 @@
   document.addEventListener("visibilitychange", function () { if (!document.hidden && vis && !raf) raf = requestAnimationFrame(loop); });
   if ("ResizeObserver" in window) new ResizeObserver(size).observe(cv); else addEventListener("resize", size);
 })();
-
-/* Pagar: elegir Yape o Culqi y, al avisar que pagaste, bajar el programa de Windows.
-   Culqi: pega aquí el enlace de pago de tu panel de Culqi. Vacío = abre WhatsApp para pagar. */
-(function () {
-  var CULQI_LINK = "";
-  var box = document.querySelector(".pay-box"); if (!box) return;
-  var opts = [].slice.call(box.querySelectorAll(".pay-opt")), ok = box.querySelector(".pay-ok");
-  function pick(b) {
-    opts.forEach(function (o) { var on = o === b; o.setAttribute("aria-checked", on); box.querySelector('[data-p="' + o.dataset.m + '"]').hidden = !on; });
-  }
-  opts.forEach(function (o) { o.addEventListener("click", function () { pick(o); }); });
-  var cg = document.getElementById("culqi-go");
-  cg.href = CULQI_LINK || "https://wa.me/51904623137?text=" + encodeURIComponent("Hola, quiero pagar Caja Fácil (S/ 150) con Culqi");
-  [].forEach.call(box.querySelectorAll("[data-done]"), function (d) {
-    d.addEventListener("click", function () {
-      opts.forEach(function (o) { box.querySelector('[data-p="' + o.dataset.m + '"]').hidden = true; });
-      box.querySelector(".pay-opts").hidden = true; ok.hidden = false;
-      document.getElementById("exe-go").click();
-    });
-  });
-})();
