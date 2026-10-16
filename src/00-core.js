@@ -90,7 +90,7 @@ const PERMS = [
   ["anular", "Anular ventas"], ["devolver", "Hacer devoluciones"], ["precios", "Crear y editar productos y precios"],
   ["stock", "Ingresos, ajustes y transferencias de stock"], ["clientes", "Crear y editar clientes"], ["abonos", "Cobrar deudas de clientes"],
   ["caja", "Abrir y cerrar su caja, anotar gastos"], ["cierre", "Cierre del día y de períodos"], ["reportes", "Ver reportes y liquidaciones"],
-  ["costos", "Ver costos y ganancias"], ["limite", "Vender pasando el límite de crédito"], ["ajustes", "Ajustes, usuarios y respaldos"]
+  ["costos", "Ver costos y ganancias"], ["limite", "Vender pasando el límite de crédito"], ["libre", "Vender por voz algo que no está en productos"], ["ajustes", "Ajustes, usuarios y respaldos"]
 ];
 const ROLE_LABEL = { admin: "Administrador", cajero: "Cajero", vendedor: "Vendedor (preventa)" };
 const DEF_ROLES = () => ({

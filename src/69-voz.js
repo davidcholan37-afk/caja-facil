@@ -110,6 +110,7 @@ function vzMoney(toks) {
   const q = vzQty(m.filter((t) => vzIsNum(t) || /^(sol|soles)$/.test(t)));
   return q && q.val > 0 ? q.val : 0;
 }
+const VZ_LINK = new Set(["de", "del", "a", "en", "cuesta", "cuestan", "vale", "valen", "sale", "salen"]); // «audífono DE 14.50»: palabra que une el nombre con su precio
 const VZ_FN = new Set(["el", "la", "los", "las", "de", "del", "un", "una", "unos", "unas", "a", "al", "cuanto", "cuantos", "cuantas", "cuesta", "cuestan", "vale", "valen", "precio", "esta", "estan", "es", "son", "quedan", "queda", "quedo", "hay", "stock", "tengo", "tenemos", "me", "mi", "mis", "en", "producto", "kilo", "kilos", "docena", "docenas", "dime", "dame", "cual", "que", "por", "tiene", "tienes", "cuesta", "sale", "salen", "cobran", "cobras", "cobro", "como"]);
 
 /* ---------- preguntas y descuento: «cuánto me debe Rosa», «qué se está acabando», «cuánto hay en caja», «descuento de 2 soles» ---------- */
@@ -261,7 +262,12 @@ function vzParse(text) {
   // llegó mercadería: «llegaron 20 huevos y 10 atunes» suma al stock
   if (toks.some((t) => VZ_LLEGO.has(t))) {
     const seg = toks.filter((t) => !VZ_LLEGO.has(t)), items = []; let cur = { q: [], n: [] };
-    const push = () => { if (cur.n.length) items.push(cur); cur = { q: [], n: [] }; };
+    // «un audífono DE 14.50»: lo que sigue a «de/a/en…» tras el nombre es su precio (se usa solo si ese producto no está en la caja)
+    const push = () => {
+      if (cur.n.length) items.push(cur);
+      else if (cur.q.length && items.length) { const pv = items[items.length - 1]; if (!pv.post && VZ_LINK.has(pv.n[pv.n.length - 1])) pv.post = cur.q; }
+      cur = { q: [], n: [] };
+    };
     seg.forEach((t) => {
       if (vzIsQty(t)) { if (cur.n.length) push(); cur.q.push(t); }
       else if (["y", "e", "mas", "con", "tambien"].includes(t)) { if (cur.n.length) push(); }
@@ -337,12 +343,17 @@ function vzParse(text) {
     if (c < 0 && !porOk) { const f = seg.findIndex(vzIsQty); if (f < 0 || f > 2 || !seg.slice(0, f).every((t) => VZ_FN.has(t) || t === "y")) return; seg.splice(0, f); } // sin verbo vale si empieza con cantidad (ignorando «los», «y»…)
     // anotar: partir en productos cuando aparece una cantidad nueva o «y/con/más»
     let cur = { q: [], n: [] }; const items = [];
-    const push = () => { if (cur.n.length) items.push(cur); cur = { q: [], n: [] }; };
+    // «un audífono DE 14.50»: lo que sigue a «de/a/en…» tras el nombre es su precio (se usa solo si ese producto no está en la caja)
+    const push = () => {
+      if (cur.n.length) items.push(cur);
+      else if (cur.q.length && items.length) { const pv = items[items.length - 1]; if (!pv.post && VZ_LINK.has(pv.n[pv.n.length - 1])) pv.post = cur.q; }
+      cur = { q: [], n: [] };
+    };
     let por = false;
     seg.forEach((t, i) => {
       if (vzIsQty(t)) { if (cur.n.length && !por) push(); cur.q.push(t); }
-      else if (t === "por" && cur.n.length && seg.slice(i + 1).some(vzIsQty)) { por = true; cur.q = []; } // «pan POR un sol»: lo que sigue es el monto
-      else if (["y", "e", "mas", "con", "tambien"].includes(t)) { if (cur.n.length) { push(); por = false; } }
+      else if (t === "por" && cur.n.length && seg.slice(i + 1).some(vzIsQty)) { por = true; cur.por = true; cur.q = []; } // «pan POR un sol»: lo que sigue es el monto
+      else if (["y", "e", "mas", "con", "tambien"].includes(t)) { if (cur.n.length) { push(); por = false; } else if (cur.q.length && items.length && !items[items.length - 1].post && VZ_LINK.has(items[items.length - 1].n.slice(-1)[0])) push(); } // «audífono de 14.50 Y 2 leches»: el precio queda con el audífono
       else if ((t === "de" || t === "del") && !cur.n.length) { /* «un cuarto DE arroz» */ }
       else cur.n.push(t);
     });
@@ -352,6 +363,12 @@ function vzParse(text) {
       if (!nombre) return;
       const a = { tipo: "anotar", nombre };
       if (q && q.sol && q.val > 0) a.monto = q.val; else if (q && q.val > 0) { a.cantidad = q.val; a.unidad = q.kg ? "kg" : "unid"; }
+      // datos para vender algo que no está en los productos (venta libre): nombre sin «de/a…» y las palabras del precio
+      const nl = it.n.slice(); while (nl.length && VZ_LINK.has(nl[nl.length - 1])) nl.pop();
+      const lp = it.post || (it.por ? it.q : null);
+      if (nl.length) a.ln = nl.join(" ");
+      if (it.por) a.por = true;
+      if (lp && lp.length) a.lp = lp;
       out.push(a);
     });
   });
@@ -576,7 +593,22 @@ function vzPlan(acc, prev) {
     if (a.tipo === "anotar") {
       const r = vzFind(DB.products.filter((p) => p.on !== false), a.nombre, (p) => p.name);
       if (r.amb) return amb(r, a);
-      const p = r.it; if (!p) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
+      const p = r.it;
+      if (!p) {
+        // No está entre los productos: con precio y permiso se anota como venta libre (no se crea el producto ni se toca el stock)
+        const nm = String(a.ln || "").trim();
+        if (!nm || /^\d/.test(nm) || /^(todo|todos|eso|esto|algo|nada|cosa|cosas|lo|la|el)$/.test(nm)) return { ok: false, txt: `No encontré el producto «${a.nombre}»` };
+        const nomL = nm.charAt(0).toUpperCase() + nm.slice(1), pr = a.lp ? vzMoney(a.lp) : (a.monto || 0);
+        if (!(pr > 0)) return { ok: false, txt: `«${nomL}» no está en tus productos. Dime el precio, por ejemplo «${nm} de 14.50»` };
+        if (a.unidad === "kg") return { ok: false, txt: `«${nomL}» no está en tus productos: se anota por unidad, no por peso` };
+        if (!can("libre")) return { ok: false, txt: `«${nomL}» no está en tus productos y no tienes permiso para venderlo como venta libre` };
+        const qL = a.por ? 1 : r3(a.cantidad || 1); // «cuaderno por 3 soles»: 3 soles es el total
+        willAdd = true;
+        return { ok: true, txt: `${fmtQ(qL)} × ${nomL} · ${money(pr)} (no está en tus productos: venta libre)`, exec: () => {
+          DB.cart.items.push({ id: "q" + uid(), pres: "", quick: true, name: nomL, price: r2(pr), qty: qL });
+          log("Venta libre", `${nomL} ${money(pr)} × ${fmtQ(qL)} (voz)`); save(); paintSale();
+        }, rc: { q: fmtQ(qL), n: nomL + " (libre)", amt: r2(qL * pr) } };
+      }
       if ((p.pres || []).length) return { ok: false, txt: `${p.name}: tiene presentaciones, tócalo para elegir una` };
       const kg = p.unit === "kg";
       if (kg && !a.cantidad && !a.monto) return { ok: false, txt: `${p.name}: dime cuánto pesa (por ejemplo «un cuarto»)` };
