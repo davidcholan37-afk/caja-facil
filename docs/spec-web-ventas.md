@@ -5,7 +5,7 @@
 - **Para quién:** dueños de negocios pequeños en Lima, que llegan casi siempre desde el celular (WhatsApp, TikTok, Facebook).
 - **Qué deben hacer:** dos caminos. Botón principal **«Pruébala gratis»**, que abre la caja y se activa con Google. Botón secundario **«Escríbeme por WhatsApp»** (904 623 137).
 - **Prueba:** 15 días gratis. Al terminar, David decide si suspende desde «Mis clientes»; la app no cambia.
-- **Precio:** S/ 50 al mes, visible en la página.
+- **Precio:** S/ 150 al mes, visible en la página.
 - **Fuera de alcance:** pagos en línea, formularios, blog, boletas o facturas SUNAT (la página debe decir con honestidad que aún no las emite), analítica.
 
 ## Dónde vive
@@ -65,7 +65,7 @@ Página de producto de consumo para dueños de bodegas de Lima, con el refinamie
 - Sin paneles grises alrededor de las imágenes: franjas a todo lo ancho (blanco, gris #F5F5F7 y un único momento oscuro en «Se va el internet»).
 - Frases de Apple: la idea en negrita y la explicación en gris en el mismo párrafo.
 - Letra del sistema de Apple (SF Pro) en iPhone y Mac; Geist en Windows y Android.
-- Precio en la portada («Desde S/ 50 al mes. Los primeros 15 días, gratis.»), como Apple muestra «Desde…».
+- Precio en la portada («Desde S/ 150 al mes.»), como Apple muestra «Desde…».
 - La plantilla de Figma del usuario era genérica (fotos de comida y textos de relleno); no se usó como base.
 
 # v4: «Un día en la bodega» (aprobado por David)

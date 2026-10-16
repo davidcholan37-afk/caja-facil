@@ -78,7 +78,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Google no deja entrar dentro del programa: abre el navegador en `#login-escritorio` y vuelve con `cajafacil://auth#...` (ver `src/67-cloud.js`).
 
 ## Página de ventas
-- `web/` es la landing para vender Caja Fácil (HTML/CSS nativo, Geist, capturas reales en `web/img/`). Plan en `docs/spec-web-ventas.md`. Precio S/ 50 al mes, 15 días gratis, WhatsApp 904 623 137. No toques la caja al editarla.
+- `web/` es la landing para vender Caja Fácil (HTML/CSS nativo, Geist, capturas reales en `web/img/`). Plan en `docs/spec-web-ventas.md`. Precio S/ 150 al mes (sin prueba gratis), WhatsApp 904 623 137. No toques la caja al editarla.
 - `web/cine/` es una página ESPECIAL aparte («Un día en tu bodega»: cielo WebGL que se atraviesa con el scroll, bodega real y las funciones por hora). Se hizo una sola vez para mostrarla; `web/index.html` sigue siendo la página de ventas de siempre. Sin librerías, `noindex`.
 - `privacidad.html`, `terminos.html` (estilos en `legal.css`), `404.html` y `sitemap.xml` están en la raíz.
 
