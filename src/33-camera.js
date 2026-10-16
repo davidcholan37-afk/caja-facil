@@ -86,7 +86,7 @@ function onCamCode(raw) {
   // El mismo código no se vuelve a contar mientras siga frente a la cámara: para otra unidad, retíralo y vuelve a apuntar.
   const now = Date.now(); if (code === cam.last && now - cam.lastT < 1200) { cam.lastT = now; return; }
   cam.last = code; cam.lastT = now;
-  const p = DB.products.find((x) => x.code && x.code === code);
+  const p = DB.products.find((x) => (x.code && x.code === code) || (x.bar || []).includes(code));
   const ps = p ? null : DB.products.find((x) => (x.pres || []).some((y) => y.code && y.code === code));
   const lab = p || ps ? null : parseLabel(code);
   if (!p && !ps && !lab) { beep(false); camLog(`No encontré el código <b class="num">${esc(code)}</b>`, true); return; }

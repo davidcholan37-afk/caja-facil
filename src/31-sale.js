@@ -403,6 +403,16 @@ function presPicker(p) {
     ${p.pres.map((x) => `<button class="pres" data-a="addpres" data-id="${p.id}" data-p="${x.id}"><b>${esc(x.name)}</b><small>${fmtQ(x.f)} ${p.unit === "kg" ? "kg" : "unidades"}</small><span class="num">${money(x.price)}</span></button>`).join("")}</div>
     <div class="btns"><button class="btn sec" data-a="close">Cancelar</button></div>`);
 }
+// Código de barras que la caja no conoce: se busca el producto una vez y queda enlazado.
+function learnOpen(code) {
+  ui.lc = code; const q = norm(ui.lq2 || ""), found = q ? DB.products.filter((p) => p.on !== false && nameHit(p.name, q)).slice(0, 8) : [];
+  openModal(`<h2>Código nuevo</h2>
+    <p class="muted" style="margin-bottom:10px">La caja no conoce <b class="num">${esc(code)}</b>. Busca el producto: la próxima vez ya lo reconoce.</p>
+    <label class="fld"><span>¿Qué producto es?</span><input class="inp" id="wq" type="search" value="${esc(ui.lq2 || "")}" placeholder="Escribe el nombre" autocomplete="off"></label>
+    <div class="list" id="wfound">${found.map((p) => `<button class="it sm" data-a="learnpick" data-id="${p.id}"><span class="iti">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}</b><small>${p.code ? "Cód. " + esc(p.code) + " · " : ""}${money(p.price)}</small></div><div class="v">Es este</div></button>`).join("") || (q ? `<p class="muted" style="padding:8px 2px">No encontré ese producto. Prueba con otra palabra.</p>` : "")}</div>
+    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button></div>`, "wide");
+  ui.mk = "learn"; setTimeout(() => { const i = $("#wq"); if (i) i.focus(); }, 30);
+}
 // Código escrito o escaneado: "6", "3*6", "P15" (preventa), etiqueta de balanza (2xxxxx...), código de presentación.
 function submitCode(raw) {
   raw = raw.trim(); if (!raw) return;
@@ -416,8 +426,10 @@ function submitCode(raw) {
   const lab = !p && qty == null ? parseLabel(code) : null;
   if (lab) { clear(); addToCart(lab.p, lab.qty); paintGrid(); return; }
   if (!p) { for (const x of DB.products) { const ps = (x.pres || []).find((y) => y.code && y.code === code); if (ps) { p = x; pres = ps.id; break; } } }
+  if (!p) p = DB.products.find((x) => (x.bar || []).includes(code)); // código de barras enlazado (aprendido al escanear)
   const exact = !!p;
   if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { toast("Hay varios productos así: toca el que quieras"); return; } }
+  if (!p && qty == null && /^\d{6,}$/.test(code) && can("cobrar")) { beep(false); clear(); ui.lq2 = ""; learnOpen(code); return; } // código de barras nuevo: se enlaza a un producto
   if (!p) { toast("No encontramos «" + code + "»"); beep(false); return; }
   clear();
   if (pres) addToCart(p, qty || 1, pres);
@@ -430,6 +442,7 @@ function submitCode(raw) {
 
 /* ---------- acciones de la pantalla de venta ---------- */
 act({
+  learnpick: (el) => { const p = prod(el.dataset.id), c = ui.lc; if (!p || !c) return; p.bar = p.bar || []; if (!p.bar.includes(c)) p.bar.push(c); save(); log("Código enlazado", `${c} → ${p.name}`); ui.lq2 = ""; ui.lc = ""; closeModal(); submitCode(c); },
   add: (el) => { const p = prod(el.dataset.id); if (!p) return; if ((p.pres || []).length) presPicker(p); else if (p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p); },
   addpres: (el) => { const p = prod(el.dataset.id); if (!p) return; const pres = el.dataset.p; closeModal(); if (!pres && p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p, 1, pres); },
   inc: (el) => changeQty(el.dataset.k, 1),

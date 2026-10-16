@@ -19,6 +19,7 @@ document.addEventListener("input", (e) => {
   else if (id === "pcq") { ui.pcq = t.value; const l = $("#pclist"); if (l && ui.pclist) l.innerHTML = ui.pclist(); }
   else if (id === "imgq") { const g = $("#imggrid"); if (g && ui.imgdraw) g.innerHTML = ui.imgdraw(t.value); }
   else if (id === "lq") { clearTimeout(lqT); lqT = setTimeout(() => { ui.lq = t.value; keepFocus("lq", render); }, 250); }
+  else if (id === "wq") { ui.lq2 = t.value; keepFocus("wq", () => learnOpen(ui.lc)); }
   else if (id === "trfq") { ui.trfq = t.value; trfRead(); keepFocus("trfq", openTransfer); }
   else if (t.dataset.in === "recv" && ui.pay) { ui.pay.recv = t.value; updPay(); }
   else if (id === "pref" && ui.pay) ui.pay.ref = t.value;
