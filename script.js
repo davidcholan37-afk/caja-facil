@@ -2540,8 +2540,8 @@ async function cloudEnsureNegocio() {
   const s = cloudLoad(); if (s.neg) return s.neg;
   const uidMe = (s.ses && s.ses.user && s.ses.user.id) || "";
   // Solo los negocios propios (el proveedor también puede ver negocios de clientes que le dieron permiso de soporte)
-  const list = await sb(`negocios?select=id,nombre,estado,soporte_hasta&dueno=eq.${uidMe}&order=creado.asc`);
-  if (list.length) { s.neg = list[0].id; s.negName = list[0].nombre; s.estado = list[0].estado; s.sop = list[0].soporte_hasta; }
+  const list = await sb(`negocios?select=id,nombre,estado,soporte_hasta,vence&dueno=eq.${uidMe}&order=creado.asc`);
+  if (list.length) { s.neg = list[0].id; s.negName = list[0].nombre; s.estado = list[0].estado; s.sop = list[0].soporte_hasta; s.vence = list[0].vence || null; }
   else { const n = await sb("negocios", { method: "POST", headers: { Prefer: "return=representation" }, body: { nombre: DB.biz.name || "Mi negocio" } }); s.neg = n[0].id; s.negName = n[0].nombre; s.estado = n[0].estado || s.estado; }
   s.chk = Date.now(); cloudStore(); return s.neg;
 }
@@ -2652,11 +2652,11 @@ function panelHtml() {
 async function cloudRefreshNeg() {
   const s = cloudLoad(); if (!s.ses || !s.neg) return;
   try {
-    const r = await sb(`negocios?select=nombre,estado,soporte_hasta&id=eq.${s.neg}`);
-    if (r && r[0]) { s.negName = r[0].nombre; s.estado = r[0].estado; s.sop = r[0].soporte_hasta; s.chk = Date.now(); cloudStore(); }
+    const r = await sb(`negocios?select=nombre,estado,soporte_hasta,vence&id=eq.${s.neg}`);
+    if (r && r[0]) { s.negName = r[0].nombre; s.estado = r[0].estado; s.sop = r[0].soporte_hasta; s.vence = r[0].vence || null; s.chk = Date.now(); cloudStore(); }
   } catch (e) {}
   try { const v = await sb(`negocios?select=voz&id=eq.${s.neg}`); s.voz = !!(v && v[0] && v[0].voz); cloudStore(); } catch (e) {}
-  applySusp();
+  applySusp(); cloudAvisoVence();
 }
 async function cloudCheckAdmin() {
   const s = cloudLoad(); if (!s.ses) return;
@@ -2665,6 +2665,15 @@ async function cloudCheckAdmin() {
 // Licencia: cada caja se activa una vez con la cuenta de Google del dueño. Después vende sin internet
 // (los cajeros con su PIN), pero debe revisar su licencia en la nube al menos cada LIC_DIAS días.
 const LIC_DIAS = 15;
+const diasVence = () => { const s = cloudLoad(); return s.vence ? Math.ceil((Date.parse(s.vence) - Date.now()) / 864e5) : null; };
+// Una vez al día, desde 5 días antes: avisa que se acaba el mes pagado.
+function cloudAvisoVence() {
+  const d = diasVence(); if (d === null || d < 1 || d > 5) return;
+  let k = ""; try { k = localStorage.getItem("cf-vence-aviso") || ""; } catch (e) {}
+  if (k === dkey()) return;
+  try { localStorage.setItem("cf-vence-aviso", dkey()); } catch (e) {}
+  toast(`Tu plan vence ${d === 1 ? "mañana" : "en " + d + " días"}. Yapea S/ 150 al 904 623 137 y avísame por WhatsApp.`, true);
+}
 const WEB_COMPRAR = "https://davidcholan37-afk.github.io/caja-facil/web/comprar/";
 function gateState() {
   const s = cloudLoad();
@@ -2673,6 +2682,7 @@ function gateState() {
   if (!s.neg) return "conectando";
   if (s.estado === "suspendido") return "suspendido";
   if (s.estado === "pendiente") return "pendiente";
+  if (s.vence && Date.parse(s.vence) < Date.now()) return "vencido";
   return viejo ? "revisar" : "";
 }
 function gateHtml(g) {
@@ -2682,6 +2692,7 @@ function gateHtml(g) {
   if (g === "sesion") return `<b>Vuelve a entrar con Google</b><p>Para seguir usando <b>${name}</b>, el dueño debe entrar otra vez con su cuenta de Google. Tus datos están seguros.</p>${err}<button class="btn lg" data-a="cloudlogin" style="width:100%">Entrar con Google</button>`;
   if (g === "conectando") return `<b>Conectando tu caja…</b><p>Estamos activando <b>${name}</b>. Necesitas internet solo para este paso.</p>${err}<div class="btns h"><button class="btn" data-a="gateretry">Reintentar</button><button class="btn sec" data-a="gateout">Usar otra cuenta</button></div>`;
   if (g === "pendiente") return `<b>Activa tu caja</b><p>Escribe el código que te dio tu proveedor al comprar <b>Caja Fácil</b>. Sirve una sola vez.</p><label class="fld"><input class="inp num" id="gcode" placeholder="XXXX-XXXX-XXXX" maxlength="20" autocomplete="off" autocapitalize="characters" style="text-align:center;letter-spacing:.08em"></label>${err}<button class="btn lg" data-a="codecanje" style="width:100%">Activar mi caja</button><p class="muted sm" style="margin-top:12px">¿Aún no tienes código? <a href="${WEB_COMPRAR}" target="_blank" rel="noopener">Compra aquí</a> o <a href="https://wa.me/51904623137?text=${encodeURIComponent("Hola, quiero mi código de Caja Fácil")}" target="_blank" rel="noopener">escríbeme por WhatsApp</a>.</p><button class="link" data-a="suspcheck" style="margin-top:6px">Ya me activaron, volver a revisar</button>`;
+  if (g === "vencido") return `<b>Tu plan venció</b><p>El mes de <b>${name}</b> terminó el ${dmy(dkey(new Date(cloudLoad().vence)))}. Tus datos siguen guardados y seguros.</p><p class="muted">Yapea <b>S/ 150</b> al <b>904 623 137</b> (David Cholan Ramos) y avísame por WhatsApp para renovar.</p><a class="btn lg" href="https://wa.me/51904623137?text=${encodeURIComponent("Hola, ya renové Caja Fácil. Te mando mi captura.")}" target="_blank" rel="noopener" style="width:100%">Avisar por WhatsApp</a><button class="link" data-a="suspcheck" style="margin-top:8px">Ya renové, volver a revisar</button>`;
   if (g === "suspendido") return `<b>Sistema suspendido</b><p>La licencia de Caja Fácil de <b>${name}</b> está suspendida. Tus datos siguen guardados y seguros.</p><p class="muted">Comunícate con tu proveedor de Caja Fácil para reactivarla.</p><button class="btn sec" data-a="suspcheck">Ya pagué, volver a revisar</button>`;
   return `<b>Conéctate a internet</b><p>Hace más de ${LIC_DIAS} días que esta caja no revisa su licencia. Conéctala a internet un momento y toca el botón. Tus datos están seguros.</p>${err}<button class="btn" data-a="suspcheck" style="width:100%">Ya tengo internet, revisar</button>`;
 }
@@ -2721,8 +2732,8 @@ function adminHtml() {
   const body = !c ? `<p class="muted">Toca «Ver clientes» para traer la lista.</p>` : c.err ? `<p class="muted">No se pudo traer la lista. Revisa tu internet.</p>` : !c.length ? `<p class="muted">Aún no tienes clientes.</p>`
     : c.map((n) => { const sop = n.soporte_hasta && Date.parse(n.soporte_hasta) > Date.now(), mine = n.id === me;
       return `<div class="cli"><div class="clit"><b>${esc(n.nombre)}${mine ? " <small class=\"muted\">(tu negocio)</small>" : ""}</b><small>${esc(n.correo || "")} · ${n.tiendas || 0} ${n.tiendas === 1 ? "caja" : "cajas"} · ${n.ultima ? "última copia " + fmtDT(Date.parse(n.ultima)) : "sin copias aún"}</small>
-        <small><span class="tag ${n.estado === "suspendido" || n.estado === "pendiente" ? "out" : ""}">${n.estado === "suspendido" ? "Suspendido" : n.estado === "pendiente" ? "Esperando código" : "Activo"}</span> ${sop ? `<span class="tag">Soporte hasta ${fmtDT(Date.parse(n.soporte_hasta))}</span>` : ""}${n.nota ? " · " + esc(n.nota) : ""}</small>${n.vozOk ? `<small><span class="tag ${n.voz ? "" : "out"}">Voz ${n.voz ? "activa · hoy " + n.usos_hoy + " de " + n.voz_limite : "apagada"}</span></small>` : ""}</div>
-        <div class="clia">${n.vozOk ? `<button class="btn sec sm" data-a="adminvoz" data-id="${n.id}" data-e="${n.voz ? 0 : 1}">${n.voz ? "Quitar voz" : "Dar voz"}</button>` : ""}${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" || n.estado === "pendiente" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
+        <small><span class="tag ${n.estado === "suspendido" || n.estado === "pendiente" ? "out" : ""}">${n.estado === "suspendido" ? "Suspendido" : n.estado === "pendiente" ? "Esperando código" : "Activo"}</span> ${n.vence ? `<span class="tag ${Date.parse(n.vence) < Date.now() + 5 * 864e5 ? "out" : ""}">${Date.parse(n.vence) < Date.now() ? "Venció" : "Vence"} ${dmy(dkey(new Date(n.vence)))}</span> ` : ""}${sop ? `<span class="tag">Soporte hasta ${fmtDT(Date.parse(n.soporte_hasta))}</span>` : ""}${n.nota ? " · " + esc(n.nota) : ""}</small>${n.vozOk ? `<small><span class="tag ${n.voz ? "" : "out"}">Voz ${n.voz ? "activa · hoy " + n.usos_hoy + " de " + n.voz_limite : "apagada"}</span></small>` : ""}</div>
+        <div class="clia">${mine ? "" : `<button class="btn sec sm" data-a="adminren" data-id="${n.id}">Renovar 1 mes</button>`}${n.vozOk ? `<button class="btn sec sm" data-a="adminvoz" data-id="${n.id}" data-e="${n.voz ? 0 : 1}">${n.voz ? "Quitar voz" : "Dar voz"}</button>` : ""}${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" || n.estado === "pendiente" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
   return `<div class="card"><div class="row sp"><h2>Mis clientes</h2><button class="btn sec sm" data-a="adminlist">Ver clientes</button></div><div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-a="admincod">Generar código</button><button class="btn sec sm" data-a="adminacc">Dar acceso por correo</button></div><p class="muted sm" style="margin-bottom:8px">Solo tú ves esto. Para ver los datos de un cliente, él debe darte acceso en su Ajustes › Nube › Soporte técnico.</p>${body}</div>`;
 }
 // Resumen de solo lectura de un cliente que dio permiso.
@@ -2763,6 +2774,7 @@ function cloudSettingsHtml() {
       <div class="kv"><span>Negocio</span><b>${esc(s.negName || "—")}</b></div>
       <div class="kv"><span>Esta caja</span><b>${esc(DB.biz.store)} <small class="muted">(${esc(DB.biz.sid)})</small></b></div>
       <div class="kv"><span>Copia en la nube</span><b id="cloudst">${cloudStatus()}</b></div>
+      ${s.vence ? `<div class="kv"><span>Tu plan</span><b>${diasVence() < 0 ? "Venció" : "Vence"} el ${dmy(dkey(new Date(s.vence)))}</b></div>` : ""}
       <div class="row wrap" style="margin-top:12px">${s.ver ? `<button class="btn" data-a="cloudnew">Usar este equipo como caja</button>` : `<button class="btn" data-a="cloudpush">Subir ahora</button>`}<button class="btn sec" data-a="cloudrecover">Recuperar una tienda</button><button class="btn sec" data-a="cloudout">Cerrar sesión</button></div></div>
     ${s.ver ? "" : soporteHtml()}${s.admin ? adminHtml() : ""}
     <div class="card"><div class="row sp"><h2>Mis tiendas hoy</h2><button class="btn sec sm" data-a="cloudpanel">Ver mis tiendas</button></div>${panelHtml()}</div>
@@ -2796,6 +2808,8 @@ act({
     if (e === "suspendido") confirmBox(`¿Suspender a ${n.nombre || "este cliente"}?`, "Suspender", go, true, "Su caja se bloquea la próxima vez que se conecte a la nube. Sus datos no se borran."); else go(); },
   suspcheck: async () => { const s = cloudLoad(), t0 = s.chk; await cloudRefreshNeg();
     if (s.estado === "suspendido") toast("Sigue suspendido. Comunícate con tu proveedor.", true);
+    else if (gateState() === "vencido") toast("Tu plan sigue vencido. Avísame por WhatsApp cuando yapees.", true);
+    else if (gateState() === "pendiente") toast("Tu caja aún espera su código.", true);
     else if (s.chk === t0) toast("No hay conexión con la nube. Revisa tu internet.", true);
     else toast("¡Listo! Tu caja está activa."); },
   codecanje: async () => { const v = (($("#gcode") || {}).value || "").trim();
@@ -2803,6 +2817,9 @@ act({
     try { const ok = await sb("rpc/canjear_codigo", { method: "POST", body: { c: v } });
       if (ok) { await cloudRefreshNeg(); toast("¡Listo! Tu caja está activa."); } else toast("Ese código no sirve o ya se usó. Pídeme uno nuevo.", true);
     } catch (e) { toast("No se pudo revisar el código. Revisa tu internet.", true); } },
+  adminren: (el) => { const id = el.dataset.id, n = (cloud.cli || []).find((x) => x.id === id) || {};
+    confirmBox(`¿Renovar 1 mes a ${n.nombre || "este cliente"}?`, "Renovar", async () => {
+      try { const v = await sb("rpc/admin_renovar", { method: "POST", body: { n: id, meses: 1 } }); toast(`Renovado hasta el ${dmy(dkey(new Date(v)))}`); } catch (e) { toast("No se pudo renovar", true); } adminLoad(); }, false, "Suma 1 mes desde hoy (o desde su vencimiento si aún le quedan días) y deja su caja activa."); },
   admincod: () => promptBox({ title: "Generar código", text: "Crea un código de un solo uso para un cliente que ya pagó.", label: "Para quién (opcional)", ph: "Ej: Minimarket Don Lucho", max: 60, ok: "Generar" }, async (nota) => {
     try { const c = await sb("rpc/admin_codigo_nuevo", { method: "POST", body: { nota_txt: nota } });
       const msg = `Hola, gracias por tu compra de Caja Fácil. Tu código es ${c} (sirve una sola vez). Entra a ${WEB_COMPRAR} , escríbelo en «Ingresar código» y se descarga el programa.`;
