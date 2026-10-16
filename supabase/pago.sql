@@ -1,7 +1,7 @@
 -- Caja Fácil · compra con código.
 -- Toda tienda nueva empieza en «pendiente» y no vende hasta canjear un código (compra) o
 -- hasta que el proveedor le dé acceso por correo (pruebas). Las tiendas que ya existían siguen activas.
--- Ya aplicado en el proyecto (migración pago_codigos).
+-- Aplicado en el proyecto (migración pago_codigos).
 
 alter table public.negocios drop constraint if exists negocios_estado_check;
 alter table public.negocios add constraint negocios_estado_check check (estado in ('activo','suspendido','pendiente'));

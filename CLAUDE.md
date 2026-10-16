@@ -41,6 +41,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - La caja siempre vende con sus datos locales; la nube solo copia cuando hay internet. Una tienda (sid) se usa en un solo equipo a la vez.
 - Solo el dueño entra con Google; los cajeros siguen con PIN.
 - Licencia: la caja no funciona hasta activarla con Google (pantalla `#susp`). Se bloquea si el proveedor la suspende o si pasan 15 días (`LIC_DIAS`) sin revisar la licencia con internet. Si vence la sesión de Google, sigue vendiendo hasta ese plazo.
+- **Compra con código** (`supabase/pago.sql`, migración `pago_codigos`): toda tienda nueva nace `pendiente` (trigger; el cliente no puede elegir su estado ni cambiarlo, tampoco `voz`) y la caja muestra «Activa tu caja» (`gateState` = "pendiente"). Se activa con un código de un solo uso (`canjear_codigo`) o si su correo de Google está en `privado.accesos` (pruebas, «Dar acceso por correo»). El proveedor genera códigos en Ajustes › Nube › Mis clientes › «Generar código» (`admin_codigo_nuevo`, abre WhatsApp con el mensaje) y también puede «Activar» a mano. `web/comprar/`: Yape + «Ingresar código» (`codigo_valido`, anónimo, no gasta el código) → descarga `CajaFacil-Setup.exe`. Las tiendas anteriores siguen activas.
 - Soporte: el cliente da permiso por 24 h o 7 días (Ajustes › Nube); el proveedor (tabla `privado.admins`) ve «Mis clientes», mira datos solo con permiso y suspende/activa.
 
 ## Avisos y precios (Productos y Clientes)
