@@ -901,6 +901,26 @@ function rowHtml(p, qn) {
   const kg = p.unit === "kg", out = p.stock != null && p.stock <= 0;
   return `<button class="prow ${qn ? "in" : ""} ${out ? "out" : ""}" data-a="add" data-id="${p.id}"><span class="pn"><b>${esc(p.name)}</b><small>${p.code ? "Cód. " + esc(p.code) : "Sin código"}${p.stock != null ? ` · ${out ? "sin stock" : "stock " + fmtQ(p.stock) + (kg ? " kg" : "")}` : ""}</small></span>${qn ? `<span class="pq num">${fmtQ(qn)}${kg ? " kg" : ""}</span>` : ""}<span class="pp num">${money(p.price)}${kg ? "<small>/kg</small>" : ""}</span></button>`;
 }
+// «Vitrina (prueba)»: mosaico de fotos cuando no buscas; al escribir salen los productos con foto y una vista previa (↑ ↓ elige, Enter agrega).
+const vit = () => DB.cfg.view === "vit";
+const VIT_FOTOS = ["tomate", "palta", "limon", "platano", "zanahoria", "mango", "papa", "naranja", "camote", "cebolla", "manzana", "mandarina"];
+function vitHome() {
+  const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
+  const tops = topIds();
+  const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 10);
+  const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
+  const last = cur ? `<div class="vlast ${ui.bump ? "fresh" : ""}"><small>Último</small><b>${esc(cur.r.name)}</b><span class="num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><strong class="num">${money(r2(cur.r.price * cur.l.qty))}</strong></div>`
+    : `<div class="vlast idle">${svg("scan")}<b>Escanea un producto</b></div>`;
+  return `<div class="vit-home"><div class="vmos" aria-hidden="true">${tiles}</div>${quick.length ? `<div class="vq" aria-label="Sin código">${quick.map((p) => `<button class="vqk" data-a="add" data-id="${p.id}"><b>${esc(p.name)}</b><span class="num">${money(p.price)}</span></button>`).join("")}</div>` : ""}${last}</div>`;
+}
+function vitResults(list, key) {
+  const k = norm(key), hit = (n) => { const i = norm(n).indexOf(k); return k && i >= 0 && norm(n).length === n.length ? esc(n.slice(0, i)) + "<mark>" + esc(n.slice(i, i + k.length)) + "</mark>" + esc(n.slice(i + k.length)) : esc(n); };
+  const sel = list[ui.vsel] || list[0], kg = (p) => p.unit === "kg" ? "/kg" : "";
+  const st = (p) => p.stock == null ? "" : p.stock <= 0 ? "Sin stock" : `${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""} en stock`;
+  return `<div class="vres"><div class="vlist" role="listbox">${list.map((p, i) => `<button class="vr ${i === ui.vsel ? "on" : ""} ${p.stock != null && p.stock <= 0 ? "out" : ""}" role="option" aria-selected="${i === ui.vsel}" data-a="add" data-id="${p.id}"><span class="vth">${pimg(p)}</span><b>${hit(p.name)}</b><span class="num">${money(p.price)}${kg(p)}</span></button>`).join("")}</div>
+    <div class="vpv"><div class="vbig">${pimg(sel)}</div><h3>${esc(sel.name)}</h3><div class="vpp num">${money(sel.price)}${kg(sel)}</div><div class="vch">${st(sel) ? `<span>${st(sel)}</span>` : ""}<span>${sel.code ? "Cód. " + esc(sel.code) : "Sin código"}</span>${sel.cat ? `<span>${esc(sel.cat)}</span>` : ""}</div><button class="vbtn" data-a="add" data-id="${sel.id}">Agregar al ticket<span class="kbd">Enter</span></button></div></div>`;
+}
 function scanHome() {
   const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
   const tops = topIds();
@@ -917,6 +937,8 @@ function paintGrid() {
     return;
   }
   const sm = scanMode(); document.body.classList.toggle("scanmode", sm); el.classList.toggle("scanlist", sm);
+  document.body.classList.toggle("vit", sm && vit());
+  if (sm && vit() && !ui.q.trim() && !ui.cat) { el.innerHTML = vitHome(); ui.bump = null; ui.vlist = []; return; }
   if (sm && !ui.q.trim() && !ui.cat) { el.innerHTML = scanHome(); ui.bump = null; return; }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
   const tops = ui.cat === "__top" ? topIds() : [];
@@ -924,6 +946,7 @@ function paintGrid() {
   let list = DB.products.filter((p) => p.on !== false && catOk(p) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
   if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
+  if (sm && vit() && q) { ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
   const MAXL = 120, shown = list.slice(0, MAXL);
   el.innerHTML = shown.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
@@ -1257,7 +1280,7 @@ function learnOpen(code) {
 // Código escrito o escaneado: "6", "3*6", "P15" (preventa), etiqueta de balanza (2xxxxx...), código de presentación.
 function submitCode(raw) {
   raw = raw.trim(); if (!raw) return;
-  const clear = () => { ui.q = ""; const qi = $("#q"); if (qi) qi.value = ""; };
+  const clear = () => { ui.q = ""; ui.vsel = 0; const qi = $("#q"); if (qi) qi.value = ""; };
   const pv = raw.match(/^p\s*-?\s*(\d+)$/i);
   if (pv && can("cobrar")) { clear(); loadPrev(+pv[1]); paintGrid(); return; }
   let qty = null, code = raw;
@@ -1269,7 +1292,7 @@ function submitCode(raw) {
   if (!p) { for (const x of DB.products) { const ps = (x.pres || []).find((y) => y.code && y.code === code); if (ps) { p = x; pres = ps.id; break; } } }
   if (!p) p = DB.products.find((x) => (x.bar || []).includes(code)); // código de barras enlazado (aprendido al escanear)
   const exact = !!p;
-  if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { toast("Hay varios productos así: toca el que quieras"); return; } }
+  if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { const vp = vit() && ui.vlist && ui.vlist.length > 1 ? prod(ui.vlist[ui.vsel || 0]) : null; if (vp) p = vp; else { toast("Hay varios productos así: toca el que quieras"); return; } } }
   if (!p && qty == null && /^\d{6,}$/.test(code) && can("cobrar")) { beep(false); clear(); ui.lq2 = ""; learnOpen(code); return; } // código de barras nuevo: se enlaza a un producto
   if (!p) { toast("No encontramos «" + code + "»"); beep(false); return; }
   clear();
@@ -4805,7 +4828,7 @@ VIEWS.aj = function viewSettings(v) {
       <div class="card"><h2>Programa de puntos</h2>${tog("cfg.pts.on", C.pts.on, "Dar puntos a clientes registrados", "Acumulan al comprar y los canjean como descuento")}
       ${C.pts.on ? `<div class="two">${fld("Puntos por cada S/ 1", inp("cfg.pts.per", C.pts.per, { num: true }))}${fld("Valor de 1 punto (S/)", inp("cfg.pts.val", C.pts.val, { num: true }), `100 puntos = ${money(100 * C.pts.val)}`)}</div>${fld("Puntos mínimos para canjear", inp("cfg.pts.min", C.pts.min, { num: true }))}` : ""}</div>`;
   else if (t === "venta") body = `<div class="card"><h2>Pantalla de venta</h2>
-      ${fld("Cómo se ve la venta", `<div class="seg">${[["scan", "Escáner (minimarket)"], ["tiles", "Fichas con fotos"]].map(([k, n]) => `<button class="${(C.view === "tiles" ? "tiles" : "scan") === k ? "on" : ""}" data-a="setv" data-k="cfg.view" data-v="${k}">${n}</button>`).join("")}</div>`, "Escáner: sin fotos, muestra lo último que pasaste. Fichas: productos con foto para tocar")}
+      ${fld("Cómo se ve la venta", `<div class="seg">${[["scan", "Escáner (minimarket)"], ["tiles", "Fichas con fotos"], ["vit", "Vitrina (prueba)"]].map(([k, n]) => `<button class="${(C.view === "tiles" ? "tiles" : C.view === "vit" ? "vit" : "scan") === k ? "on" : ""}" data-a="setv" data-k="cfg.view" data-v="${k}">${n}</button>`).join("")}</div>`, "Escáner: sin fotos, muestra lo último que pasaste. Fichas: productos con foto para tocar. Vitrina (prueba): mosaico de fotos y búsqueda con foto, con otro ticket")}
       ${fld("Tamaño de las fichas de productos", `<div class="seg">${[["s", "Pequeñas"], ["m", "Medianas"], ["l", "Grandes (táctil)"]].map(([k, n]) => `<button class="${C.tile === k ? "on" : ""}" data-a="setv" data-k="cfg.tile" data-v="${k}">${n}</button>`).join("")}</div>`)}
       ${fld("Mesas o cuentas abiertas", inp("cfg.tables", C.tables, { num: true, ph: "0 = no uso mesas", max: 3 }), "Para restaurantes, juguerías o cuentas que se van sumando")}
       ${tog("cfg.needShift", C.needShift, "Preguntar el sencillo antes del primer cobro", "Apagado: la caja se abre sola al primer cobro y el sencillo se anota después en Caja")}
@@ -4983,7 +5006,7 @@ function keepFocus(id, fn) {
 let lqT, qT;
 document.addEventListener("input", (e) => {
   const t = e.target, id = t.id;
-  if (id === "q") { ui.q = t.value; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
+  if (id === "q") { ui.q = t.value; ui.vsel = 0; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
   else if (id === "pq") { ui.pq = t.value; clearTimeout(qT); qT = setTimeout(paintPList, 70); }
   else if (id === "cq") { ui.cq = t.value; paintCList(); }
   else if (id === "vq") { ui.vq = t.value; const [f, to] = rangeKeys(ui.range, ui.from, ui.to); paintVList(f, to); }
@@ -5073,6 +5096,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "F6") { e.preventDefault(); if (!open && ui.tab === "venta") editLine(ui.sel); return; }
   if ((e.key === "F3" || (e.key === "/" && !field)) && !open && ui.tab === "venta") { e.preventDefault(); A.focusq(); return; }
   if (!open && ui.tab === "venta") {
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && vit() && ui.q.trim() && ui.vlist && ui.vlist.length > 1) { e.preventDefault(); ui.vsel = Math.min(ui.vlist.length - 1, Math.max(0, (ui.vsel || 0) + (e.key === "ArrowDown" ? 1 : -1))); paintGrid(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); moveSel(e.key === "ArrowDown" ? 1 : -1); return; }
     if (!field || (inQ && !e.target.value)) {
       if (e.key === "+") { e.preventDefault(); if (ui.sel) changeQty(ui.sel, 1); return; }
