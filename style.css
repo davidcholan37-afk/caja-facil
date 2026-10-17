@@ -2039,3 +2039,19 @@ body.vit .vimgbox{position:absolute;inset:0}
 .vtsl{display:grid;gap:4px;margin:8px 0;font:600 13px var(--f);color:var(--t2)}
 .vtsl input[type=range]{width:100%;max-width:520px;accent-color:var(--ac,#0A66FF)}
 .vtsl input[type=color]{width:56px;height:34px;border:1px solid var(--hl);border-radius:10px;padding:2px;background:var(--s1)}
+.vbox{position:absolute;inset:0;container-type:inline-size;overflow:hidden}
+.vovl{position:absolute;inset:0;pointer-events:none}
+.vtx{position:absolute;transform:translate(-50%,-50%);font:800 1em var(--f);line-height:1.05;letter-spacing:-.02em;text-align:center;white-space:pre;user-select:none}
+.vtx.bgd{padding:.28em .65em;border-radius:999px}
+.vtprev{touch-action:none;cursor:grab;user-select:none}
+.vtprev:active{cursor:grabbing}
+.vtprev .vtx{pointer-events:auto;cursor:move;outline:1.5px dashed rgba(255,255,255,.0)}
+.vtprev .vtx:hover{outline-color:rgba(10,102,255,.9)}
+.vimg{will-change:transform}
+.vtlist{display:grid;gap:10px;margin-top:6px}
+.vtrow{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end;padding:10px;border:1px solid var(--hl);border-radius:14px;background:var(--s1)}
+.vtrow .inp{flex:1 1 180px;min-width:140px}
+.vtmini{display:grid;gap:3px;font:600 11.5px var(--f);color:var(--t3)}
+.vtmini input[type=color]{width:44px;height:32px;border:1px solid var(--hl);border-radius:8px;padding:2px;background:var(--s1)}
+.vtmini input[type=range]{width:110px;accent-color:var(--ac,#0A66FF)}
+.vtadd{margin-bottom:10px;gap:8px}

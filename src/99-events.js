@@ -25,6 +25,7 @@ document.addEventListener("input", (e) => {
   else if (id === "pref" && ui.pay) ui.pay.ref = t.value;
   else if (id === "imp") updImport();
   else if (id && id.slice(0, 3) === "vt-") { const k = id.slice(3); vitSet(k === "bg" ? { bg: t.value } : { [k]: +t.value }, true); vitLive(); }
+  else if (t.dataset.vtx) { const f = t.dataset.vtx; vitTxSet(t.dataset.id, { [f]: f === "s" ? +t.value : t.value }, true); vitLive(); }
   else if (id === "rsq" || id === "rsc") updRestock();
   else if (t.dataset.in === "wk") paintWeighLcd();
   else if (id === "qv") updQty();
@@ -37,7 +38,7 @@ function onChange(t) {
   const k = t.dataset.in;
   if (t.dataset.set) return applySetting(t);
   if (k === "vitfile") { vitLoad(t.files[0]); t.value = ""; return; }
-  if (t.id && t.id.slice(0, 3) === "vt-") { save(); return; }
+  if ((t.id && t.id.slice(0, 3) === "vt-") || t.dataset.vtx) { save(); return; }
   if (t.dataset.perm) { const [r, p] = t.dataset.perm.split(":"), L = DB.roles[r]; if (t.checked) { if (!L.includes(p)) L.push(p); } else DB.roles[r] = L.filter((x) => x !== p); log("Permisos", `${ROLE_LABEL[r]}: ${t.checked ? "puede" : "no puede"} ${PERMS.find((x) => x[0] === p)[1]}`); save(); toast("Permiso guardado"); return; }
   if (t.closest && t.closest("#pe") && t.dataset.f === "unit") { readPE(); paintPE(); return; }
   if (t.id === "cntd" && ui.cnt) { closeShiftUI(ui.cnt.id); return; }
