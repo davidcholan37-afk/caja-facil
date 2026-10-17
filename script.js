@@ -727,13 +727,15 @@ const lineKey = (id, pres) => id + (pres ? ":" + pres : "");
 const costOf = (p) => (p.recipe && p.recipe.length && !(p.cost > 0) ? r2(p.recipe.reduce((a, rc) => { const i = prod(rc.id); return a + (i ? (i.cost || 0) * rc.qty : 0); }, 0)) : p.cost || 0);
 // Precio por mayor: desde cierta cantidad, cada unidad cuesta menos (solo producto sin presentación y sin precio cambiado a mano).
 const mayorOf = (p, qty) => (p && p.mayor && p.mayor.q > 0 && p.mayor.p > 0 && qty >= p.mayor.q ? p.mayor.p : null);
+// Precio de oferta: p.oferta = {p, hasta}; vale hasta el día «hasta» (inclusive); sin fecha vale siempre.
+const ofertaOf = (p) => (p && p.oferta && p.oferta.p > 0 && (!p.oferta.hasta || dkey() <= p.oferta.hasta) ? p.oferta.p : null);
 function resolveLine(l) {
   if (l.quick) return { name: l.name, price: l.price, base: l.price, cost: 0, stock: null, quick: true, unit: "u", code: "", f: 1, igv: true, p: null };
   const p = prod(l.id); if (!p) return null;
   const ps = l.pres ? (p.pres || []).find((x) => x.id === l.pres) : null;
   if (l.pres && !ps) return null;
-  const base = ps ? ps.price : p.price, my = !ps && l.pr == null ? mayorOf(p, l.qty) : null;
-  return { p, ps, name: ps ? `${p.name} (${ps.name})` : p.name, price: l.pr != null ? l.pr : my != null ? my : base, tier: my != null, base, cost: r2(costOf(p) * (ps ? ps.f : 1)), stock: p.stock, unit: ps ? "u" : p.unit, code: ps ? ps.code : p.code, f: ps ? ps.f : 1, igv: p.igv !== false, quick: false };
+  const base = ps ? ps.price : p.price, my0 = !ps && l.pr == null ? mayorOf(p, l.qty) : null, of = !ps && l.pr == null ? ofertaOf(p) : null, my = of != null && (my0 == null || of <= my0) ? of : my0, tn = my != null && my === of ? "oferta" : "mayor";
+  return { p, ps, name: ps ? `${p.name} (${ps.name})` : p.name, price: l.pr != null ? l.pr : my != null ? my : base, tier: my != null, tn, base, cost: r2(costOf(p) * (ps ? ps.f : 1)), stock: p.stock, unit: ps ? "u" : p.unit, code: ps ? ps.code : p.code, f: ps ? ps.f : 1, igv: p.igv !== false, quick: false };
 }
 const linesOf = (t) => t.items.map((l) => ({ l, r: resolveLine(l) })).filter((x) => x.r);
 const cartLines = () => linesOf(DB.cart);
@@ -983,7 +985,7 @@ function paintCart() {
       <div class="lines">${lines.length ? `<div class="lh" aria-hidden="true"><span>Cant.</span><span>Producto</span><span>P. unit.</span><span>Importe</span><span></span></div>` + lines.map(({ l, r }) => { const k = lineKey(l.id, l.pres); return `<div class="ln ${ui.sel === k ? "sel" : ""} ${fresh === k ? "fresh" : ""}" data-a="sel" data-k="${k}">
         <span class="qc step"><button class="sb" data-a="dec" data-k="${k}" aria-label="Quitar uno">−</button><button class="qv num" data-a="qedit" data-k="${k}" aria-label="Cambiar cantidad">${fmtQ(l.qty)}${unitTxt(r)}</button><button class="sb" data-a="inc" data-k="${k}" aria-label="Agregar uno">+</button></span>
         <span class="nm">${r.p ? pimg(r.p, "lim") : ""}<span><b>${esc(r.name)}</b>${r.code ? `<small>Cód. ${esc(r.code)}</small>` : ""}</span></span>
-        <button class="pu num ${l.pr != null || r.tier ? "chg" : ""}" data-a="lprice" data-k="${k}" title="${r.tier ? "Precio por mayor" : "Cambiar precio"}">${money(r.price)}${r.unit === "kg" ? "<small>/kg</small>" : r.tier ? "<small>mayor</small>" : ""}</button>
+        <button class="pu num ${l.pr != null || r.tier ? "chg" : ""}" data-a="lprice" data-k="${k}" title="${r.tier ? (r.tn === "oferta" ? "Precio de oferta" : "Precio por mayor") : "Cambiar precio"}">${money(r.price)}${r.unit === "kg" ? "<small>/kg</small>" : r.tier ? `<small>${r.tn || "mayor"}</small>` : ""}</button>
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
         <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Escanea o busca un producto</b></p></div>`}</div>
       <div class="tot">
@@ -1674,8 +1676,8 @@ const VIT_ESTILOS = [["plano", "Plano"], ["sombra", "Sombra"], ["cinta", "Cinta"
 const vitTxCls = (t) => `vtx f-${t.f || "limpia"} k-${t.k || "plano"}${t.bg ? " bgd" : ""}`;
 const vitTxStyle = (t) => `left:${t.x}%;top:${t.y}%;font-size:${t.s}cqw;color:${esc(t.c)};${t.bg ? `background:${esc(t.bg)};` : "text-shadow:0 .08em .25em rgba(0,0,0,.5);"}`;
 const vitTxHtml = (t) => `<div class="${vitTxCls(t)}" data-id="${t.id}" style="${vitTxStyle(t)}">${esc(t.t)}</div>`;
-function vitImgHtml(v) {
-  return `<div class="vbox"><div class="vimgw" style="background:${esc(v.bg || "#fff")}"><img class="vimg" src="${bu("vit:" + (v.ts || 0), v.img)}" alt="" draggable="false" style="${vitStyle(v)}"></div><div class="vovl">${(v.txt || []).map(vitTxHtml).join("")}</div></div>`;
+function vitImgHtml(v, all) {
+  return `<div class="vbox"><div class="vimgw" style="background:${esc(v.bg || "#fff")}"><img class="vimg" src="${bu("vit:" + (v.ts || 0), v.img)}" alt="" draggable="false" style="${vitStyle(v)}"></div><div class="vovl">${(v.txt || []).filter((t) => all || !t.h || dkey() <= t.h).map(vitTxHtml).join("")}</div></div>`;
 }
 // Parecido a lo que se ve en la venta de este equipo (para que la vista previa sea fiel).
 function vitAspect() {
@@ -1684,6 +1686,7 @@ function vitAspect() {
 }
 function vitTxRow(t) {
   return `<div class="vtrow" data-id="${t.id}"><input class="inp" data-vtx="t" data-id="${t.id}" value="${esc(t.t)}" maxlength="60" aria-label="Texto">
+    <label class="vtmini"><span>Se muestra hasta</span><input class="inp" type="date" data-vtx="h" data-id="${t.id}" value="${esc(t.h || "")}"></label>
     <label class="vtmini"><span>Tipo de letra</span><select class="inp" data-vtx="f" data-id="${t.id}">${VIT_FONTS.map(([k, n]) => `<option value="${k}"${(t.f || "limpia") === k ? " selected" : ""}>${n}</option>`).join("")}</select></label>
     <label class="vtmini"><span>Estilo</span><select class="inp" data-vtx="k" data-id="${t.id}">${VIT_ESTILOS.map(([k, n]) => `<option value="${k}"${(t.k || "plano") === k ? " selected" : ""}>${n}</option>`).join("")}</select></label>
     <label class="vtmini"><span>Tamaño</span><input type="range" data-vtx="s" data-id="${t.id}" min="3" max="40" value="${t.s}"></label>
@@ -1698,7 +1701,7 @@ function vitEditor() {
     <p class="muted" style="margin-bottom:10px">Pon una imagen (PNG, JPG) o un PDF: una oferta, un producto nuevo, tu logo. Sale en toda la pantalla de venta mientras no estés buscando. Si no pones nada, se ve el mosaico de fotos.</p>
     <div class="row wrap"><label class="btn">${tiene ? "Cambiar imagen o PDF" : "Subir imagen o PDF"}<input type="file" accept="image/*,application/pdf,.pdf" data-in="vitfile" hidden></label>${tiene ? `<button class="btn sec" data-a="vitquitar">Quitar</button>` : ""}</div>
     ${tiene ? `<p class="muted sm" style="margin-top:12px">Arrastra la imagen con el dedo o el mouse. Acerca con la rueda, con dos dedos o con el deslizador. Arrastra también los textos.</p>
-    <div class="vtprev" style="aspect-ratio:${vitAspect()}">${vitImgHtml(v)}</div>
+    <div class="vtprev" style="aspect-ratio:${vitAspect()}">${vitImgHtml(v, true)}</div>
     <div class="row wrap" style="align-items:center;gap:12px;margin-bottom:6px"><div class="seg vtfit" role="group" aria-label="Ajuste"><button class="${v.fit !== "contain" ? "on" : ""}" data-a="vitfit" data-v="cover">Llenar</button><button class="${v.fit === "contain" ? "on" : ""}" data-a="vitfit" data-v="contain">Entera</button></div><button class="link" data-a="vitcentrar">Centrar y restablecer</button></div>
     <label class="vtsl"><span>Acercar</span><input type="range" id="vt-zoom" min="100" max="400" step="5" value="${v.zoom}"></label>
     <label class="vtsl" style="max-width:240px"><span>Color del fondo (si la imagen no llena)</span><input type="color" id="vt-bg" value="${esc(v.bg || "#ffffff")}"></label>
@@ -1841,7 +1844,7 @@ function openProduct(id) {
   const p = id ? prod(id) : null;
   if (p && !can("precios")) return productInfo(p);
   const base = p ? JSON.parse(JSON.stringify(p)) : { id: "", name: "", price: "", cost: "", stock: "", min: 5, cat: ui.cat && !ui.cat.startsWith("__") ? ui.cat : "", code: "", unit: "u", pres: [], recipe: [], igv: true, img: "", fav: false, color: "", on: true };
-  base.mq = base.mayor ? base.mayor.q : ""; base.mp = base.mayor ? base.mayor.p : ""; base.sup = base.sup || ""; base.exp = base.exp || "";
+  base.mq = base.mayor ? base.mayor.q : ""; base.mp = base.mayor ? base.mayor.p : ""; base.sup = base.sup || ""; base.exp = base.exp || ""; base.op = base.oferta ? base.oferta.p : ""; base.oh = base.oferta ? base.oferta.hasta || "" : "";
   ui.pe = { id: id || "", d: base, stock0: p ? p.stock : null };
   paintPE();
 }
@@ -1869,7 +1872,9 @@ function paintPE() {
       <label class="fld"><span>Costo (S/${kg ? " por kilo" : ""})</span><input class="inp num" data-f="cost" inputmode="decimal" value="${esc(d.cost)}" placeholder="${(d.recipe || []).length ? "Se calcula de la receta" : "Opcional"}"></label></div>
     <div class="two"><label class="fld"><span>Código rápido o de barras</span><span class="codein"><input class="inp" data-f="code" value="${esc(d.code)}" placeholder="Ej: ${nextCode()}" autocomplete="off"><button type="button" class="scanb" data-a="camcode" title="Leer el código con la cámara" aria-label="Leer el código con la cámara">${svg("scan")}</button></span></label>
       <label class="fld"><span>Stock actual${kg ? " (kg)" : ""}</span><input class="inp num" data-f="stock" inputmode="decimal" value="${d.stock == null ? "" : esc(d.stock)}" placeholder="Vacío = sin control"></label></div>
-    <details class="box" ${d.mq || d.sup || d.exp ? "open" : ""}><summary><b>Más opciones</b><small>Precio por mayor, proveedor, vencimiento, stock bajo, IGV y favorito</small></summary>
+    <details class="box" ${d.mq || d.sup || d.exp || d.op ? "open" : ""}><summary><b>Más opciones</b><small>Oferta, precio por mayor, proveedor, vencimiento, stock bajo, IGV y favorito</small></summary>
+    <div class="two"><label class="fld"><span>Precio de oferta (S/)</span><input class="inp num" data-f="op" inputmode="decimal" value="${esc(d.op)}" placeholder="Ej: 2.50"></label>
+      <label class="fld"><span>Oferta hasta (opcional)</span><input class="inp" type="date" data-f="oh" value="${esc(d.oh)}"></label></div>
     <div class="two"><label class="fld"><span>Precio por mayor: desde${kg ? " (kg)" : " (unidades)"}</span><input class="inp num" data-f="mq" inputmode="decimal" value="${esc(d.mq)}" placeholder="Ej: 12"></label>
       <label class="fld"><span>Cada ${kg ? "kilo" : "una"} cuesta (S/)</span><input class="inp num" data-f="mp" inputmode="decimal" value="${esc(d.mp)}" placeholder="Ej: 0.80"></label></div>
     <div class="two"><label class="fld"><span>Proveedor</span><select class="inp" data-f="sup"><option value="">Sin proveedor</option>${DB.supp.slice().sort((a, b) => a.name.localeCompare(b.name, "es")).map((s) => `<option value="${s.id}" ${s.id === d.sup ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
@@ -1912,8 +1917,12 @@ function saveProduct() {
   const mq = String(d.mq ?? "").trim(), mp = String(d.mp ?? "").trim();
   if ((mq || mp) && !(num(mq) >= 2 && num(mp) > 0)) return toast("Precio por mayor: escribe desde cuánto (2 o más) y el precio de cada uno");
   if (mq && num(mp) >= price) return toast("El precio por mayor debe ser menor al precio normal");
+  const op = String(d.op ?? "").trim();
+  if (op && !(num(op) > 0 && num(op) < price)) return toast("El precio de oferta debe ser menor al precio normal");
+  if (d.oh && !op) return toast("Pon el precio de oferta o quita la fecha");
+  const oferta = op ? { p: r2(num(op)), hasta: d.oh || "" } : null;
   const mayor = mq ? { q: r3(num(mq)), p: r2(num(mp)) } : null;
-  const data = { mayor, sup: d.sup || "", exp: d.exp || "", name, price, cost: r2(num(d.cost)), min: Math.max(0, r3(num(d.min))), cat: String(d.cat || "").trim(), code, unit: d.unit === "kg" ? "kg" : "u", pres, recipe, igv: !!d.igv, fav: !!d.fav, on: !!d.on, img: d.img || "", color: d.color || "" };
+  const data = { mayor, oferta, sup: d.sup || "", exp: d.exp || "", name, price, cost: r2(num(d.cost)), min: Math.max(0, r3(num(d.min))), cat: String(d.cat || "").trim(), code, unit: d.unit === "kg" ? "kg" : "u", pres, recipe, igv: !!d.igv, fav: !!d.fav, on: !!d.on, img: d.img || "", color: d.color || "" };
   const apply = () => {
     let p = id ? prod(id) : null;
     if (p) {

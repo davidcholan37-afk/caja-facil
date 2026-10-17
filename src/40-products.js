@@ -52,7 +52,7 @@ function openProduct(id) {
   const p = id ? prod(id) : null;
   if (p && !can("precios")) return productInfo(p);
   const base = p ? JSON.parse(JSON.stringify(p)) : { id: "", name: "", price: "", cost: "", stock: "", min: 5, cat: ui.cat && !ui.cat.startsWith("__") ? ui.cat : "", code: "", unit: "u", pres: [], recipe: [], igv: true, img: "", fav: false, color: "", on: true };
-  base.mq = base.mayor ? base.mayor.q : ""; base.mp = base.mayor ? base.mayor.p : ""; base.sup = base.sup || ""; base.exp = base.exp || "";
+  base.mq = base.mayor ? base.mayor.q : ""; base.mp = base.mayor ? base.mayor.p : ""; base.sup = base.sup || ""; base.exp = base.exp || ""; base.op = base.oferta ? base.oferta.p : ""; base.oh = base.oferta ? base.oferta.hasta || "" : "";
   ui.pe = { id: id || "", d: base, stock0: p ? p.stock : null };
   paintPE();
 }
@@ -80,7 +80,9 @@ function paintPE() {
       <label class="fld"><span>Costo (S/${kg ? " por kilo" : ""})</span><input class="inp num" data-f="cost" inputmode="decimal" value="${esc(d.cost)}" placeholder="${(d.recipe || []).length ? "Se calcula de la receta" : "Opcional"}"></label></div>
     <div class="two"><label class="fld"><span>Código rápido o de barras</span><span class="codein"><input class="inp" data-f="code" value="${esc(d.code)}" placeholder="Ej: ${nextCode()}" autocomplete="off"><button type="button" class="scanb" data-a="camcode" title="Leer el código con la cámara" aria-label="Leer el código con la cámara">${svg("scan")}</button></span></label>
       <label class="fld"><span>Stock actual${kg ? " (kg)" : ""}</span><input class="inp num" data-f="stock" inputmode="decimal" value="${d.stock == null ? "" : esc(d.stock)}" placeholder="Vacío = sin control"></label></div>
-    <details class="box" ${d.mq || d.sup || d.exp ? "open" : ""}><summary><b>Más opciones</b><small>Precio por mayor, proveedor, vencimiento, stock bajo, IGV y favorito</small></summary>
+    <details class="box" ${d.mq || d.sup || d.exp || d.op ? "open" : ""}><summary><b>Más opciones</b><small>Oferta, precio por mayor, proveedor, vencimiento, stock bajo, IGV y favorito</small></summary>
+    <div class="two"><label class="fld"><span>Precio de oferta (S/)</span><input class="inp num" data-f="op" inputmode="decimal" value="${esc(d.op)}" placeholder="Ej: 2.50"></label>
+      <label class="fld"><span>Oferta hasta (opcional)</span><input class="inp" type="date" data-f="oh" value="${esc(d.oh)}"></label></div>
     <div class="two"><label class="fld"><span>Precio por mayor: desde${kg ? " (kg)" : " (unidades)"}</span><input class="inp num" data-f="mq" inputmode="decimal" value="${esc(d.mq)}" placeholder="Ej: 12"></label>
       <label class="fld"><span>Cada ${kg ? "kilo" : "una"} cuesta (S/)</span><input class="inp num" data-f="mp" inputmode="decimal" value="${esc(d.mp)}" placeholder="Ej: 0.80"></label></div>
     <div class="two"><label class="fld"><span>Proveedor</span><select class="inp" data-f="sup"><option value="">Sin proveedor</option>${DB.supp.slice().sort((a, b) => a.name.localeCompare(b.name, "es")).map((s) => `<option value="${s.id}" ${s.id === d.sup ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
@@ -123,8 +125,12 @@ function saveProduct() {
   const mq = String(d.mq ?? "").trim(), mp = String(d.mp ?? "").trim();
   if ((mq || mp) && !(num(mq) >= 2 && num(mp) > 0)) return toast("Precio por mayor: escribe desde cuánto (2 o más) y el precio de cada uno");
   if (mq && num(mp) >= price) return toast("El precio por mayor debe ser menor al precio normal");
+  const op = String(d.op ?? "").trim();
+  if (op && !(num(op) > 0 && num(op) < price)) return toast("El precio de oferta debe ser menor al precio normal");
+  if (d.oh && !op) return toast("Pon el precio de oferta o quita la fecha");
+  const oferta = op ? { p: r2(num(op)), hasta: d.oh || "" } : null;
   const mayor = mq ? { q: r3(num(mq)), p: r2(num(mp)) } : null;
-  const data = { mayor, sup: d.sup || "", exp: d.exp || "", name, price, cost: r2(num(d.cost)), min: Math.max(0, r3(num(d.min))), cat: String(d.cat || "").trim(), code, unit: d.unit === "kg" ? "kg" : "u", pres, recipe, igv: !!d.igv, fav: !!d.fav, on: !!d.on, img: d.img || "", color: d.color || "" };
+  const data = { mayor, oferta, sup: d.sup || "", exp: d.exp || "", name, price, cost: r2(num(d.cost)), min: Math.max(0, r3(num(d.min))), cat: String(d.cat || "").trim(), code, unit: d.unit === "kg" ? "kg" : "u", pres, recipe, igv: !!d.igv, fav: !!d.fav, on: !!d.on, img: d.img || "", color: d.color || "" };
   const apply = () => {
     let p = id ? prod(id) : null;
     if (p) {
