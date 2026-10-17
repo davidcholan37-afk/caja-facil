@@ -2026,3 +2026,4 @@ html[data-theme=dark] body.vit .vbig{background:linear-gradient(160deg,#1B2430,#
   html[data-theme=dark] body.vit[data-tab=venta] .cart .bigtot b{color:#fff!important}
 }
 @media (max-width:600px){body.vit .vlast span{display:none}body.vit .vlast b{font-size:14.5px}body.vit .vlast strong{font-size:19px;white-space:nowrap}body.vit .vq{bottom:72px}}
+body.vit .vlast svg{flex:none;width:24px;height:24px;color:var(--t3)}
