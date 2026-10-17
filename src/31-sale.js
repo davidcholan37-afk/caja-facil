@@ -71,7 +71,7 @@ function vitHome() {
   const vc = vitCfg();
   const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
   if (vc.img) return `<div class="vit-home custom"><div class="vimgbox">${vitImgHtml(vc)}</div></div>`;
-  return `<div class="vit-home"><div class="vmos" aria-hidden="true">${tiles}</div>${quick.length ? `<div class="vq" aria-label="Sin código">${quick.map((p) => `<button class="vqk" data-a="add" data-id="${p.id}"><b>${esc(p.name)}</b><span class="num">${money(p.price)}</span></button>`).join("")}</div>` : ""}</div>`;
+  return `<div class="vit-home"><div class="vmos" aria-hidden="true">${tiles}</div></div>`;
 }
 function vitResults(list, key) {
   const k = norm(key), hit = (n) => { const i = norm(n).indexOf(k); return k && i >= 0 && norm(n).length === n.length ? esc(n.slice(0, i)) + "<mark>" + esc(n.slice(i, i + k.length)) + "</mark>" + esc(n.slice(i + k.length)) : esc(n); };

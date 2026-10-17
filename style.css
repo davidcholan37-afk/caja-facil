@@ -2104,3 +2104,17 @@ body.vit .side .logo{border-radius:14px;box-shadow:0 10px 20px -10px rgba(10,102
 html[data-theme=dark] body.vit .side{background:linear-gradient(180deg,#151B23,#10161d)!important;border-color:rgba(255,255,255,.07)}
 html[data-theme=dark] body.vit #sideNav .tab{color:#8C97A6}
 html[data-theme=dark] body.vit #sideNav .tab.on{color:#9CC2FF}
+
+/* Vitrina · tipos de letra y estilos de los textos */
+.vtx.f-fuerte{font-family:Impact,Haettenschweiler,"Arial Narrow Bold","Arial Black",sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:.02em}
+.vtx.f-elegante{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:700;letter-spacing:0}
+.vtx.f-redonda{font-family:ui-rounded,"Arial Rounded MT Bold","Trebuchet MS",var(--f);font-weight:900}
+.vtx.f-manuscrita{font-family:"Segoe Script","Bradley Hand","Brush Script MT","Comic Sans MS",cursive;font-weight:700;letter-spacing:0}
+.vtx.f-maquina{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-weight:800;letter-spacing:-.04em}
+.vtx.k-sombra{text-shadow:.05em .05em 0 rgba(0,0,0,.85),0 .1em .3em rgba(0,0,0,.45)!important}
+.vtx.k-cinta{padding:.22em 1em;border-radius:.12em;transform:translate(-50%,-50%) rotate(-4deg);box-shadow:0 .25em .5em -.15em rgba(0,0,0,.5);clip-path:polygon(0 0,100% 0,96% 50%,100% 100%,0 100%,4% 50%)}
+.vtx.k-sello{background:transparent!important;border:.1em solid currentColor;border-radius:.3em;padding:.15em .55em;transform:translate(-50%,-50%) rotate(-7deg);text-shadow:none!important;mix-blend-mode:normal;background:rgba(255,255,255,.88)!important}
+.vtx.k-globo{padding:.3em .9em;border-radius:999px;box-shadow:0 .3em .6em -.2em rgba(0,0,0,.45),inset 0 .08em 0 rgba(255,255,255,.35)}
+.vtx.k-brillo{text-shadow:0 0 .25em currentColor,0 0 .7em currentColor!important}
+.vtx.k-cinta:not(.bgd),.vtx.k-globo:not(.bgd){background:#E5322D;color:#fff}
+.vtmini select.inp{min-height:34px;padding:2px 8px;font-size:13px}

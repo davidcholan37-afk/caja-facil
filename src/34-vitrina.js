@@ -2,14 +2,17 @@
 // DB.cfg.vit = { img (data:), fit "cover"|"contain", zoom 100-400, tx/ty (desplazamiento en % de la caja), bg, ts, txt:[{id,t,x,y,s,c,bg}] }
 const vitCfg = () => { const v = DB.cfg.vit; return v && v.img ? v : { img: "", fit: "cover", zoom: 100, tx: 0, ty: 0, bg: "#ffffff", ts: 0, txt: [] }; };
 const VIT_TXT = {
-  oferta: { t: "Oferta", s: 8, c: "#ffffff", bg: "#E5322D", x: 24, y: 10 },
-  nuevo: { t: "Nuevo", s: 8, c: "#ffffff", bg: "#16A34A", x: 24, y: 10 },
-  precio: { t: "S/ 3.00", s: 15, c: "#111111", bg: "#FFD43B", x: 50, y: 82 },
+  oferta: { t: "Oferta", f: "fuerte", k: "cinta", s: 8, c: "#ffffff", bg: "#E5322D", x: 24, y: 10 },
+  nuevo: { t: "Nuevo", f: "redonda", k: "globo", s: 8, c: "#ffffff", bg: "#16A34A", x: 24, y: 10 },
+  precio: { t: "S/ 3.00", f: "fuerte", k: "sello", s: 15, c: "#111111", bg: "#FFD43B", x: 50, y: 82 },
   texto: { t: "Tu texto", s: 9, c: "#ffffff", bg: "", x: 50, y: 50 }
 };
 const vitStyle = (v) => `object-fit:${v.fit === "contain" ? "contain" : "cover"};transform:translate(${v.tx || 0}%,${v.ty || 0}%) scale(${(v.zoom || 100) / 100})`;
+const VIT_FONTS = [["limpia", "Limpia"], ["fuerte", "Fuerte"], ["elegante", "Elegante"], ["redonda", "Redonda"], ["manuscrita", "A mano"], ["maquina", "Máquina"]];
+const VIT_ESTILOS = [["plano", "Plano"], ["sombra", "Sombra"], ["cinta", "Cinta"], ["sello", "Sello"], ["globo", "Globo"], ["brillo", "Brillo"]];
+const vitTxCls = (t) => `vtx f-${t.f || "limpia"} k-${t.k || "plano"}${t.bg ? " bgd" : ""}`;
 const vitTxStyle = (t) => `left:${t.x}%;top:${t.y}%;font-size:${t.s}cqw;color:${esc(t.c)};${t.bg ? `background:${esc(t.bg)};` : "text-shadow:0 .08em .25em rgba(0,0,0,.5);"}`;
-const vitTxHtml = (t) => `<div class="vtx${t.bg ? " bgd" : ""}" data-id="${t.id}" style="${vitTxStyle(t)}">${esc(t.t)}</div>`;
+const vitTxHtml = (t) => `<div class="${vitTxCls(t)}" data-id="${t.id}" style="${vitTxStyle(t)}">${esc(t.t)}</div>`;
 function vitImgHtml(v) {
   return `<div class="vbox"><div class="vimgw" style="background:${esc(v.bg || "#fff")}"><img class="vimg" src="${bu("vit:" + (v.ts || 0), v.img)}" alt="" draggable="false" style="${vitStyle(v)}"></div><div class="vovl">${(v.txt || []).map(vitTxHtml).join("")}</div></div>`;
 }
@@ -20,6 +23,8 @@ function vitAspect() {
 }
 function vitTxRow(t) {
   return `<div class="vtrow" data-id="${t.id}"><input class="inp" data-vtx="t" data-id="${t.id}" value="${esc(t.t)}" maxlength="60" aria-label="Texto">
+    <label class="vtmini"><span>Tipo de letra</span><select class="inp" data-vtx="f" data-id="${t.id}">${VIT_FONTS.map(([k, n]) => `<option value="${k}"${(t.f || "limpia") === k ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+    <label class="vtmini"><span>Estilo</span><select class="inp" data-vtx="k" data-id="${t.id}">${VIT_ESTILOS.map(([k, n]) => `<option value="${k}"${(t.k || "plano") === k ? " selected" : ""}>${n}</option>`).join("")}</select></label>
     <label class="vtmini"><span>Tamaño</span><input type="range" data-vtx="s" data-id="${t.id}" min="3" max="40" value="${t.s}"></label>
     <label class="vtmini"><span>Letra</span><input type="color" data-vtx="c" data-id="${t.id}" value="${esc(t.c)}"></label>
     <label class="vtmini"><span>Fondo</span><input type="color" data-vtx="bg" data-id="${t.id}" value="${esc(t.bg || "#E5322D")}"></label>
@@ -49,7 +54,7 @@ function vitTxSet(id, patch, soft) { vitSet({ txt: (vitCfg().txt || []).map((t) 
 function vitLive() { // actualiza la vista previa sin volver a dibujar Ajustes
   const v = vitCfg(), im = $(".vtprev .vimg"), w = $(".vtprev .vimgw");
   if (im) im.style.cssText = vitStyle(v); if (w) w.style.background = v.bg || "#fff";
-  (v.txt || []).forEach((t) => { const el = $(`.vtprev .vtx[data-id="${t.id}"]`); if (el) { el.style.cssText = vitTxStyle(t); el.classList.toggle("bgd", !!t.bg); if (el.textContent !== t.t) el.textContent = t.t; } });
+  (v.txt || []).forEach((t) => { const el = $(`.vtprev .vtx[data-id="${t.id}"]`); if (el) { el.style.cssText = vitTxStyle(t); el.className = vitTxCls(t); if (el.textContent !== t.t) el.textContent = t.t; } });
   const z = $("#vt-zoom"); if (z && +z.value !== v.zoom) z.value = v.zoom;
 }
 function vitFromCanvas(c) {
