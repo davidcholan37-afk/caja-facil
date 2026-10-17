@@ -2054,3 +2054,9 @@ body.vit .vimgbox{position:absolute;inset:0}
 .vtmini input[type=color]{width:44px;height:32px;border:1px solid var(--hl);border-radius:8px;padding:2px;background:var(--s1)}
 .vtmini input[type=range]{width:110px;accent-color:var(--ac,#0A66FF)}
 .vtadd{margin-bottom:10px;gap:8px}
+/* Vitrina: sin la barra «Funciones» de abajo (ya está en «Más»); la vitrina usa ese espacio */
+body.vit .fkeys{display:none}
+body.vit .vit-home{height:calc(100dvh - 132px)}
+@media (max-width:1099px){body.vit .vit-home{height:calc(100dvh - 162px)}}
+@media (min-width:1100px){body.vit .vlast{padding-right:132px}body.vit .vq{right:132px}}
+@media (max-width:1099px){body:has(#cartbar:not([hidden])).vit .vit-home{height:calc(100dvh - 236px)}}
