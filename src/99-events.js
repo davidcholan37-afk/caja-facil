@@ -98,7 +98,7 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "F1") { e.preventDefault(); if (!open && ui.tab === "venta") pickClient(); return; }
   if (e.key === "F7") { e.preventDefault(); if (ui.mk === "pay" || (!open && ui.tab === "venta")) A.split(); return; }
-  if (e.key === "F4") { e.preventDefault(); if (!open && ui.tab === "venta") A.tknew(); return; }
+  if (e.key === "F5") { e.preventDefault(); if (!open && ui.tab === "venta") A.tknew(); return; }
   if (e.key === "F6") { e.preventDefault(); if (!open && ui.tab === "venta") editLine(ui.sel); return; }
   if ((e.key === "F3" || (e.key === "/" && !field)) && !open && ui.tab === "venta") { e.preventDefault(); A.focusq(); return; }
   if (!open && ui.tab === "venta") {

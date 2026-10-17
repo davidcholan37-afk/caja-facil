@@ -109,7 +109,7 @@ function paintCart() {
       <div class="rhead">
         <div class="rtop"><span class="rtime num">${hhmm(Date.now())}</span><button class="cart-x" data-a="closecart" aria-label="Cerrar ticket">${svg("close")}</button></div>
         <div class="rmeta">${t.mesa || t.prev ? `<b class="tkn">${esc(ticketLabel(t))}</b>` : `<button class="tkn" data-a="tkname" title="Ponerle un nombre a este ticket">${esc(ticketLabel(t))}${svg("edit")}</button>`}
-          <span class="racts"><button class="ib" data-a="tknew" title="Poner en espera y atender a otro cliente (F4)">${svg("hold")}<span>En espera</span></button>${lines.length || DB.tickets.length > 1 ? `<button class="ib" data-a="clear" title="${DB.tickets.length > 1 ? "Quitar este ticket" : "Vaciar el ticket"}">${svg("trash")}<span>${DB.tickets.length > 1 ? "Quitar" : "Vaciar"}</span></button>` : ""}</span></div>
+          <span class="racts"><button class="ib" data-a="tknew" title="Poner en espera y atender a otro cliente (F5)">${svg("hold")}<span>En espera</span></button>${lines.length || DB.tickets.length > 1 ? `<button class="ib" data-a="clear" title="${DB.tickets.length > 1 ? "Quitar este ticket" : "Vaciar el ticket"}">${svg("trash")}<span>${DB.tickets.length > 1 ? "Quitar" : "Vaciar"}</span></button>` : ""}</span></div>
         ${DB.tickets.length > 1 ? `<div class="tks" id="tks"></div>` : ""}
         <div class="who">
           <button class="cl ${c ? "set" : ""}" data-a="pickcli">${c ? `<span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span>` : `<span class="av none">${svg("user")}</span>`}<span><b>${c ? esc(c.name) : "Público general"}</b><small>${c ? `${c.doc ? esc(c.dt) + " " + esc(c.doc) : "Sin documento"}${debt > 0 ? " · debe " + money(debt) : ""}${pts ? ` · ${pts} pts` : ""}` : "Elegir cliente"}</small></span></button>
@@ -507,7 +507,7 @@ act({
       ${f("prevsave", "prev", "Guardar preventa", cobra ? "" : "F2")}${cobra ? f("prevload", "prev", "Cobrar preventa") : ""}
       </div>
       <h3 class="fh">Ticket</h3><div class="fgrid">
-      ${f("pickcli", "cli", "Cliente", "F1")}${f("focusq", "search", "Buscar", "F3")}${f("tknew", "hold", "En espera", "F4")}${f("qeditsel", "edit", "Cantidad", "F6")}${f("rmsel", "trash", "Quitar línea", "Supr")}${f("showdisc", "plus", "Descuento")}
+      ${f("pickcli", "cli", "Cliente", "F1")}${f("focusq", "search", "Buscar", "F3")}${f("tknew", "hold", "En espera", "F5")}${f("qeditsel", "edit", "Cantidad", "F6")}${f("rmsel", "trash", "Quitar línea", "Supr")}${f("showdisc", "plus", "Descuento")}
       </div>
       <h3 class="fh">Más</h3><div class="fgrid">
       ${vozOk() ? f("voz", "mic", "Voz") : ""}${f("camscan", "scan", "Cámara")}${f("scaletool", "scale", "Balanza")}${f("quick", "plus", "Monto suelto")}${+DB.cfg.tables ? f("mesas", "mesa", "Mesas") : ""}

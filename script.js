@@ -950,7 +950,7 @@ function paintCart() {
       <div class="rhead">
         <div class="rtop"><span class="rtime num">${hhmm(Date.now())}</span><button class="cart-x" data-a="closecart" aria-label="Cerrar ticket">${svg("close")}</button></div>
         <div class="rmeta">${t.mesa || t.prev ? `<b class="tkn">${esc(ticketLabel(t))}</b>` : `<button class="tkn" data-a="tkname" title="Ponerle un nombre a este ticket">${esc(ticketLabel(t))}${svg("edit")}</button>`}
-          <span class="racts"><button class="ib" data-a="tknew" title="Poner en espera y atender a otro cliente (F4)">${svg("hold")}<span>En espera</span></button>${lines.length || DB.tickets.length > 1 ? `<button class="ib" data-a="clear" title="${DB.tickets.length > 1 ? "Quitar este ticket" : "Vaciar el ticket"}">${svg("trash")}<span>${DB.tickets.length > 1 ? "Quitar" : "Vaciar"}</span></button>` : ""}</span></div>
+          <span class="racts"><button class="ib" data-a="tknew" title="Poner en espera y atender a otro cliente (F5)">${svg("hold")}<span>En espera</span></button>${lines.length || DB.tickets.length > 1 ? `<button class="ib" data-a="clear" title="${DB.tickets.length > 1 ? "Quitar este ticket" : "Vaciar el ticket"}">${svg("trash")}<span>${DB.tickets.length > 1 ? "Quitar" : "Vaciar"}</span></button>` : ""}</span></div>
         ${DB.tickets.length > 1 ? `<div class="tks" id="tks"></div>` : ""}
         <div class="who">
           <button class="cl ${c ? "set" : ""}" data-a="pickcli">${c ? `<span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span>` : `<span class="av none">${svg("user")}</span>`}<span><b>${c ? esc(c.name) : "Público general"}</b><small>${c ? `${c.doc ? esc(c.dt) + " " + esc(c.doc) : "Sin documento"}${debt > 0 ? " · debe " + money(debt) : ""}${pts ? ` · ${pts} pts` : ""}` : "Elegir cliente"}</small></span></button>
@@ -1348,7 +1348,7 @@ act({
       ${f("prevsave", "prev", "Guardar preventa", cobra ? "" : "F2")}${cobra ? f("prevload", "prev", "Cobrar preventa") : ""}
       </div>
       <h3 class="fh">Ticket</h3><div class="fgrid">
-      ${f("pickcli", "cli", "Cliente", "F1")}${f("focusq", "search", "Buscar", "F3")}${f("tknew", "hold", "En espera", "F4")}${f("qeditsel", "edit", "Cantidad", "F6")}${f("rmsel", "trash", "Quitar línea", "Supr")}${f("showdisc", "plus", "Descuento")}
+      ${f("pickcli", "cli", "Cliente", "F1")}${f("focusq", "search", "Buscar", "F3")}${f("tknew", "hold", "En espera", "F5")}${f("qeditsel", "edit", "Cantidad", "F6")}${f("rmsel", "trash", "Quitar línea", "Supr")}${f("showdisc", "plus", "Descuento")}
       </div>
       <h3 class="fh">Más</h3><div class="fgrid">
       ${vozOk() ? f("voz", "mic", "Voz") : ""}${f("camscan", "scan", "Cámara")}${f("scaletool", "scale", "Balanza")}${f("quick", "plus", "Monto suelto")}${+DB.cfg.tables ? f("mesas", "mesa", "Mesas") : ""}
@@ -4462,7 +4462,7 @@ const HELP_KB = [
   { k: ["instalar", "aplicacion", "programa", "escritorio", "icono"], t: "Instalar Caja Fácil", go: "aj.negocio", s: ["Entra a Ajustes › Negocio.", "Toca «Instalar Caja Fácil»."] },
   { k: ["licencia", "suspend", "bloquead", "activar", "vencio mi"], t: "Caja bloqueada o sin activar", go: "aj.nube", s: ["Entra con tu cuenta de Google en la pantalla de activación.", "Si dice suspendida, habla con el proveedor.", "Si pasaron 15 días sin internet, conéctate un momento para revisar la licencia."] },
   { k: ["fichas", "fotos", "pantalla de venta", "minimarket", "modo escaner"], t: "Cambiar la pantalla de venta", go: "aj.venta", s: ["Entra a Ajustes › Pantalla de venta.", "Elige «Escáner (minimarket)» o «Fichas con fotos»."] },
-  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F4 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
+  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F4) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
 ];
@@ -5069,7 +5069,7 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "F1") { e.preventDefault(); if (!open && ui.tab === "venta") pickClient(); return; }
   if (e.key === "F7") { e.preventDefault(); if (ui.mk === "pay" || (!open && ui.tab === "venta")) A.split(); return; }
-  if (e.key === "F4") { e.preventDefault(); if (!open && ui.tab === "venta") A.tknew(); return; }
+  if (e.key === "F5") { e.preventDefault(); if (!open && ui.tab === "venta") A.tknew(); return; }
   if (e.key === "F6") { e.preventDefault(); if (!open && ui.tab === "venta") editLine(ui.sel); return; }
   if ((e.key === "F3" || (e.key === "/" && !field)) && !open && ui.tab === "venta") { e.preventDefault(); A.focusq(); return; }
   if (!open && ui.tab === "venta") {

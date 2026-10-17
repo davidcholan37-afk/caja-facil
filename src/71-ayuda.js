@@ -95,7 +95,7 @@ const HELP_KB = [
   { k: ["instalar", "aplicacion", "programa", "escritorio", "icono"], t: "Instalar Caja Fácil", go: "aj.negocio", s: ["Entra a Ajustes › Negocio.", "Toca «Instalar Caja Fácil»."] },
   { k: ["licencia", "suspend", "bloquead", "activar", "vencio mi"], t: "Caja bloqueada o sin activar", go: "aj.nube", s: ["Entra con tu cuenta de Google en la pantalla de activación.", "Si dice suspendida, habla con el proveedor.", "Si pasaron 15 días sin internet, conéctate un momento para revisar la licencia."] },
   { k: ["fichas", "fotos", "pantalla de venta", "minimarket", "modo escaner"], t: "Cambiar la pantalla de venta", go: "aj.venta", s: ["Entra a Ajustes › Pantalla de venta.", "Elige «Escáner (minimarket)» o «Fichas con fotos»."] },
-  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F4 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
+  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F4) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
 ];
