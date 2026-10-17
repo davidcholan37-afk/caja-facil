@@ -68,9 +68,11 @@ function vitHome() {
   const tops = topIds();
   const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
     .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 10);
+  const vc = vitCfg();
   const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
   const last = cur ? `<div class="vlast ${ui.bump ? "fresh" : ""}"><small>Último</small><b>${esc(cur.r.name)}</b><span class="num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><strong class="num">${money(r2(cur.r.price * cur.l.qty))}</strong></div>`
     : `<div class="vlast idle">${svg("scan")}<b>Escanea un producto</b></div>`;
+  if (vc.img) return `<div class="vit-home custom"><div class="vimgbox">${vitImgHtml(vc)}</div>${last}</div>`;
   return `<div class="vit-home"><div class="vmos" aria-hidden="true">${tiles}</div>${quick.length ? `<div class="vq" aria-label="Sin código">${quick.map((p) => `<button class="vqk" data-a="add" data-id="${p.id}"><b>${esc(p.name)}</b><span class="num">${money(p.price)}</span></button>`).join("")}</div>` : ""}${last}</div>`;
 }
 function vitResults(list, key) {

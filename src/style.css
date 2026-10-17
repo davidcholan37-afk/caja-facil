@@ -2026,3 +2026,15 @@ html[data-theme=dark] body.vit .vbig{background:linear-gradient(160deg,#1B2430,#
 }
 @media (max-width:600px){body.vit .vlast span{display:none}body.vit .vlast b{font-size:14.5px}body.vit .vlast strong{font-size:19px;white-space:nowrap}body.vit .vq{bottom:72px}}
 body.vit .vlast svg{flex:none;width:24px;height:24px;color:var(--t3)}
+/* Vitrina propia: la imagen ocupa todo; sin fila de categorías; editor en Ajustes */
+body.vit #cats{display:none}
+body.vit .vit-home{height:calc(100dvh - 190px)}
+body.vit .vit-home.custom{background:#fff}
+body.vit .vimgbox{position:absolute;inset:0}
+.vimgw{position:absolute;inset:0;overflow:hidden}
+.vimg{display:block;width:100%;height:100%}
+.vtprev{position:relative;width:100%;max-width:520px;margin:14px 0 12px;border-radius:22px;overflow:hidden;border:1px solid var(--hl);background:#fff}
+.vtfit{max-width:260px;margin-bottom:10px}
+.vtsl{display:grid;gap:4px;margin:8px 0;font:600 13px var(--f);color:var(--t2)}
+.vtsl input[type=range]{width:100%;max-width:520px;accent-color:var(--ac,#0A66FF)}
+.vtsl input[type=color]{width:56px;height:34px;border:1px solid var(--hl);border-radius:10px;padding:2px;background:var(--s1)}
