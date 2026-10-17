@@ -2060,3 +2060,46 @@ body.vit .vit-home{height:calc(100dvh - 132px)}
 @media (max-width:1099px){body.vit .vit-home{height:calc(100dvh - 162px)}}
 @media (min-width:1100px){body.vit .vlast{padding-right:132px}body.vit .vq{right:132px}}
 @media (max-width:1099px){body:has(#cartbar:not([hidden])).vit .vit-home{height:calc(100dvh - 236px)}}
+
+/* ===== Vitrina · K2 (fotos en el ticket) + pagos con vida + menú lateral ===== */
+body.vit .vit-home{height:calc(100dvh - 132px)}
+body.vit .vq{bottom:16px}
+@media (min-width:1100px){
+body.vit[data-tab=venta] .cart .ln{min-height:64px!important}
+body.vit[data-tab=venta] .cart .ln .nm{display:flex!important;align-items:center;gap:11px}
+body.vit[data-tab=venta] .cart .ln .nm .lim{display:block!important;width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;background:#EEF2F6;box-shadow:0 0 0 1px rgba(15,23,42,.08)}
+body.vit[data-tab=venta] .cart .ln .nm small{display:inline-block!important;align-self:flex-start;margin-top:3px;padding:1px 7px;border-radius:6px;background:#EEF2F6;font:600 10.5px ui-monospace,Menlo,monospace!important;opacity:1!important;color:#5A6776}
+body.vit[data-tab=venta] .cart .ln .nm b{font-size:14px!important}
+body.vit[data-tab=venta] .cart .ln .qc .qv{background:#E8F7EE!important;color:#0E7A38!important;font-weight:800;min-width:42px;height:32px!important}
+body.vit[data-tab=venta] .cart .ln .amt{font-size:17px!important}
+body.vit[data-tab=venta] .cart .lh{background:#fff!important;border-bottom:2px solid #1D1D1F!important;color:#1D1D1F!important}
+body.vit[data-tab=venta] .cart .paper{border-radius:20px}
+}
+/* Pagos */
+body.vit[data-tab=venta] .paymini{gap:8px}
+body.vit[data-tab=venta] .paymini .pm{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;border:0;color:#fff;font:700 15px var(--f);letter-spacing:-.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 10px 20px -12px var(--pc,#000);transition:transform .16s var(--ease-out),filter .16s}
+body.vit[data-tab=venta] .paymini .pm:hover{filter:brightness(1.06)}
+body.vit[data-tab=venta] .paymini .pm:active{transform:scale(.97)}
+body.vit[data-tab=venta] .paymini .pm.efectivo{--pc:#16A34A;background:linear-gradient(135deg,#1DB954,#12873F)!important;min-height:72px;font-size:22px;border-radius:20px;justify-content:flex-start;padding:0 20px}
+body.vit[data-tab=venta] .paymini .pm.efectivo::before{content:"";width:34px;height:34px;flex:none;background:#fff;opacity:.95;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat}
+body.vit[data-tab=venta] .paymini .pm.efectivo .kbd{margin-left:auto;background:rgba(255,255,255,.22);color:#fff;border-radius:8px;padding:3px 9px;font:700 12px var(--f)}
+body.vit[data-tab=venta] .paymini .pm.yape,body.vit[data-tab=venta] .paymini .pm.plin,body.vit[data-tab=venta] .paymini .pm.culqi{min-height:54px;border-radius:16px;font-size:14.5px}
+body.vit[data-tab=venta] .paymini .pm.yape{--pc:#742284;background:linear-gradient(135deg,#8A2BA0,#5E1B6E)!important}
+body.vit[data-tab=venta] .paymini .pm.plin{--pc:#00B8D9;background:linear-gradient(135deg,#17D0EE,#00A3C4)!important;color:#05323B}
+body.vit[data-tab=venta] .paymini .pm.culqi{--pc:#FF7A1A;background:linear-gradient(135deg,#FF9440,#F26A0A)!important;color:#2A1300}
+body.vit[data-tab=venta] .paymini .pm.yape::before,body.vit[data-tab=venta] .paymini .pm.plin::before,body.vit[data-tab=venta] .paymini .pm.culqi::before{width:26px;height:26px;border-radius:50%;background:#fff;display:grid;place-items:center;font:800 14px var(--f);flex:none;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+body.vit[data-tab=venta] .paymini .pm.yape::before{content:"Y";color:#742284}
+body.vit[data-tab=venta] .paymini .pm.plin::before{content:"P";color:#00A3C4}
+body.vit[data-tab=venta] .paymini .pm.culqi::before{content:"C";color:#F26A0A}
+body.vit[data-tab=venta] .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){min-height:54px;border-radius:16px;background:#fff!important;color:#1D1D1F;border:1.5px solid rgba(15,23,42,.12);box-shadow:none}
+/* Menú lateral */
+body.vit .side{background:linear-gradient(180deg,#fff,#F3F6FA)!important;border-right:1px solid rgba(15,23,42,.08)}
+body.vit #sideNav .tab{color:#5A6776;font-weight:600}
+body.vit #sideNav .tab .ic{width:46px;height:34px;border-radius:12px;transition:transform .16s var(--ease-out),background .16s}
+body.vit #sideNav .tab:active .ic{transform:scale(.94)}
+body.vit #sideNav .tab.on{color:var(--ac-ink,#0757D9);font-weight:800}
+body.vit #sideNav .tab.on .ic{background:linear-gradient(135deg,#2B7FFF,#0A58E0)!important;color:#fff!important;box-shadow:0 8px 16px -8px rgba(10,102,255,.7)}
+body.vit .side .logo{border-radius:14px;box-shadow:0 10px 20px -10px rgba(10,102,255,.7)}
+html[data-theme=dark] body.vit .side{background:linear-gradient(180deg,#151B23,#10161d)!important;border-color:rgba(255,255,255,.07)}
+html[data-theme=dark] body.vit #sideNav .tab{color:#8C97A6}
+html[data-theme=dark] body.vit #sideNav .tab.on{color:#9CC2FF}
