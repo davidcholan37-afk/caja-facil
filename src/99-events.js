@@ -12,7 +12,7 @@ function keepFocus(id, fn) {
 let lqT, qT;
 document.addEventListener("input", (e) => {
   const t = e.target, id = t.id;
-  if (id === "q") { ui.q = t.value; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
+  if (id === "q") { ui.q = t.value; ui.vsel = 0; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
   else if (id === "pq") { ui.pq = t.value; clearTimeout(qT); qT = setTimeout(paintPList, 70); }
   else if (id === "cq") { ui.cq = t.value; paintCList(); }
   else if (id === "vq") { ui.vq = t.value; const [f, to] = rangeKeys(ui.range, ui.from, ui.to); paintVList(f, to); }
@@ -102,6 +102,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "F6") { e.preventDefault(); if (!open && ui.tab === "venta") editLine(ui.sel); return; }
   if ((e.key === "F3" || (e.key === "/" && !field)) && !open && ui.tab === "venta") { e.preventDefault(); A.focusq(); return; }
   if (!open && ui.tab === "venta") {
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && vit() && ui.q.trim() && ui.vlist && ui.vlist.length > 1) { e.preventDefault(); ui.vsel = Math.min(ui.vlist.length - 1, Math.max(0, (ui.vsel || 0) + (e.key === "ArrowDown" ? 1 : -1))); paintGrid(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); moveSel(e.key === "ArrowDown" ? 1 : -1); return; }
     if (!field || (inQ && !e.target.value)) {
       if (e.key === "+") { e.preventDefault(); if (ui.sel) changeQty(ui.sel, 1); return; }
