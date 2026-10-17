@@ -46,11 +46,11 @@ function helpScreen() {
 }
 const HELP_CHIPS = {
   venta: { q: ["¿Cómo cobro con Yape?", "¿Cómo dejo una venta en espera?", "¿Cómo uso la balanza?"], c: ["cuánto vendí hoy", "qué se vende más"] },
-  ventas: { q: ["¿Cómo anulo una venta?", "¿Cómo mando el ticket por WhatsApp?"], c: ["cuánto vendí hoy", "cuánto vendí ayer"] },
+  ventas: { q: ["¿Cómo anulo una venta?", "¿Cómo mando el ticket por WhatsApp?"], c: ["anula la última venta", "cuánto vendí hoy"] },
   prod: { q: ["¿Cómo creo un producto?", "¿Cómo pongo precio por mayor?", "¿Cómo registro vencimientos?"], c: ["qué hay que comprar", "qué vence pronto"] },
-  cli: { q: ["¿Cómo fío a un cliente?", "¿Cómo le recuerdo su deuda?"], c: [] },
-  caja: { q: ["¿Cómo cierro mi caja?", "¿Cómo anoto un gasto?"], c: ["cuánto vendí hoy"] },
-  prov: { q: ["¿Cómo pago a un proveedor?", "¿Cómo anoto lo que me fiaron?"], c: ["qué hay que comprar"] },
+  cli: { q: ["¿Cómo fío a un cliente?", "¿Cómo le recuerdo su deuda?"], c: ["nuevo cliente Rosa celular 987654321"] },
+  caja: { q: ["¿Cómo cierro mi caja?", "¿Cómo anoto un gasto?"], c: ["anota un gasto de 20 en bolsas", "cierra la caja", "cuánto vendí hoy"] },
+  prov: { q: ["¿Cómo pago a un proveedor?", "¿Cómo anoto lo que me fiaron?"], c: ["crea el proveedor Gloria celular 987654321", "qué hay que comprar"] },
   rep: { q: ["¿Cómo veo mi ganancia?"], c: ["cuánto vendí hoy", "cuánto vendí esta semana"] },
   aj: { q: ["¿Cómo hago una copia de seguridad?", "¿Cómo creo un cajero con PIN?", "¿Cómo instalo la app?"], c: [] }
 };
@@ -196,7 +196,7 @@ function helpPlanCard(plan, texto) {
   const id = ++helpCardN, ok = plan.some((x) => x.ok), w = document.createElement("div");
   w.className = "hl-card"; helpCards[id] = { plan, texto };
   w.innerHTML = `${ok ? '<div class="hl-ch"><i aria-hidden="true"></i>Entendí</div>' : ""}
-    <div class="hl-cl">${plan.map((x, i) => `<div class="hl-pl ${x.ok ? "" : "bad"}" style="--i:${i}"><span class="hl-pi">${svg(x.ok ? "check" : "close")}</span><span>${esc(x.rc ? `${x.rc.q} ${x.rc.n}` : x.txt)}</span></div>`).join("")}</div>
+    <div class="hl-cl">${plan.map((x, i) => `<div class="hl-pl ${x.ok ? "" : "bad"}" style="--i:${i}"><span class="hl-pi">${svg(x.ok ? "check" : "close")}</span><span>${esc(x.rc ? `${x.rc.q} ${x.rc.n}` : x.txt)}${x.pick ? `<span class="hl-pick">${x.pick.map((pk, k) => `<button type="button" class="hl-b sec" data-a="ayudaPick" data-id="${id}" data-i="${i}" data-j="${k}">${esc(pk.label)}</button>`).join("")}</span>` : ""}</span></div>`).join("")}</div>
     ${ok ? `<div class="hl-cb"><button type="button" class="hl-b sec" data-a="ayudaNo" data-id="${id}">Cancelar</button><button type="button" class="hl-b" data-a="ayudaSi" data-id="${id}">Aceptar</button></div>` : ""}`;
   helpCards[id].el = w;
   return w;
@@ -213,18 +213,12 @@ function helpTryCommand(text) {
     helpSay(rs.map((r) => `${r.title}: ${r.w}`).join(" "), { node: helpAnswerNode(rs), instant: true });
     return true;
   }
-  // Cobrar, elegir entre parecidos o abrir una ficha: se ve en la ventana de la voz, que ya sabe hacerlo.
-  if (plan.some((x) => x.ok && (x.run || x.modal || x.pick || x.pay)) || plan.some((x) => x.pick)) {
-    helpSay("Te lo muestro para que lo confirmes.", { instant: true });
-    helpClose(); vzShowPlan(plan, text);
-    return true;
-  }
-  helpSay(plan.some((x) => x.ok) ? "Esto es lo que entendí. ¿Lo hago?" : "No pude hacerlo:", { node: helpPlanCard(plan, text), instant: true });
+  helpSay(plan.some((x) => x.ok) ? "Esto es lo que entendí. ¿Lo hago?" : plan.some((x) => x.pick) ? "Elige uno:" : "No pude hacerlo:", { node: helpPlanCard(plan, text), instant: true });
   return true;
 }
 function helpNavIntent(n) {
   const m = n.match(/^(llevame|llevarme|vamos|ir|abre|abreme|abrir|muestrame|muestra|mostrar|quiero ir|quiero ver|anda)( a| al| a la| a los| a las| el| la| los| las| mi| mis)* (.+)$/);
-  if (!m || m[3].split(" ").length > 6) return null;
+  if (!m || m[3].split(" ").length > 6 || /\d|\bcon\b/.test(m[3])) return null;
   const hit = HELP_NAV.find(([k]) => (" " + m[3] + " ").includes(" " + k + " ") || (k.length > 5 && m[3].includes(k)));
   return hit ? hit[1] : null;
 }
@@ -307,8 +301,17 @@ act({
   ayudaSi: (el) => {
     const c = helpCards[el.dataset.id]; if (!c || c.done) return; c.done = true;
     const bar = c.el.querySelector(".hl-cb"); if (bar) bar.outerHTML = `<div class="hl-done">${svg("check")}Hecho</div>`;
+    const abre = c.plan.some((x) => x.ok && x.run);
     vz = { plan: c.plan, texto: c.texto }; vozAccept();
+    if (abre) { helpClose(); return; }
     helpSay(c.plan.some((x) => x.ok && x.add) ? "Listo, ya está en tu ticket." : "Listo.", { go: c.plan.some((x) => x.ok && x.add) ? ["venta"] : [], instant: true });
+  },
+  // «¿cuál?»: tocas el que quieres y la tarjeta se vuelve a armar con ese
+  ayudaPick: (el) => {
+    const c = helpCards[el.dataset.id]; if (!c || c.done) return;
+    const i = +el.dataset.i, pk = c.plan[i] && c.plan[i].pick && c.plan[i].pick[+el.dataset.j]; if (!pk) return;
+    c.plan[i] = vzPlan([pk.a], c.plan.filter((_, k) => k !== i))[0];
+    c.done = true; c.el.replaceWith(helpPlanCard(c.plan, c.texto));
   },
   ayudaNo: (el) => {
     const c = helpCards[el.dataset.id]; if (!c || c.done) return; c.done = true;

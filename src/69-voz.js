@@ -219,10 +219,51 @@ function vzParseDeudaProv(toks) {
   if (/^(compre|compramos)$/.test(toks[0] || "") && toks.some((t) => /^(fiado|credito)$/.test(t))) { const nombre = vzNameAfterA(toks.slice(toks.findIndex((t) => /^(fiado|credito)$/.test(t)) + 1)); return nombre ? [{ tipo: "deuda_proveedor", nombre, monto }] : null; }
   return null;
 }
+// Gestión de la caja: crear proveedor o cliente, gasto, retiro, abrir/cerrar caja, anular una venta
+const VZ_CREA = new Set(["crea", "crear", "creame", "agrega", "agregar", "agregame", "agregale", "registra", "registrar", "registrame", "anade", "anadir", "nuevo", "nueva", "inscribe"]);
+const VZ_G_RUIDO = new Set(["el", "la", "los", "las", "un", "una", "uno", "nuevo", "nueva", "se", "llama", "llamado", "llamada", "de", "del", "con", "celular", "cel", "telefono", "fono", "numero", "whatsapp", "dni", "documento", "es", "su", "y", "para", "que", "mi", "al", "a", "proveedor", "proveedora", "cliente", "clienta", "te", "me", "lo"]);
+const vzTitulo = (n) => String(n).split(" ").map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
+function vzParseGestion(toks, j, raw) {
+  const has = (re) => toks.some((t) => re.test(t));
+  // crear proveedor o cliente: «crea el proveedor Gloria celular 904623137»
+  const iE = toks.findIndex((t) => /^(proveedor|proveedora|cliente|clienta)$/.test(t));
+  if (iE >= 0 && has(/^(crea|crear|creame|agrega|agregar|agregame|agregale|registra|registrar|registrame|anade|anadir|inscribe|nuevo|nueva)$/) && !has(/^(paga|pagale|pagar|abona|abono|fiado|fia|fiale|cobra|debe|deuda)$/) && !has(/^producto$/)) {
+    const prov = /^proveedor/.test(toks[iE]), dig = toks.filter((t) => /^\d+$/.test(t)).join(""), doc = !prov && dig.length === 8 ? dig : "", phone = doc ? "" : dig.length >= 7 ? dig : "";
+    const nombre = toks.filter((t) => !VZ_CREA.has(t) && !VZ_ANOTA.has(t) && !VZ_G_RUIDO.has(t) && !/^[\d#]+$/.test(t) && !vzIsNum(t)).join(" ");
+    // con las tildes y mayúsculas tal como las dijiste («Pérez», «Ñahui»)
+    const parts = nombre.split(" "), orig = String(raw || "").split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}'-]/gu, "")).filter(Boolean), pick = []; let k = 0;
+    orig.forEach((w) => { if (k < parts.length && norm(w) === parts[k]) { pick.push(w); k++; } });
+    const bonito = pick.length === parts.length ? pick.join(" ") : nombre;
+    return nombre ? [{ tipo: prov ? "crear_proveedor" : "crear_cliente", nombre: bonito, ...(phone ? { celular: phone } : {}), ...(doc ? { doc } : {}) }] : [];
+  }
+  const monto = vzMoney(toks.filter((t, i) => !/^\d{7,}$/.test(t) && !(/^(un|una|uno)$/.test(t) && !/^(sol|soles)$/.test(toks[i + 1] || ""))));
+  // gasto: «anota un gasto de 20 en bolsas», «gasté 15 en pasajes»
+  if (has(/^(gasto|gastos|gaste|gastamos|gastado)$/) && monto > 0 && !has(/^(producto|proveedor)$/)) {
+    const det = toks.filter((t) => !VZ_FN.has(t) && !VZ_ANOTA.has(t) && !vzIsNum(t) && !/^(gasto|gastos|gaste|gastamos|gastado|soles|sol|caja|hice|hicimos|tuve|tuvimos|otro|registra|con|y)$/.test(t) && !/^[\d#]+$/.test(t)).join(" ");
+    return [{ tipo: "mov_caja", mov: "gasto", monto, ...(det ? { detalle: det } : {}) }];
+  }
+  // retiro: «retira 100 de la caja», «saqué 50 de la caja»
+  if (monto > 0 && toks.includes("caja") && has(/^(retira|retiro|retirar|retiramos|retire|saque|saca|sacar|sacamos|sacame)$/) && !has(/^(producto|proveedor|gasto)$/)) return [{ tipo: "mov_caja", mov: "retiro", monto }];
+  if (monto > 0 && toks[0] === "retiro" && !has(/^(producto|proveedor)$/)) return [{ tipo: "mov_caja", mov: "retiro", monto }];
+  // abrir y cerrar caja
+  if (toks.includes("caja") || toks.includes("arqueo")) {
+    if (has(/^(abre|abrir|abreme|abrimos|abri|apertura|aperturar|aperturame)$/) && (monto > 0 || has(/^(con|sencillo|inicio|empiezo|empezar)$/))) return [{ tipo: "abrir_caja", ...(monto > 0 ? { monto } : {}) }];
+    if (toks.length <= 4 && has(/^(abre|abrir|abreme|abrimos|apertura|aperturar)$/)) return [{ tipo: "abrir_caja" }];
+    if (has(/^(cierra|cerrar|cierrame|cerramos|cierre|arqueo|arquear|arquea)$/) && !has(/^(dia|mes)$/)) return [{ tipo: "cerrar_caja" }];
+  }
+  // anular una venta ya cobrada: «anula la última venta», «anula la venta de 25 soles»
+  if (has(/^(anula|anular|anulame|anulale|cancela|cancelar|elimina|borra)$/) && has(/^(venta|ventas|boleta|factura)$/)) {
+    if (has(/^(ultima|anterior|pasada|reciente|recien|ultimo)$/)) return [{ tipo: "anular_venta", ultima: true }];
+    if (monto > 0) return [{ tipo: "anular_venta", monto }];
+    const nombre = vzNameAfterA(toks) || ""; if (nombre) return [{ tipo: "anular_venta", nombre }];
+  }
+  return null;
+}
 function vzParse(text) {
   const toks = vzTokens(text), out = [], j = toks.join(" ");
   if (!toks.length) return out;
   const ask = vzParseAsk(toks, j, String(text)); if (ask) return ask;
+  const ges = vzParseGestion(toks, j, text); if (ges) return ges;
   const abo = vzParseAbono(toks); if (abo) return abo;
   const dpv = vzParseDeudaProv(toks); if (dpv) return dpv;
   // esconder o mostrar un producto en la venta: «desactiva el limón»
@@ -244,9 +285,11 @@ function vzParse(text) {
   const kwOf = (t) => (t === "precio" ? "precio" : t === "costo" ? "costo" : t === "codigo" ? "codigo" : t === "stock" || t === "inventario" ? "stock" : "");
   if (toks.some((t) => VZ_UPD.has(t)) && toks.some((t) => kwOf(t)) && !toks.includes("nuevo")) {
     const first = toks.findIndex((t) => kwOf(t)), SKIP = (t) => VZ_UPD.has(t) || VZ_FN.has(t) || ["y", "e", "su", "producto", "articulo", "barras", "barra", "numero"].includes(t);
-    const pre = toks.slice(0, first).filter((t) => !SKIP(t) && !vzIsQty(t)).join(" ");
+    // «actualiza el limón a 4.50 y costo 3.50»: el número antes de «costo/stock» (sin decir «precio») es el precio
+    const preT = toks.slice(0, first), iq = preT.findIndex((t) => vzIsQty(t)), preMoney = iq >= 0 && !toks.includes("precio") ? vzMoney(preT.slice(iq)) : 0;
+    const pre = (iq >= 0 && preMoney > 0 ? preT.slice(0, iq) : preT).filter((t) => !SKIP(t) && !vzIsQty(t) && !["a", "en", "por"].includes(t)).join(" ");
     const segs = []; toks.slice(first).forEach((t) => { if (kwOf(t)) segs.push({ k: kwOf(t), t: [] }); else segs[segs.length - 1].t.push(t); });
-    const r = {}; let nombre = pre;
+    const r = {}; let nombre = pre; if (preMoney > 0 && nombre) r.precio = preMoney;
     segs.forEach((sg) => {
       let i = 0; while (i < sg.t.length && ["de", "del", "el", "la", "al", "los", "las", "su", "producto", "barras", "barra", "numero"].includes(sg.t[i])) i++;
       const nm = []; while (i < sg.t.length && !vzIsQty(sg.t[i]) && !["a", "en", "por", "sea", "sean", "es", "son", "y"].includes(sg.t[i])) nm.push(sg.t[i++]);
@@ -745,6 +788,41 @@ function vzPlan(acc, prev) {
       if (!r.it) return { ok: false, txt: `No encontré al proveedor «${a.nombre}»` };
       if (!a.monto) return { ok: false, txt: `${r.it.name}: dime cuánto te fió` };
       return { ok: true, modal: true, txt: `Anotar que ${r.it.name}${vzAp(r, a.nombre)} te fió ${money(a.monto)} (lo confirmas antes de guardar)`, run: () => vzDeudaProv(r.it, a.monto) };
+    }
+    if (a.tipo === "crear_proveedor") {
+      if (!can("caja")) return { ok: false, txt: "Tu usuario no puede crear proveedores" };
+      const nm = vzTitulo(a.nombre);
+      if (DB.supp.some((x) => x.name.toLowerCase() === nm.toLowerCase())) return { ok: false, txt: `Ya tienes un proveedor «${nm}»` };
+      return { ok: true, txt: `Crear proveedor «${nm}»${a.celular ? `, celular ${a.celular}` : " (sin celular)"}`, exec: () => { const s = { id: uid(), name: nm, phone: a.celular || "", note: "", t: Date.now() }; DB.supp.push(s); log("Proveedor creado", nm + " (Luis)"); save(); } };
+    }
+    if (a.tipo === "crear_cliente") {
+      if (!can("clientes")) return { ok: false, txt: "Tu usuario no puede crear clientes" };
+      const nm = vzTitulo(a.nombre);
+      if (DB.clients.some((x) => norm(x.name) === norm(nm))) return { ok: false, txt: `Ya tienes un cliente «${nm}»` };
+      if (a.doc && DB.clients.some((x) => x.doc === a.doc)) return { ok: false, txt: `Ya hay un cliente con el DNI ${a.doc}` };
+      return { ok: true, txt: `Crear cliente «${nm}»${a.celular ? `, celular ${a.celular}` : ""}${a.doc ? `, DNI ${a.doc}` : ""}`, exec: () => { const c = { id: uid(), name: nm, dt: a.doc ? "DNI" : "", doc: a.doc || "", phone: a.celular || "", email: "", addr: "", limit: 0, days: 0, note: "", t: Date.now() }; DB.clients.push(c); log("Cliente creado", nm + " (Luis)"); save(); } };
+    }
+    if (a.tipo === "mov_caja") {
+      if (!can("caja")) return { ok: false, txt: "Tu usuario no puede mover dinero de la caja" };
+      if (!curShift()) return { ok: false, txt: "Primero abre tu caja" };
+      const nom = a.mov === "gasto" ? "Gasto" : "Retiro de efectivo";
+      return { ok: true, txt: `${nom} de ${money(a.monto)}${a.detalle ? ` (${a.detalle})` : ""}${a.mov === "retiro" ? " de la caja" : ""}`, exec: () => { addMove(a.mov, a.monto, a.detalle || ""); log(nom, `${money(a.monto)} ${a.detalle || ""} (Luis)`); } };
+    }
+    if (a.tipo === "abrir_caja") {
+      if (curShift()) return { ok: false, txt: "Tu caja ya está abierta" };
+      return { ok: true, txt: `Abrir tu caja${a.monto ? ` con ${money(a.monto)} de sencillo` : ""}`, exec: () => { const u = me(); DB.shifts.push({ id: uid(), u: u.id, un: u.name, t0: Date.now(), d0: dkey(), open: Math.max(0, r2(a.monto || 0)), t1: 0 }); log("Apertura de caja", `${u.name}: ${money(a.monto || 0)} (Luis)`); save(); paintNav(); } };
+    }
+    if (a.tipo === "cerrar_caja") {
+      const sh = curShift(); if (!sh) return { ok: false, txt: "No tienes una caja abierta" };
+      return { ok: true, modal: true, txt: "Cerrar tu caja (cuentas el efectivo antes de confirmar)", run: () => { ui.cnt = null; closeShiftUI(sh.id); } };
+    }
+    if (a.tipo === "anular_venta") {
+      const vivas = DB.sales.filter((x) => !x.void).sort((x, y) => y.t - x.t);
+      let ls = a.id ? vivas.filter((x) => x.id === a.id) : a.ultima ? vivas.slice(0, 1) : a.monto ? vivas.filter((x) => Math.abs(x.total - a.monto) < 0.005).slice(0, 3) : vivas.filter((x) => x.client && norm((cli(x.client) || {}).name || "").includes(norm(a.nombre))).slice(0, 3);
+      if (!ls.length) return { ok: false, txt: a.ultima ? "No hay ventas para anular" : "No encontré esa venta" };
+      if (ls.length > 1) return { ok: false, txt: "Hay varias ventas parecidas: ¿cuál?", pick: ls.map((x) => ({ label: `${docShort(x)} · ${money(x.total)} · ${hhmm(x.t)}`, a: { tipo: "anular_venta", monto: x.total, id: x.id } })) };
+      const sv = ls[0];
+      return { ok: true, modal: true, txt: `Anular la venta ${docShort(sv)} de ${money(sv.total)} (${hhmm(sv.t)}). Te pido el motivo antes de anular`, run: () => doVoid(sv) };
     }
     if (a.tipo === "abono") return vzAbono(a);
     if (a.tipo === "repetir") {

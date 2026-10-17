@@ -1833,6 +1833,8 @@ html[data-input=kbd] .help-message{animation:none}
 .hl-cl{display:flex;flex-direction:column}
 .hl-pl{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:15px;border-top:.5px solid var(--hsep);animation:hlmsg .24s var(--ease-out) both;animation-delay:calc(var(--i,0)*50ms)}
 .hl-pl:first-child{border-top:0}
+.hl-pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.hl-pick .hl-b{flex:0 1 auto;min-height:34px;padding:6px 12px;font-size:14px}
 .hl-pi{display:grid;place-items:center;flex:none;width:20px;height:20px;border-radius:50%;background:var(--hg);color:#fff}
 .hl-pl.bad .hl-pi{background:var(--hr)}
 .hl-pl.bad{color:var(--hdim)}
