@@ -2163,17 +2163,17 @@ html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:dis
 body.vit[data-tab=venta] .paybox .paymini .pm{white-space:nowrap}
 @media (max-width:1099px){body.vit[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:none}}
 
-/* ===== Vitrina · tema «Fresco verde» (opción 3 elegida por David): verde profundo, menta, tarjetas redondeadas. Claro y oscuro. ===== */
-body.vit{--fv:#0F4D32;--fv2:#1D8A4E;--fvl:#8BD448;--fvbg:#EEF4EF;--fvt:#E2F2E6;--fvline:#D5E3DA;--fvmut:#4F7462}
-html[data-theme=dark] body.vit{--fv:#0B2A1D;--fv2:#1F8A4F;--fvl:#8BD448;--fvbg:#0E1411;--fvt:#17321F;--fvline:#22342A;--fvmut:#86A894}
-body.vit,body.vit main#view{background:var(--fvbg)!important}
-body.vit .side{background:var(--fv)!important;border:0!important}
-body.vit .side .logo{background:var(--fvl)!important;color:#0F4D32!important}
-body.vit #sideNav .tab,body.vit .side .sidefoot .themebtn,body.vit .side .sidefoot .lockbtn{color:#BFD8C9!important}
-body.vit #sideNav .tab .ic{color:#BFD8C9;background:transparent}
-body.vit #sideNav .tab.on{color:#fff!important}
-body.vit #sideNav .tab.on .ic{background:var(--fvl)!important;color:#0F4D32!important;box-shadow:0 8px 16px -10px rgba(139,212,72,.9)!important}
-@media (hover:hover) and (pointer:fine){body.vit #sideNav .tab:not(.on):hover .ic{background:rgba(255,255,255,.08)}}
+/* ===== Tema «Fresco verde» (opción 3 elegida por David; colores en todos los modos, formas de ticket solo en Vitrina): verde profundo, menta, tarjetas redondeadas. Claro y oscuro. ===== */
+body{--fv:#0F4D32;--fv2:#1D8A4E;--fvl:#8BD448;--fvbg:#EEF4EF;--fvt:#E2F2E6;--fvline:#D5E3DA;--fvmut:#4F7462}
+html[data-theme=dark] body{--fv:#0B2A1D;--fv2:#1F8A4F;--fvl:#8BD448;--fvbg:#0E1411;--fvt:#17321F;--fvline:#22342A;--fvmut:#86A894}
+body,body main#view{background:var(--fvbg)!important}
+body .side{background:var(--fv)!important;border:0!important}
+body .side .logo{background:var(--fvl)!important;color:#0F4D32!important}
+body #sideNav .tab,body .side .sidefoot .themebtn,body .side .sidefoot .lockbtn{color:#BFD8C9!important}
+body #sideNav .tab .ic{color:#BFD8C9;background:transparent}
+body #sideNav .tab.on{color:#fff!important}
+body #sideNav .tab.on .ic{background:var(--fvl)!important;color:#0F4D32!important;box-shadow:0 8px 16px -10px rgba(139,212,72,.9)!important}
+@media (hover:hover) and (pointer:fine){body #sideNav .tab:not(.on):hover .ic{background:rgba(255,255,255,.08)}}
 /* Ticket */
 body.vit[data-tab=venta] .cart .paper{border-radius:24px!important;border:0!important;box-shadow:0 18px 40px -28px rgba(15,77,50,.5)!important}
 body.vit[data-tab=venta] .cart .rhead .seg button.on{background:var(--fv2)!important;color:#fff!important}
@@ -2209,8 +2209,8 @@ html[data-theme=dark] body.vit[data-tab=venta] .cart .tot .link{color:#7FD39E!im
 html[data-theme=dark] body.vit[data-tab=venta] .cart .ln .qc .qv{color:#9BE0B4!important}
 html[data-theme=dark] body.vit[data-tab=venta] .searchbar .sbox,html[data-theme=dark] body.vit[data-tab=venta] .searchbar .tool{background:#141B17!important}
 /* Fresco verde: el color de acento de toda la caja pasa a verde */
-body.vit{--ac:#1D8A4E;--ac2:#2FA864;--ac-t:rgba(29,138,78,.10);--ac-ink:#0F6B3B;--grad:linear-gradient(180deg,var(--ac2),var(--ac))}
-html[data-theme=dark] body.vit{--ac:#2FA864;--ac2:#4CC07E;--ac-t:rgba(47,168,100,.16);--ac-ink:#8EDCAE;--grad:linear-gradient(180deg,var(--ac2),var(--ac))}
+body{--ac:#1D8A4E;--ac2:#2FA864;--ac-t:rgba(29,138,78,.10);--ac-ink:#0F6B3B;--grad:linear-gradient(180deg,var(--ac2),var(--ac))}
+html[data-theme=dark] body{--ac:#2FA864;--ac2:#4CC07E;--ac-t:rgba(47,168,100,.16);--ac-ink:#8EDCAE;--grad:linear-gradient(180deg,var(--ac2),var(--ac))}
 
 /* ===== Cobro v2: franja del color del medio elegido, medios en fichas con ícono y tecla, billetes con color, botón del color del medio. Para todos los modos; sigue --ac del tema. ===== */
 .sheet.paym{--mc:#15A048;--mci:#fff;--mcd:#0E7A36}
@@ -2304,3 +2304,12 @@ html body .sheet.paym:has(.paybody) .mth span{white-space:nowrap;overflow:hidden
   html body .sheet.paym:has(.paybody) .mth.tarjeta::before,html body .sheet.paym:has(.paybody) .mth.transferencia::before,html body .sheet.paym:has(.paybody) .mth.credito::before{width:24px;height:24px;background-size:15px}
   html body .sheet.paym:has(.paybody) .bills{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+/* ===== Logos de Yape, Plin y Culqi (img/pagos/, enviados por David) en los botones de venta y en el cobro ===== */
+.paybox .pm.yape::before,.paybox .pm.plin::before,.paybox .pm.culqi::before,.sheet.paym .mth.yape::before,.sheet.paym .mth.plin::before,.sheet.paym .mth.culqi::before{content:""!important;flex:none;width:28px;height:28px;border-radius:8px;background-color:#fff!important;background-repeat:no-repeat!important;background-position:center!important;box-shadow:0 1px 3px rgba(0,0,0,.22)!important}
+.paybox .pm.yape::before,.sheet.paym .mth.yape::before{background-image:url(img/pagos/yape.png)!important;background-size:cover!important;box-shadow:0 0 0 2px #fff,0 1px 3px rgba(0,0,0,.25)!important}
+.paybox .pm.plin::before,.sheet.paym .mth.plin::before{background-image:url(img/pagos/plin.png)!important;background-size:86%!important}
+.paybox .pm.culqi::before,.sheet.paym .mth.culqi::before{background-image:url(img/pagos/culqi.png)!important;background-size:84%!important}
+html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth.culqi::before{width:34px;height:34px;border-radius:10px}
+.paybox .pay4 .pm.yape,.paybox .pay4 .pm.plin,.paybox .pay4 .pm.culqi{gap:8px}
+@media (max-width:640px){html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth.culqi::before{width:30px;height:30px}}
