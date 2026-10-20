@@ -8,7 +8,7 @@ const suppLast = (s) => DB.sm.filter((x) => x.sid === s.id).reduce((a, x) => Mat
 VIEWS.prov = function viewProv(v) {
   if (ui.ps && !supp(ui.ps)) ui.ps = null;
   if (ui.ps) return provDetail(v, supp(ui.ps));
-  const list = DB.supp.slice().sort((a, b) => suppBal(b) - suppBal(a) || a.name.localeCompare(b.name, "es"));
+  const list = DB.supp.slice().sort((a, b) => suppBal(b) - suppBal(a) || cmpEs(a.name, b.name));
   const debt = suppTotalDebt(), owing = DB.supp.filter((s) => suppBal(s) > 0).length;
   v.innerHTML = `<div class="ph"><h1>Proveedores</h1><button class="btn sm" data-a="psnew">${svg("plus", "bi")}Nuevo proveedor</button></div>
     <div class="sumrow two"><div class="sum ${debt > 0 ? "warn" : ""}"><b class="num">${money(debt)}</b><span>Debes en total${owing ? ` · ${owing} ${owing === 1 ? "proveedor" : "proveedores"}` : ""}</span></div>

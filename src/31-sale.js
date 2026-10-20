@@ -29,14 +29,21 @@ VIEWS.venta = function viewSale(v) {
   paintSale(); focusQ();
 };
 function paintSale() { if (ui.tab !== "venta" || !$("#grid")) return; paintCats(); paintGrid(); paintCart(); }
+// Más vendidos (30 días). Se recuerda mientras no cambien las ventas: antes recorría toda la historia en cada pintada.
+let topMemo = { k: "", v: [] };
 function topIds() {
+  const last = DB.sales[DB.sales.length - 1], k = dkey() + "|" + DB.sales.length + "|" + (last ? last.id + (last.void ? "v" : "") : "");
+  if (topMemo.k === k) return topMemo.v;
+  topMemo = { k, v: topIdsCalc() }; return topMemo.v;
+}
+function topIdsCalc() {
   const from = addD(dkey(), -30), m = {};
   DB.sales.forEach((x) => { if (x.void || x.date < from) return; x.items.forEach((i) => { if (!i.quick) m[i.id] = (m[i.id] || 0) + i.qty * (i.f || 1); }); });
   return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 18).map((e) => e[0]);
 }
 function paintCats() {
   const el = $("#cats"); if (!el) return;
-  const cats = [...new Set(DB.products.map((p) => p.cat).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  const cats = [...new Set(DB.products.map((p) => p.cat).filter(Boolean))].sort((a, b) => cmpEs(a, b));
   if (!cats.length && !DB.products.length) { el.innerHTML = ""; return; }
   const im = (c) => { const s = catImg(c); return s ? `<img src="${s}" alt="">` : ""; };
   const chip = (c, label, img = true) => `<button class="chip ${ui.cat === c ? "on" : ""}" data-a="cat" data-c="${esc(c)}">${img ? im(c) : ""}${label}</button>`;
@@ -67,7 +74,7 @@ function vitHome() {
   const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
   const tops = topIds();
   const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
-    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 10);
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 10);
   const vc = vitCfg();
   const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
   if (vc.img) return `<div class="vit-home custom"><div class="vimgbox">${vitImgHtml(vc)}</div></div>`;
@@ -84,7 +91,7 @@ function scanHome() {
   const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
   const tops = topIds();
   const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
-    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 18);
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 18);
   const last = cur ? `<div class="lastp ${ui.bump ? "fresh" : ""}"><small>Último</small><b class="ln1">${esc(cur.r.name)}</b><span class="ln2 num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><b class="ln3 num">${money(r2(cur.r.price * cur.l.qty))}</b></div>`
     : `<div class="lastp idle">${svg("scan")}<b class="ln1">Escanea un producto</b></div>`;
   return `${last}${quick.length ? `<div class="quick"><h3>Sin código</h3><div class="qgrid">${quick.map((p) => `<button class="qk" data-a="add" data-id="${p.id}">${p.code ? `<i class="num">${esc(p.code)}</i>` : ""}<b>${esc(p.name)}</b><span class="num">${money(p.price)}${p.unit === "kg" ? "/kg" : ""}</span></button>`).join("")}</div></div>` : ""}`;
@@ -92,24 +99,39 @@ function scanHome() {
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
-    el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Empecemos por tus productos</h2><p>Agrégalos uno por uno, súbelos desde Excel o prueba primero con una lista de ejemplo.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
+    el._gh = null; el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Empecemos por tus productos</h2><p>Agrégalos uno por uno, súbelos desde Excel o prueba primero con una lista de ejemplo.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
     return;
   }
   const sm = scanMode(); document.body.classList.toggle("scanmode", sm); el.classList.toggle("scanlist", sm);
   document.body.classList.toggle("vit", sm && vit());
-  if (sm && vit() && !ui.q.trim() && !ui.cat) { el.innerHTML = vitHome(); ui.bump = null; ui.vlist = []; return; }
-  if (sm && !ui.q.trim() && !ui.cat) { el.innerHTML = scanHome(); ui.bump = null; return; }
+  if (sm && vit() && !ui.q.trim() && !ui.cat) { { const h = vitHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; ui.vlist = []; return; }
+  if (sm && !ui.q.trim() && !ui.cat) { { const h = scanHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; return; }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
   let list = DB.products.filter((p) => p.on !== false && catOk(p) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
-  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
-  if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
-  if (sm && vit() && q) { ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
+  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || cmpEs(a.name, b.name));
+  if (!list.length) { el._gh = null; el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
+  if (sm && vit() && q) { ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
   const MAXL = 120, shown = list.slice(0, MAXL);
-  el.innerHTML = shown.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
+  // Si la lista es la misma (solo cambió el ticket), no se vuelve a dibujar: solo se ponen las cantidades. En PC lentas redibujar 120 fichas por producto agregado pesaba.
+  const html = shown.map((p) => (sm ? rowHtml : tileHtml)(p, 0)).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
+  if (el._gh !== html || !el.firstElementChild) { el.innerHTML = html; el._gh = html; }
+  qtyMarks(el, inCart, sm);
   ui.bump = null;
+}
+// Pone o quita la cantidad que ya está en el ticket sobre cada ficha/fila, sin redibujar la lista.
+function qtyMarks(el, inCart, sm) {
+  el.querySelectorAll("[data-a=add][data-id]").forEach((b) => {
+    const id = b.dataset.id, q = inCart[id], cur = b.querySelector(sm ? ".pq" : ".qty");
+    b.classList.toggle("in", !!q);
+    if (!q) { if (cur) cur.remove(); return; }
+    const txt = fmtQ(q) + ((prod(id) || {}).unit === "kg" ? " kg" : ""), bump = !sm && ui.bump === id;
+    if (cur && cur.textContent === txt && !bump) return;
+    const n = document.createElement("span"); n.className = (sm ? "pq" : "qty") + " num" + (bump ? " bump" : ""); n.textContent = txt;
+    if (cur) cur.replaceWith(n); else if (sm) b.insertBefore(n, b.querySelector(".pp")); else (b.querySelector(".pbox") || b).appendChild(n);
+  });
 }
 function paintTickets() {
   const el = $("#tks"); if (!el) return;
@@ -181,7 +203,7 @@ function doneHtml(s) {
 /* ---------- cliente y comprobante del ticket ---------- */
 function pickClient(cb) {
   const list = () => {
-    const q = norm(ui.pcq || ""), cs = DB.clients.filter((c) => !q || norm(c.name).includes(q) || (c.doc || "").includes(ui.pcq || "") || (c.phone || "").includes(ui.pcq || "")).sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 60);
+    const q = norm(ui.pcq || ""), cs = DB.clients.filter((c) => !q || norm(c.name).includes(q) || (c.doc || "").includes(ui.pcq || "") || (c.phone || "").includes(ui.pcq || "")).sort((a, b) => cmpEs(a.name, b.name)).slice(0, 60);
     return cs.map((c) => { const d = balanceOf(c); return `<button class="it" data-a="clipick" data-id="${c.id}"><span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span><div class="t"><b>${esc(c.name)}</b><small>${c.doc ? esc(c.dt + " " + c.doc) : "Sin documento"}${c.phone ? " · " + esc(fmtPhone(c.phone)) : ""}</small></div>${d > 0 ? `<div class="v num warn">Debe ${money(d)}</div>` : ""}</button>`; }).join("") || `<p class="muted" style="padding:10px 2px">No encontré clientes con ese dato.</p>`;
   };
   ui.clicb = cb || null;
@@ -195,7 +217,7 @@ function setClient(id) {
   DB.cart.client = id || ""; const c = cli(id);
   if (c && c.dt === "RUC" && rucOk(c.doc) && (DB.cart.doc || DB.cfg.docDef) === "NV") DB.cart.doc = "F";
   if (c && c.dt === "DNI" && (DB.cart.doc || DB.cfg.docDef) === "F") DB.cart.doc = "B";
-  save(); const cb = ui.clicb; ui.clicb = null; closeModal(); paintSale(); if (cb) cb();
+  saveCart(); const cb = ui.clicb; ui.clicb = null; closeModal(); paintSale(); if (cb) cb();
 }
 function docCheck() {
   const t = DB.cart, doc = t.doc || DB.cfg.docDef || "NV", c = cli(t.client), T = cartTotals();
@@ -474,7 +496,7 @@ act({
   qedit: (el) => editLine(el.dataset.k),
   qeditsel: () => editLine(ui.sel),
   qok: () => { const q = ui.qty; if (!q || !$("#qv")) return; const v = r3(parseQty($("#qv").value)); if (setLine(q.id, q.pres, v)) closeModal(); },
-  rmline: (el) => { const k = el.dataset.k; DB.cart.items = DB.cart.items.filter((i) => lineKey(i.id, i.pres) !== k); save(); beep(true); paintSale(); focusQ(); },
+  rmline: (el) => { const k = el.dataset.k; DB.cart.items = DB.cart.items.filter((i) => lineKey(i.id, i.pres) !== k); saveCart(); beep(true); paintSale(); focusQ(); },
   rmsel: () => { if (ui.sel && DB.cart.items.some((i) => lineKey(i.id, i.pres) === ui.sel)) A.rmline({ dataset: { k: ui.sel } }); else toast("Elige una línea del ticket"); },
   lprice: (el) => {
     const k = el.dataset.k, l = DB.cart.items.find((i) => lineKey(i.id, i.pres) === k); if (!l || l.quick) return;
@@ -486,10 +508,10 @@ act({
   },
   clear: () => confirmBox(DB.tickets.length > 1 ? "¿Quitar este ticket?" : "¿Vaciar el ticket?", DB.tickets.length > 1 ? "Quitar" : "Vaciar", () => {
     const t = DB.cart; if (t.prev) { const pv = DB.prev.find((x) => x.no === t.prev); if (pv) toast(`La preventa N° ${pv.no} sigue pendiente`); }
-    dropCurrentTicket(); save(); paintSale(); focusQ();
+    dropCurrentTicket(); saveCart(); paintSale(); focusQ();
   }),
   tknew: () => { if (!DB.cart.items.length) { toast("Este ticket ya está vacío: úsalo"); return; } newTicketNow(); paintSale(); focusQ(); toast("Ticket nuevo. El anterior quedó en espera"); },
-  tk: (el) => { const i = +el.dataset.i; if (i === DB.cur) return; DB.cur = i; ui.sel = null; save(); paintSale(); focusQ(); },
+  tk: (el) => { const i = +el.dataset.i; if (i === DB.cur) return; DB.cur = i; ui.sel = null; saveCart(); paintSale(); focusQ(); },
   tkname: () => promptBox({ title: "Nombre del ticket", text: "Ayuda a reconocerlo cuando hay varios en espera. Ej: señora de azul.", label: "Nombre", value: DB.cart.name, max: 24 }, (v) => { DB.cart.name = v; save(); paintSale(); }),
   cat: (el) => { ui.cat = el.dataset.c; paintCats(); paintGrid(); focusQ(); },
   opencart: () => document.body.classList.add("cart-open"),
@@ -498,7 +520,7 @@ act({
   clipick: (el) => setClient(el.dataset.id),
   clinone: () => { DB.cart.client = ""; if (DB.cart.doc === "F") DB.cart.doc = ""; setClient(""); },
   clinew: () => { const cb = ui.clicb; openClient("", (c) => { ui.clicb = cb; setClient(c.id); }); },
-  doc: (el) => { DB.cart.doc = el.dataset.d; save(); paintCart(); const m = docCheck(); if (m) toast(m, true); },
+  doc: (el) => { DB.cart.doc = el.dataset.d; saveCart(); paintCart(); const m = docCheck(); if (m) toast(m, true); },
   pay: (el) => { const m = el.dataset.m; if (modalOpen() && ui.pay) { ui.pay.method = m; ui.pay.split = false; paintPay(); } else startPay(m); },
   method: (el) => { ui.pay.method = el.dataset.m; ui.pay.ref = ""; paintPay(); },
   recv: (el) => { ui.pay.recv = String(el.dataset.v); const i = $("#recv"); if (i) { i.value = ui.pay.recv; i.focus(); } updPay(); },

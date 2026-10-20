@@ -95,8 +95,13 @@ async function cloudEnsureNegocio() {
 }
 
 /* ---------- subir cambios ---------- */
+// La configuración (con la imagen de la vitrina) se arma de nuevo en cada subida: se recuerda su huella por su texto.
+let cloudBig = { s: "", h: "" };
+function cloudHashOf(x) { const str = JSON.stringify(x); if (str.length > 20000 && str === cloudBig.s) return cloudBig.h; const h = cloudHash(str); if (str.length > 20000) cloudBig = { s: str, h }; return h; }
 function cloudHash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0; return h.toString(36) + str.length.toString(36); }
-const cloudKeyOf = (x) => (x.id != null ? String(x.id) : x.no != null ? "n" + x.no : "h" + cloudHash(JSON.stringify(x)));
+// Los movimientos de inventario no tienen id: su clave sale de su contenido (no cambian después de creados), se calcula una vez.
+const cloudKeyMemo = new WeakMap();
+const cloudKeyOf = (x) => { if (x.id != null) return String(x.id); if (x.no != null) return "n" + x.no; let k = cloudKeyMemo.get(x); if (!k) { k = "h" + cloudHash(JSON.stringify(x)); cloudKeyMemo.set(x, k); } return k; };
 // Ajustes de la tienda (nombre, comprobantes, usuarios...) van como un solo registro.
 const cloudConfigDoc = () => ({ biz: DB.biz, cfg: DB.cfg, roles: DB.roles, users: DB.users, seq: DB.seq, pseq: DB.pseq, zseq: DB.zseq, v: DB.v });
 function cloudSnapshot() {
@@ -110,9 +115,18 @@ async function cloudPush(force) {
   if (!navigator.onLine) { cloud.err = "Sin internet: se sube solo cuando vuelva la señal."; cloudPaint(); return; }
   cloud.busy = true; cloud.err = "";
   try {
-    const s = cloudLoad(), snap = cloudSnapshot(), rows = [], hashes = {};
-    snap.forEach((r, k) => { const hv = cloudHash(JSON.stringify(r.datos)); hashes[k] = hv; if (force || s.h[k] !== hv) rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo: r.tipo, id: r.id, datos: r.datos, borrado: false, dispositivo: s.dev }); });
-    Object.keys(s.h).forEach((k) => { if (!snap.has(k)) { const [tipo, ...rest] = k.split("|"); rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id: rest.join("|"), datos: {}, borrado: true, dispositivo: s.dev }); } });
+    // Solo se revisan las ventas, movimientos y kardex de los meses que cambiaron desde la última subida
+    // (al abrir la caja, si falló una subida o tras recuperar/importar, se revisa todo una vez).
+    const s = cloudLoad(), rows = [], hashes = {}, seen = new Set(), full = force || !cloud.dm, dm = cloud.dm || new Set();
+    cloud.dm = new Set();
+    const put = (tipo, id, datos, k, hv) => { hashes[k] = hv; if (force || s.h[k] !== hv) rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id, datos, borrado: false, dispositivo: s.dev }); };
+    CLOUD_TYPES.forEach((t) => (DB[t] || []).forEach((x) => {
+      const id = cloudKeyOf(x), k = t + "|" + id; seen.add(k);
+      if (!full && BIG[t] && s.h[k] && !dm.has(mOf(BIG[t](x)))) { hashes[k] = s.h[k]; return; }
+      put(t, id, x, k, cloudHashOf(x));
+    }));
+    { const k = "config|tienda", d = cloudConfigDoc(); seen.add(k); put("config", "tienda", d, k, cloudHashOf(d)); }
+    Object.keys(s.h).forEach((k) => { if (!seen.has(k)) { const [tipo, ...rest] = k.split("|"); rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id: rest.join("|"), datos: {}, borrado: true, dispositivo: s.dev }); } });
     cloud.pending = rows.length;
     for (let i = 0; i < rows.length; i += 400) {
       const part = rows.slice(i, i + 400);
@@ -122,6 +136,7 @@ async function cloudPush(force) {
     }
     s.last = Date.now(); cloud.pending = 0; cloudStore();
   } catch (e) {
+    cloud.dm = null; // algo no subió: la próxima vez se revisa todo
     cloud.err = /auth/.test(e.message) ? cloud.err || "Vuelve a entrar con Google." : navigator.onLine ? "No se pudo subir. Se reintenta solo." : "Sin internet: se sube solo cuando vuelva la señal.";
   } finally { cloud.busy = false; cloudPaint(); }
 }
@@ -396,7 +411,8 @@ function cloudBoot() {
   else if (cloudLoad().ses) { applySusp(); cloudStart(); } // entró con Google pero no terminó de conectar
   else applySusp();
   // Cada vez que la app guarda algo, se programa una subida (agrupa los cambios de varios segundos).
-  const _save = save; save = function () { const out = _save.apply(this, arguments); cloudSchedule(); return out; };
+  const _save = save; save = function (...dates) { const out = _save.apply(this, arguments); if (cloud.dm) { cloud.dm.add(mOf()); dates.forEach((d) => d && cloud.dm.add(mOf(d))); } cloudSchedule(); return out; };
+  const _saveAll = saveAll; saveAll = function () { cloud.dm = null; return _saveAll.apply(this, arguments); };
   window.addEventListener("online", () => cloudSchedule(1000));
   setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } else applySusp(); }, 120000);
 }

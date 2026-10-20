@@ -29,7 +29,10 @@ const r3 = (n) => Math.round((+n || 0) * 1000) / 1000;
 const fmtQ = (n) => String(+(+n || 0).toFixed(3));
 const money = (n) => "S/ " + r2(n).toFixed(2);
 const num = (v) => { const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
-const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const normCalc = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+// norm() se usa por cada producto en cada tecla de la búsqueda: se recuerda el resultado (nombres de productos se repiten mucho).
+const normMemo = new Map();
+const norm = (s) => { if (s == null || s === "") return ""; const k = typeof s === "string" ? s : String(s), h = normMemo.get(k); if (h !== undefined) return h; const v = normCalc(k); if (normMemo.size > 20000) normMemo.clear(); normMemo.set(k, v); return v; };
 // Buscar por palabras sueltas, en cualquier orden: «manz vin» encuentra «Vinagre de manzana». q ya viene con norm().
 const nameHit = (name, q) => { const n = norm(name), pw = n.split(/\s+/); return q.split(/\s+/).filter(Boolean).every((w) => pw.some((x) => x.startsWith(w)) || (w.length >= 3 && n.includes(w))); };
 // Primero los que empiezan con lo escrito, luego los que lo tienen en otra palabra, al final el resto.
@@ -193,11 +196,16 @@ function wire(db) {
   return db;
 }
 let DB = normalize(null);
+// Ordenar por nombre en español (localeCompare con "es": V8 lo hace rápido; un Intl.Collator propio resultó más lento).
+const cmpEs = (a, b) => String(a).localeCompare(String(b), "es");
 
 /* ---------- guardado: IndexedDB por meses (rápido aunque haya miles de ventas) ---------- */
 const LSKEY = "caja-facil-v1";
 const BIG = { sales: (x) => x.date, moves: (x) => x.date, kx: (x) => x.d, log: (x) => x.d };
-let idb = null, saveT = 0, dirtyCore = false, dirtyM = new Set(), inflight = 0, knownMonths = [];
+let idb = null, saveT = 0, dirtyCore = false, dirtyCart = false, dirtyM = new Set(), inflight = 0, knownMonths = [], monthsScan = true;
+// El ticket en curso se guarda aparte («tk»): agregar un producto ya no vuelve a escribir todos los productos ni el mes de ventas.
+const CART_KEYS = ["tickets", "cur", "tseq"];
+const cartJSON = () => JSON.stringify({ tickets: DB.tickets, cur: DB.cur, tseq: DB.tseq });
 const mOf = (date) => String(date || dkey()).slice(0, 7);
 function idbOpen() {
   return new Promise((ok, no) => {
@@ -211,12 +219,15 @@ function monthJSON(m) { const o = {}; Object.keys(BIG).forEach((k) => { o[k] = D
 function allMonths() { const s = new Set(); Object.keys(BIG).forEach((k) => DB[k].forEach((x) => s.add(mOf(BIG[k](x))))); s.add(mOf()); return [...s].sort(); }
 function lsSave(str) { try { localStorage.setItem(LSKEY, str); return true; } catch (e) { toast("No se pudo guardar: el almacenamiento está lleno. Descarga un respaldo."); return false; } }
 function flush(hiding) {
-  if (dirtyCore || dirtyM.size) {
-    if (!idb) { dirtyCore = false; dirtyM.clear(); lsSave(JSON.stringify(DB)); return; }
-    const months = allMonths(), puts = [["core", coreJSON()], ["months", JSON.stringify(months)]];
+  if (dirtyCore || dirtyM.size || dirtyCart) {
+    if (!idb) { dirtyCore = false; dirtyCart = false; dirtyM.clear(); lsSave(JSON.stringify(DB)); return; }
+    // Recorrer toda la historia para saber qué meses hay solo cuando hace falta (al cargar, al borrar o con un mes nuevo).
+    const fast = !monthsScan && [...dirtyM].every((m) => knownMonths.includes(m));
+    const months = fast ? knownMonths : allMonths(), puts = [["tk", cartJSON()]];
+    if (dirtyCore || dirtyM.size) puts.push(["core", coreJSON()], ["months", JSON.stringify(months)]);
     dirtyM.forEach((m) => puts.push(["m:" + m, monthJSON(m)]));
     const gone = knownMonths.filter((m) => !months.includes(m));
-    dirtyCore = false; dirtyM.clear(); knownMonths = months;
+    dirtyCore = false; dirtyCart = false; dirtyM.clear(); knownMonths = months; monthsScan = false;
     try {
       const tx = idb.transaction("kv", "readwrite"), st = tx.objectStore("kv");
       puts.forEach(([k, v]) => st.put(v, k)); gone.forEach((m) => st.delete("m:" + m));
@@ -228,8 +239,10 @@ function flush(hiding) {
   if (hiding === true && idb && inflight) { try { localStorage.setItem(LSKEY, JSON.stringify(DB)); } catch (e) {} }
 }
 // save() guarda lo general y el mes actual; si se cambia algo de otro mes, se pasa su fecha.
-function save(...dates) { dirtyCore = true; dirtyM.add(mOf()); dates.forEach((d) => d && dirtyM.add(mOf(d))); clearTimeout(saveT); saveT = setTimeout(flush, 30); }
-function saveAll() { allMonths().forEach((m) => dirtyM.add(m)); save(); }
+function saveCart() { dirtyCart = true; clearTimeout(saveT); saveT = setTimeout(flush, 30); }
+let DBV = 0; // sube con cada cambio guardado: los índices (ventas por cliente…) se rehacen solo cuando cambia
+function save(...dates) { DBV++; dirtyCore = true; dirtyM.add(mOf()); dates.forEach((d) => d && dirtyM.add(mOf(d))); clearTimeout(saveT); saveT = setTimeout(flush, 30); }
+function saveAll() { monthsScan = true; allMonths().forEach((m) => dirtyM.add(m)); save(); }
 window.addEventListener("pagehide", () => flush(true));
 document.addEventListener("visibilitychange", () => { if (document.hidden) flush(true); });
 async function loadDB() {
@@ -244,6 +257,7 @@ async function loadDB() {
         const months = JSON.parse((await idbGet("months")) || "[]"); knownMonths = months;
         Object.keys(BIG).forEach((k) => { obj[k] = []; });
         for (const m of months) { const ch = JSON.parse((await idbGet("m:" + m)) || "null"); if (ch) Object.keys(BIG).forEach((k) => { obj[k] = obj[k].concat(ch[k] || []); }); }
+        try { const tk = JSON.parse((await idbGet("tk")) || "null"); if (tk && Array.isArray(tk.tickets) && tk.tickets.length) CART_KEYS.forEach((k) => { obj[k] = tk[k]; }); } catch (e) {}
       } else {
         const old = await idbGet("db"); // versión 3
         if (old) { obj = JSON.parse(old); fresh = true; }
@@ -379,8 +393,13 @@ const IMGMAP = [
 ];
 const CATMAP = [[/verdur|hortaliza/, "brocoli"], [/fruta/, "manzana"], [/licor|cerveza|vino/, "cerveza"], [/bebida|gaseosa|refresco/, "gaseosa"], [/lacteo|leche/, "leche"], [/panader|\bpan/, "pan"], [/carne|pollo|embutido/, "carne"], [/pescad|marisco/, "pescado"], [/limpieza/, "detergente"], [/higiene|cuidado|perfum|tocador/, "shampoo"], [/golosina|dulce|confite/, "caramelo"], [/snack|piqueo/, "canchita"], [/abarrote/, "canasta"], [/farmacia|botica|medic/, "medicina"], [/mascota/, "perro"], [/libreria|util|escolar/, "lapiz"], [/bazar|plastico/, "bolsa"], [/comida|menu|plato|cocina/, "sopa"], [/helado/, "helado"]];
 const IMGNAME = { tomate: "Tomate", lechuga: "Lechuga", cebolla: "Cebolla", papa: "Papa", zanahoria: "Zanahoria", ajo: "Ajo", pimiento: "Pimiento", aji: "Ají", pepino: "Pepino", brocoli: "Brócoli", choclo: "Choclo", berenjena: "Berenjena", palta: "Palta", limon: "Limón", limon_amarillo: "Limón amarillo", papaya: "Papaya", col: "Col", mandarina: "Mandarina", toronja: "Toronja", maracuya: "Maracuyá", granada: "Granada", ciruela: "Ciruela", esparrago: "Espárrago", poro: "Poro", beterraga: "Beterraga", zapallito: "Zapallito", pimiento_rojo: "Pimiento rojo", pimiento_amarillo: "Pimiento amarillo", champinon: "Champiñón", kion: "Kion", arveja: "Arveja", menestra: "Menestras", camote: "Camote", aceituna: "Aceituna", hierbas: "Hierbas", platano: "Plátano", manzana: "Manzana", manzana_verde: "Manzana verde", naranja: "Naranja", mango: "Mango", pina: "Piña", uva: "Uva", fresa: "Fresa", pera: "Pera", durazno: "Durazno", sandia: "Sandía", melon: "Melón", cereza: "Cereza", kiwi: "Kiwi", coco: "Coco", arroz: "Arroz", cereal: "Cereales", pan: "Pan", pan_frances: "Pan francés", croissant: "Cachito", huevo: "Huevo", huevos: "Huevos", leche: "Leche", queso: "Queso", mantequilla: "Mantequilla", sal: "Sal", miel: "Miel", frasco: "Frasco", conserva: "Conserva", fideos: "Fideos", aceite: "Aceite", botella: "Botella", chocolate: "Chocolate", caramelo: "Caramelo", chupetin: "Chupetín", galleta: "Galleta", canchita: "Canchita", mani: "Maní", dona: "Dona", keke: "Keke", torta: "Torta", pastel: "Pastel", helado: "Helado", helado_cono: "Helado de cono", gaseosa: "Gaseosa", agua: "Agua", cerveza: "Cerveza", brindis: "Cervezas", vino: "Vino", espumante: "Espumante", jugo: "Jugo", cafe: "Café", te: "Té", mate: "Mate", vaso: "Vaso", biberon: "Biberón", carne: "Carne", pollo: "Pollo", cerdo: "Cerdo", tocino: "Tocino", pescado: "Pescado", langostino: "Langostino", salchicha: "Hot dog", jabon: "Jabón", detergente: "Detergente", esponja: "Esponja", papel: "Papel", cepillo: "Cepillo", shampoo: "Shampoo", escoba: "Escoba", balde: "Balde", cigarro: "Cigarro", caja: "Caja", carrito: "Carrito", bolsa: "Bolsa", canasta: "Canasta", taper: "Táper", sandwich: "Sándwich", hamburguesa: "Hamburguesa", papas_fritas: "Papitas", pizza: "Pizza", sopa: "Sopa", tamal: "Tamal", pretzel: "Pretzel", panqueque: "Panqueque", hielo: "Hielo", dinero: "Dinero", billete: "Billete", vela: "Vela", galleta_arroz: "Galleta de arroz", medicina: "Medicina", pilas: "Pilas", foco: "Foco", perro: "Perro", gato: "Gato", cuaderno: "Cuaderno", lapiz: "Lápiz", peluche: "Peluche", labial: "Labial" };
+const imgKeyMemo = new Map();
 function imgKey(p) {
   if (p.img && /^(lib|foto):/.test(p.img)) return p.img.slice(p.img.indexOf(":") + 1);
+  const mk = p.name + "\u0001" + (p.cat || ""), hit = imgKeyMemo.get(mk); if (hit) return hit;
+  const v = imgKeyCalc(p); if (imgKeyMemo.size > 5000) imgKeyMemo.clear(); imgKeyMemo.set(mk, v); return v;
+}
+function imgKeyCalc(p) {
   const n = norm(p.name);
   for (const [re, k] of IMGMAP) if (re.test(n)) return k;
   const c = norm(p.cat);
@@ -768,7 +787,7 @@ function setLine(id, pres, qty, opts = {}) {
     if (l) l.qty = r3(qty); else DB.cart.items.push({ id, pres: pres || "", qty: r3(qty) });
     ui.sel = k;
   }
-  save(); if (!opts.quiet) beep(true); paintSale(); return true;
+  saveCart(); if (!opts.quiet) beep(true); paintSale(); return true;
 }
 function addToCart(p, qty = 1, pres = "") {
   const l = DB.cart.items.find((i) => lineKey(i.id, i.pres) === lineKey(p.id, pres));
@@ -777,7 +796,7 @@ function addToCart(p, qty = 1, pres = "") {
 function changeQty(k, d) {
   const l = DB.cart.items.find((i) => lineKey(i.id, i.pres) === k); if (!l) return;
   const r = resolveLine(l); if (!r) return;
-  if (l.quick) { l.qty = Math.max(0, l.qty + d); if (!l.qty) DB.cart.items = DB.cart.items.filter((i) => i !== l); save(); paintSale(); return; }
+  if (l.quick) { l.qty = Math.max(0, l.qty + d); if (!l.qty) DB.cart.items = DB.cart.items.filter((i) => i !== l); saveCart(); paintSale(); return; }
   setLine(l.id, l.pres, r3(l.qty + d * (r.unit === "kg" ? 0.1 : 1)));
 }
 function dropCurrentTicket() {
@@ -786,7 +805,7 @@ function dropCurrentTicket() {
   ui.sel = null;
 }
 function newTicketNow(extra = {}) {
-  DB.tickets.push(Object.assign(newTicket(++DB.tseq), extra)); DB.cur = DB.tickets.length - 1; ui.sel = null; save();
+  DB.tickets.push(Object.assign(newTicket(++DB.tseq), extra)); DB.cur = DB.tickets.length - 1; ui.sel = null; saveCart();
 }
 const ticketLabel = (t) => t.mesa ? `Mesa ${t.mesa}` : t.prev ? `Preventa ${t.prev}` : t.name || "Ticket " + t.n;
 
@@ -805,7 +824,7 @@ function goTable(m) {
     if (!DB.cart.items.length && !DB.cart.mesa && !DB.cart.prev) { Object.assign(DB.cart, { mesa: m, name: "", t0: Date.now() }); i = DB.cur; }
     else { newTicketNow({ mesa: m, t0: Date.now() }); i = DB.cur; }
   }
-  DB.cur = i; save(); closeModal(); paintSale(); toast(`Mesa ${m}`);
+  DB.cur = i; saveCart(); closeModal(); paintSale(); toast(`Mesa ${m}`);
 }
 
 /* ---------- preventas: el vendedor arma el pedido, la caja lo cobra ---------- */
@@ -823,7 +842,7 @@ function loadPrev(no) {
   if (!pv) { toast(`No existe la preventa N° ${no}`); beep(false); return false; }
   if (pv.status !== "pendiente") { toast(pv.status === "cobrada" ? `La preventa N° ${no} ya fue cobrada` : `La preventa N° ${no} está anulada`); beep(false); return false; }
   const open = DB.tickets.findIndex((x) => x.prev === pv.no);
-  if (open >= 0) { DB.cur = open; save(); paintSale(); return true; }
+  if (open >= 0) { DB.cur = open; saveCart(); paintSale(); return true; }
   const data = { prev: pv.no, items: pv.items.map((i) => Object.assign({}, i)), disc: pv.disc, client: pv.client };
   if (!DB.cart.items.length && !DB.cart.mesa && !DB.cart.prev) Object.assign(DB.cart, data); else newTicketNow(data);
   save(); beep(true); paintSale(); toast(`Preventa N° ${no} lista para cobrar`); return true;
@@ -873,14 +892,21 @@ VIEWS.venta = function viewSale(v) {
   paintSale(); focusQ();
 };
 function paintSale() { if (ui.tab !== "venta" || !$("#grid")) return; paintCats(); paintGrid(); paintCart(); }
+// Más vendidos (30 días). Se recuerda mientras no cambien las ventas: antes recorría toda la historia en cada pintada.
+let topMemo = { k: "", v: [] };
 function topIds() {
+  const last = DB.sales[DB.sales.length - 1], k = dkey() + "|" + DB.sales.length + "|" + (last ? last.id + (last.void ? "v" : "") : "");
+  if (topMemo.k === k) return topMemo.v;
+  topMemo = { k, v: topIdsCalc() }; return topMemo.v;
+}
+function topIdsCalc() {
   const from = addD(dkey(), -30), m = {};
   DB.sales.forEach((x) => { if (x.void || x.date < from) return; x.items.forEach((i) => { if (!i.quick) m[i.id] = (m[i.id] || 0) + i.qty * (i.f || 1); }); });
   return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 18).map((e) => e[0]);
 }
 function paintCats() {
   const el = $("#cats"); if (!el) return;
-  const cats = [...new Set(DB.products.map((p) => p.cat).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+  const cats = [...new Set(DB.products.map((p) => p.cat).filter(Boolean))].sort((a, b) => cmpEs(a, b));
   if (!cats.length && !DB.products.length) { el.innerHTML = ""; return; }
   const im = (c) => { const s = catImg(c); return s ? `<img src="${s}" alt="">` : ""; };
   const chip = (c, label, img = true) => `<button class="chip ${ui.cat === c ? "on" : ""}" data-a="cat" data-c="${esc(c)}">${img ? im(c) : ""}${label}</button>`;
@@ -911,7 +937,7 @@ function vitHome() {
   const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
   const tops = topIds();
   const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
-    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 10);
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 10);
   const vc = vitCfg();
   const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
   if (vc.img) return `<div class="vit-home custom"><div class="vimgbox">${vitImgHtml(vc)}</div></div>`;
@@ -928,7 +954,7 @@ function scanHome() {
   const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
   const tops = topIds();
   const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
-    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || a.name.localeCompare(b.name, "es")).slice(0, 18);
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 18);
   const last = cur ? `<div class="lastp ${ui.bump ? "fresh" : ""}"><small>Último</small><b class="ln1">${esc(cur.r.name)}</b><span class="ln2 num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><b class="ln3 num">${money(r2(cur.r.price * cur.l.qty))}</b></div>`
     : `<div class="lastp idle">${svg("scan")}<b class="ln1">Escanea un producto</b></div>`;
   return `${last}${quick.length ? `<div class="quick"><h3>Sin código</h3><div class="qgrid">${quick.map((p) => `<button class="qk" data-a="add" data-id="${p.id}">${p.code ? `<i class="num">${esc(p.code)}</i>` : ""}<b>${esc(p.name)}</b><span class="num">${money(p.price)}${p.unit === "kg" ? "/kg" : ""}</span></button>`).join("")}</div></div>` : ""}`;
@@ -936,24 +962,39 @@ function scanHome() {
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
-    el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Empecemos por tus productos</h2><p>Agrégalos uno por uno, súbelos desde Excel o prueba primero con una lista de ejemplo.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
+    el._gh = null; el.innerHTML = `<div class="empty hero" style="grid-column:1/-1"><h2>Empecemos por tus productos</h2><p>Agrégalos uno por uno, súbelos desde Excel o prueba primero con una lista de ejemplo.</p><div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap">${can("precios") ? `<button class="btn" data-a="pnew">Agregar producto</button>` : ""}<button class="btn sec" data-a="sample">Cargar ejemplos</button></div></div>`;
     return;
   }
   const sm = scanMode(); document.body.classList.toggle("scanmode", sm); el.classList.toggle("scanlist", sm);
   document.body.classList.toggle("vit", sm && vit());
-  if (sm && vit() && !ui.q.trim() && !ui.cat) { el.innerHTML = vitHome(); ui.bump = null; ui.vlist = []; return; }
-  if (sm && !ui.q.trim() && !ui.cat) { el.innerHTML = scanHome(); ui.bump = null; return; }
+  if (sm && vit() && !ui.q.trim() && !ui.cat) { { const h = vitHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; ui.vlist = []; return; }
+  if (sm && !ui.q.trim() && !ui.cat) { { const h = scanHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; return; }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
   let list = DB.products.filter((p) => p.on !== false && catOk(p) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
-  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || a.name.localeCompare(b.name, "es"));
-  if (!list.length) { el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
-  if (sm && vit() && q) { ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
+  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || cmpEs(a.name, b.name));
+  if (!list.length) { el._gh = null; el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
+  if (sm && vit() && q) { ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
   const MAXL = 120, shown = list.slice(0, MAXL);
-  el.innerHTML = shown.map((p) => (sm ? rowHtml : tileHtml)(p, inCart[p.id])).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
+  // Si la lista es la misma (solo cambió el ticket), no se vuelve a dibujar: solo se ponen las cantidades. En PC lentas redibujar 120 fichas por producto agregado pesaba.
+  const html = shown.map((p) => (sm ? rowHtml : tileHtml)(p, 0)).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
+  if (el._gh !== html || !el.firstElementChild) { el.innerHTML = html; el._gh = html; }
+  qtyMarks(el, inCart, sm);
   ui.bump = null;
+}
+// Pone o quita la cantidad que ya está en el ticket sobre cada ficha/fila, sin redibujar la lista.
+function qtyMarks(el, inCart, sm) {
+  el.querySelectorAll("[data-a=add][data-id]").forEach((b) => {
+    const id = b.dataset.id, q = inCart[id], cur = b.querySelector(sm ? ".pq" : ".qty");
+    b.classList.toggle("in", !!q);
+    if (!q) { if (cur) cur.remove(); return; }
+    const txt = fmtQ(q) + ((prod(id) || {}).unit === "kg" ? " kg" : ""), bump = !sm && ui.bump === id;
+    if (cur && cur.textContent === txt && !bump) return;
+    const n = document.createElement("span"); n.className = (sm ? "pq" : "qty") + " num" + (bump ? " bump" : ""); n.textContent = txt;
+    if (cur) cur.replaceWith(n); else if (sm) b.insertBefore(n, b.querySelector(".pp")); else (b.querySelector(".pbox") || b).appendChild(n);
+  });
 }
 function paintTickets() {
   const el = $("#tks"); if (!el) return;
@@ -1025,7 +1066,7 @@ function doneHtml(s) {
 /* ---------- cliente y comprobante del ticket ---------- */
 function pickClient(cb) {
   const list = () => {
-    const q = norm(ui.pcq || ""), cs = DB.clients.filter((c) => !q || norm(c.name).includes(q) || (c.doc || "").includes(ui.pcq || "") || (c.phone || "").includes(ui.pcq || "")).sort((a, b) => a.name.localeCompare(b.name, "es")).slice(0, 60);
+    const q = norm(ui.pcq || ""), cs = DB.clients.filter((c) => !q || norm(c.name).includes(q) || (c.doc || "").includes(ui.pcq || "") || (c.phone || "").includes(ui.pcq || "")).sort((a, b) => cmpEs(a.name, b.name)).slice(0, 60);
     return cs.map((c) => { const d = balanceOf(c); return `<button class="it" data-a="clipick" data-id="${c.id}"><span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span><div class="t"><b>${esc(c.name)}</b><small>${c.doc ? esc(c.dt + " " + c.doc) : "Sin documento"}${c.phone ? " · " + esc(fmtPhone(c.phone)) : ""}</small></div>${d > 0 ? `<div class="v num warn">Debe ${money(d)}</div>` : ""}</button>`; }).join("") || `<p class="muted" style="padding:10px 2px">No encontré clientes con ese dato.</p>`;
   };
   ui.clicb = cb || null;
@@ -1039,7 +1080,7 @@ function setClient(id) {
   DB.cart.client = id || ""; const c = cli(id);
   if (c && c.dt === "RUC" && rucOk(c.doc) && (DB.cart.doc || DB.cfg.docDef) === "NV") DB.cart.doc = "F";
   if (c && c.dt === "DNI" && (DB.cart.doc || DB.cfg.docDef) === "F") DB.cart.doc = "B";
-  save(); const cb = ui.clicb; ui.clicb = null; closeModal(); paintSale(); if (cb) cb();
+  saveCart(); const cb = ui.clicb; ui.clicb = null; closeModal(); paintSale(); if (cb) cb();
 }
 function docCheck() {
   const t = DB.cart, doc = t.doc || DB.cfg.docDef || "NV", c = cli(t.client), T = cartTotals();
@@ -1318,7 +1359,7 @@ act({
   qedit: (el) => editLine(el.dataset.k),
   qeditsel: () => editLine(ui.sel),
   qok: () => { const q = ui.qty; if (!q || !$("#qv")) return; const v = r3(parseQty($("#qv").value)); if (setLine(q.id, q.pres, v)) closeModal(); },
-  rmline: (el) => { const k = el.dataset.k; DB.cart.items = DB.cart.items.filter((i) => lineKey(i.id, i.pres) !== k); save(); beep(true); paintSale(); focusQ(); },
+  rmline: (el) => { const k = el.dataset.k; DB.cart.items = DB.cart.items.filter((i) => lineKey(i.id, i.pres) !== k); saveCart(); beep(true); paintSale(); focusQ(); },
   rmsel: () => { if (ui.sel && DB.cart.items.some((i) => lineKey(i.id, i.pres) === ui.sel)) A.rmline({ dataset: { k: ui.sel } }); else toast("Elige una línea del ticket"); },
   lprice: (el) => {
     const k = el.dataset.k, l = DB.cart.items.find((i) => lineKey(i.id, i.pres) === k); if (!l || l.quick) return;
@@ -1330,10 +1371,10 @@ act({
   },
   clear: () => confirmBox(DB.tickets.length > 1 ? "¿Quitar este ticket?" : "¿Vaciar el ticket?", DB.tickets.length > 1 ? "Quitar" : "Vaciar", () => {
     const t = DB.cart; if (t.prev) { const pv = DB.prev.find((x) => x.no === t.prev); if (pv) toast(`La preventa N° ${pv.no} sigue pendiente`); }
-    dropCurrentTicket(); save(); paintSale(); focusQ();
+    dropCurrentTicket(); saveCart(); paintSale(); focusQ();
   }),
   tknew: () => { if (!DB.cart.items.length) { toast("Este ticket ya está vacío: úsalo"); return; } newTicketNow(); paintSale(); focusQ(); toast("Ticket nuevo. El anterior quedó en espera"); },
-  tk: (el) => { const i = +el.dataset.i; if (i === DB.cur) return; DB.cur = i; ui.sel = null; save(); paintSale(); focusQ(); },
+  tk: (el) => { const i = +el.dataset.i; if (i === DB.cur) return; DB.cur = i; ui.sel = null; saveCart(); paintSale(); focusQ(); },
   tkname: () => promptBox({ title: "Nombre del ticket", text: "Ayuda a reconocerlo cuando hay varios en espera. Ej: señora de azul.", label: "Nombre", value: DB.cart.name, max: 24 }, (v) => { DB.cart.name = v; save(); paintSale(); }),
   cat: (el) => { ui.cat = el.dataset.c; paintCats(); paintGrid(); focusQ(); },
   opencart: () => document.body.classList.add("cart-open"),
@@ -1342,7 +1383,7 @@ act({
   clipick: (el) => setClient(el.dataset.id),
   clinone: () => { DB.cart.client = ""; if (DB.cart.doc === "F") DB.cart.doc = ""; setClient(""); },
   clinew: () => { const cb = ui.clicb; openClient("", (c) => { ui.clicb = cb; setClient(c.id); }); },
-  doc: (el) => { DB.cart.doc = el.dataset.d; save(); paintCart(); const m = docCheck(); if (m) toast(m, true); },
+  doc: (el) => { DB.cart.doc = el.dataset.d; saveCart(); paintCart(); const m = docCheck(); if (m) toast(m, true); },
   pay: (el) => { const m = el.dataset.m; if (modalOpen() && ui.pay) { ui.pay.method = m; ui.pay.split = false; paintPay(); } else startPay(m); },
   method: (el) => { ui.pay.method = el.dataset.m; ui.pay.ref = ""; paintPay(); },
   recv: (el) => { ui.pay.recv = String(el.dataset.v); const i = $("#recv"); if (i) { i.value = ui.pay.recv; i.focus(); } updPay(); },
@@ -1792,13 +1833,15 @@ document.addEventListener("wheel", (e) => {
 }, { passive: false });
 
 /* ===================== 40 · PRODUCTOS E INVENTARIO ===================== */
-const lowItems = () => DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, "es"));
+const lowItems = () => DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || cmpEs(a.name, b.name));
 // Por vencer (hasta n días, ya vencidos incluidos) y sin mover (con stock y sin movimiento hace n días o más).
 const daysTo = (d) => Math.round((pk(d) - pk(dkey())) / 864e5);
-const expItems = (n = 7) => DB.products.filter((p) => p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= n).sort((a, b) => a.exp.localeCompare(b.exp) || a.name.localeCompare(b.name, "es"));
+const expItems = (n = 7) => DB.products.filter((p) => p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= n).sort((a, b) => a.exp.localeCompare(b.exp) || cmpEs(a.name, b.name));
 const expTxt = (p) => { const d = daysTo(p.exp); return d < 0 ? `Vencido hace ${-d} ${d === -1 ? "día" : "días"}` : d === 0 ? "Vence hoy" : d === 1 ? "Vence mañana" : `Vence en ${d} días`; };
+let kxLast = { v: -1 };
 const idleItems = (n = 30) => {
-  const last = {}; DB.kx.forEach((x) => { if (x.t > (last[x.p] || 0)) last[x.p] = x.t; });
+  if (kxLast.v !== DBV || kxLast.n !== DB.kx.length) { const m = {}; DB.kx.forEach((x) => { if (x.t > (m[x.p] || 0)) m[x.p] = x.t; }); kxLast = { v: DBV, n: DB.kx.length, m }; }
+  const last = kxLast.m;
   const lim = Date.now() - n * 864e5;
   return DB.products.filter((p) => p.stock > 0 && last[p.id] && last[p.id] < lim).map((p) => ({ p, days: Math.floor((Date.now() - last[p.id]) / 864e5), val: r2(p.stock * costOf(p)) })).sort((a, b) => b.val - a.val || b.days - a.days);
 };
@@ -1806,7 +1849,7 @@ const idleItems = (n = 30) => {
 function lowGroups() {
   const g = new Map();
   lowItems().forEach((p) => { const s = p.sup && typeof supp === "function" ? supp(p.sup) : null, k = s ? s.id : ""; if (!g.has(k)) g.set(k, { s, l: [] }); g.get(k).l.push(p); });
-  return [...g.values()].sort((a, b) => (a.s ? 0 : 1) - (b.s ? 0 : 1) || (a.s ? a.s.name.localeCompare(b.s.name, "es") : 0));
+  return [...g.values()].sort((a, b) => (a.s ? 0 : 1) - (b.s ? 0 : 1) || (a.s ? cmpEs(a.s.name, b.s.name) : 0));
 }
 const waNum = (t) => { const d = String(t || "").replace(/\D/g, ""); return d.length >= 9 ? "51" + d.slice(-9) : ""; };
 const suggest = (p) => Math.max(1, Math.ceil(Math.max((p.min || 0) * 2 - p.stock, p.min || 1)));
@@ -1832,7 +1875,7 @@ function paintPList() {
   if (!DB.products.length) { el.innerHTML = `<div class="empty"><h2>Inventario vacío</h2><p>Agrega tu primer producto, impórtalos desde Excel o carga ejemplos para probar.</p><button class="btn sec" data-a="sample">Cargar ejemplos</button></div>`; return; }
   const q = norm(ui.pq), raw = ui.pq || "";
   const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(raw) || (p.pres || []).some((x) => (x.code || "").includes(raw)))
-    .sort((a, b) => (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || a.name.localeCompare(b.name, "es"));
+    .sort((a, b) => (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || cmpEs(a.name, b.name));
   el.innerHTML = list.slice(0, 120).map((p) => {
     const kgp = p.unit === "kg", tag = (p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "") + (p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= 7 ? ` <span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span>` : "");
     const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
@@ -1857,7 +1900,7 @@ function readPE() {
 }
 function paintPE() {
   const { id, d } = ui.pe, cats = [...new Set(DB.products.map((x) => x.cat).filter(Boolean))].sort();
-  const kg = d.unit === "kg", others = DB.products.filter((x) => x.id !== id).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const kg = d.unit === "kg", others = DB.products.filter((x) => x.id !== id).sort((a, b) => cmpEs(a.name, b.name));
   const imgMode = d.img && d.img.startsWith("data:") ? "Tu foto" : d.img && d.img.startsWith("foto:") ? "Foto elegida" : d.img && d.img.startsWith("lib:") ? "Ilustración elegida" : "Automática por nombre";
   openModal(`<div id="pe"><h2>${id ? "Editar producto" : "Nuevo producto"}</h2>
     <div class="pe-top">
@@ -1878,7 +1921,7 @@ function paintPE() {
       <label class="fld"><span>Oferta hasta (opcional)</span><input class="inp" type="date" data-f="oh" value="${esc(d.oh)}"></label></div>
     <div class="two"><label class="fld"><span>Precio por mayor: desde${kg ? " (kg)" : " (unidades)"}</span><input class="inp num" data-f="mq" inputmode="decimal" value="${esc(d.mq)}" placeholder="Ej: 12"></label>
       <label class="fld"><span>Cada ${kg ? "kilo" : "una"} cuesta (S/)</span><input class="inp num" data-f="mp" inputmode="decimal" value="${esc(d.mp)}" placeholder="Ej: 0.80"></label></div>
-    <div class="two"><label class="fld"><span>Proveedor</span><select class="inp" data-f="sup"><option value="">Sin proveedor</option>${DB.supp.slice().sort((a, b) => a.name.localeCompare(b.name, "es")).map((s) => `<option value="${s.id}" ${s.id === d.sup ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
+    <div class="two"><label class="fld"><span>Proveedor</span><select class="inp" data-f="sup"><option value="">Sin proveedor</option>${DB.supp.slice().sort((a, b) => cmpEs(a.name, b.name)).map((s) => `<option value="${s.id}" ${s.id === d.sup ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
       <label class="fld"><span>Fecha de vencimiento</span><input class="inp" type="date" data-f="exp" value="${esc(d.exp)}"></label></div>
     <div class="two"><label class="fld"><span>Avisar si baja de</span><input class="inp num" data-f="min" inputmode="decimal" value="${esc(d.min)}"></label>
       <div class="checks"><label class="ck"><input type="checkbox" data-f="igv" ${d.igv !== false ? "checked" : ""}> Afecto a IGV</label><label class="ck"><input type="checkbox" data-f="fav" ${d.fav ? "checked" : ""}> Favorito (sale primero)</label><label class="ck"><input type="checkbox" data-f="on" ${d.on !== false ? "checked" : ""}> Mostrar en venta</label></div></div></details>
@@ -1990,7 +2033,7 @@ function openAdjust(id) {
 function paintKardex() {
   const el = $("#pbody"); const from = ui.kxfrom || addD(dkey(), -30), to = ui.kxto || dkey();
   const pid = ui.kxp, rows = DB.kx.filter((x) => x.d >= from && x.d <= to && (!pid || x.p === pid) && (!ui.kxt || x.ty.startsWith(ui.kxt))).sort((a, b) => b.t - a.t);
-  const sorted = DB.products.slice().sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const sorted = DB.products.slice().sort((a, b) => cmpEs(a.name, b.name));
   el.innerHTML = `<div class="filters"><label class="fld"><span>Producto</span><select class="inp" data-in="kxp"><option value="">Todos</option>${sorted.map((p) => `<option value="${p.id}" ${p.id === pid ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
     <label class="fld"><span>Tipo</span><select class="inp" data-in="kxt"><option value="">Todos</option>${["venta", "ingreso", "ajuste", "merma", "devolucion", "anulacion", "trf", "receta", "inicial", "import"].map((k) => `<option value="${k}" ${ui.kxt === k ? "selected" : ""}>${k === "trf" ? "Transferencias" : KXL[k]}</option>`).join("")}</select></label>
     <label class="fld"><span>Desde</span><input class="inp" type="date" data-in="kxfrom" value="${from}" max="${dkey()}"></label><label class="fld"><span>Hasta</span><input class="inp" type="date" data-in="kxto" value="${to}" max="${dkey()}"></label></div>
@@ -2185,7 +2228,16 @@ act({
 });
 
 /* ===================== 50 · CLIENTES: crédito, cuenta corriente, historial y puntos ===================== */
-const clientSales = (c) => DB.sales.filter((s) => s.client === c.id);
+// Ventas y abonos agrupados por cliente en una sola pasada. Antes, la lista de Clientes revisaba todas las ventas una vez por cada cliente.
+let cliIdx = { v: -1 };
+function cliIndex() {
+  if (cliIdx.v === DBV && cliIdx.n === DB.sales.length && cliIdx.m === DB.moves.length) return cliIdx;
+  const s = new Map(), a = new Map(), add = (mp, k, x) => { const l = mp.get(k); if (l) l.push(x); else mp.set(k, [x]); };
+  DB.sales.forEach((x) => { if (x.client) add(s, x.client, x); });
+  DB.moves.forEach((m) => { if (m.type === "abono" && m.client) add(a, m.client, m); });
+  cliIdx = { v: DBV, n: DB.sales.length, m: DB.moves.length, s, a }; return cliIdx;
+}
+const clientSales = (c) => (cliIndex().s.get(c.id) || []).slice();
 // Cuenta corriente: cargos (ventas al crédito) y abonos (pagos y devoluciones), con saldo.
 function ledgerOf(c) {
   const e = [];
@@ -2195,7 +2247,7 @@ function ledgerOf(c) {
     if (cr > 0) e.push({ t: s.t, date: s.date, what: `Compra ${docShort(s)}`, cargo: r2(cr), abono: 0, sale: s.id });
     (s.returns || []).forEach((r) => { if (r.m === "credito") e.push({ t: r.t, date: dkey(new Date(r.t)), what: `Devolución ${docShort(s)}`, cargo: 0, abono: r.amount, sale: s.id }); });
   });
-  DB.moves.filter((m) => m.type === "abono" && m.client === c.id).forEach((m) => e.push({ t: m.t, date: m.date, what: `Pago en ${METHODS[m.m] || "efectivo"}${m.note ? " · " + m.note : ""}`, cargo: 0, abono: m.amount, mv: m.id }));
+  (cliIndex().a.get(c.id) || []).forEach((m) => e.push({ t: m.t, date: m.date, what: `Pago en ${METHODS[m.m] || "efectivo"}${m.note ? " · " + m.note : ""}`, cargo: 0, abono: m.amount, mv: m.id }));
   e.sort((a, b) => a.t - b.t);
   let bal = 0; e.forEach((x) => { bal = r2(bal + x.cargo - x.abono); x.bal = bal; });
   return e;
@@ -2230,7 +2282,7 @@ function paintCList() {
   const q = norm(ui.cq), raw = ui.cq || "";
   let list = DB.clients.map((c) => ({ c, a: agingOf(c) })).filter(({ c }) => !q || norm(c.name).includes(q) || (c.doc || "").includes(raw) || (c.phone || "").replace(/\D/g, "").includes(raw.replace(/\D/g, "") || "~"));
   if (ui.cf === "deuda") list = list.filter((x) => x.a.debt > 0); else if (ui.cf === "vencidos") list = list.filter((x) => x.a.late);
-  list.sort((a, b) => b.a.debt - a.a.debt || a.c.name.localeCompare(b.c.name, "es"));
+  list.sort((a, b) => b.a.debt - a.a.debt || cmpEs(a.c.name, b.c.name));
   el.innerHTML = list.slice(0, 300).map(({ c, a }) => { const pts = DB.cfg.pts.on ? pointsOf(c) : 0; return `<button class="it" data-a="cliopen" data-id="${c.id}"><span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span><div class="t"><b>${esc(c.name)}</b><small>${c.doc ? esc(c.dt + " " + c.doc) : "Sin documento"}${c.phone ? " · " + esc(fmtPhone(c.phone)) : ""}${pts ? ` · ${pts} pts` : ""}</small>${a.late ? ` <span class="tag out">Vencido hace ${a.days - c.days} d</span>` : ""}</div><div class="v num ${a.debt > 0 ? "warn" : ""}">${a.debt > 0 ? money(a.debt) : "Al día"}<small>${a.debt > 0 ? "debe" : ""}</small></div></button>`; }).join("") || `<div class="empty"><p>Nadie coincide con ese filtro.</p></div>`;
 }
 function openClient(id, cb) {
@@ -2550,7 +2602,7 @@ const suppLast = (s) => DB.sm.filter((x) => x.sid === s.id).reduce((a, x) => Mat
 VIEWS.prov = function viewProv(v) {
   if (ui.ps && !supp(ui.ps)) ui.ps = null;
   if (ui.ps) return provDetail(v, supp(ui.ps));
-  const list = DB.supp.slice().sort((a, b) => suppBal(b) - suppBal(a) || a.name.localeCompare(b.name, "es"));
+  const list = DB.supp.slice().sort((a, b) => suppBal(b) - suppBal(a) || cmpEs(a.name, b.name));
   const debt = suppTotalDebt(), owing = DB.supp.filter((s) => suppBal(s) > 0).length;
   v.innerHTML = `<div class="ph"><h1>Proveedores</h1><button class="btn sm" data-a="psnew">${svg("plus", "bi")}Nuevo proveedor</button></div>
     <div class="sumrow two"><div class="sum ${debt > 0 ? "warn" : ""}"><b class="num">${money(debt)}</b><span>Debes en total${owing ? ` · ${owing} ${owing === 1 ? "proveedor" : "proveedores"}` : ""}</span></div>
@@ -2724,8 +2776,13 @@ async function cloudEnsureNegocio() {
 }
 
 /* ---------- subir cambios ---------- */
+// La configuración (con la imagen de la vitrina) se arma de nuevo en cada subida: se recuerda su huella por su texto.
+let cloudBig = { s: "", h: "" };
+function cloudHashOf(x) { const str = JSON.stringify(x); if (str.length > 20000 && str === cloudBig.s) return cloudBig.h; const h = cloudHash(str); if (str.length > 20000) cloudBig = { s: str, h }; return h; }
 function cloudHash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0; return h.toString(36) + str.length.toString(36); }
-const cloudKeyOf = (x) => (x.id != null ? String(x.id) : x.no != null ? "n" + x.no : "h" + cloudHash(JSON.stringify(x)));
+// Los movimientos de inventario no tienen id: su clave sale de su contenido (no cambian después de creados), se calcula una vez.
+const cloudKeyMemo = new WeakMap();
+const cloudKeyOf = (x) => { if (x.id != null) return String(x.id); if (x.no != null) return "n" + x.no; let k = cloudKeyMemo.get(x); if (!k) { k = "h" + cloudHash(JSON.stringify(x)); cloudKeyMemo.set(x, k); } return k; };
 // Ajustes de la tienda (nombre, comprobantes, usuarios...) van como un solo registro.
 const cloudConfigDoc = () => ({ biz: DB.biz, cfg: DB.cfg, roles: DB.roles, users: DB.users, seq: DB.seq, pseq: DB.pseq, zseq: DB.zseq, v: DB.v });
 function cloudSnapshot() {
@@ -2739,9 +2796,18 @@ async function cloudPush(force) {
   if (!navigator.onLine) { cloud.err = "Sin internet: se sube solo cuando vuelva la señal."; cloudPaint(); return; }
   cloud.busy = true; cloud.err = "";
   try {
-    const s = cloudLoad(), snap = cloudSnapshot(), rows = [], hashes = {};
-    snap.forEach((r, k) => { const hv = cloudHash(JSON.stringify(r.datos)); hashes[k] = hv; if (force || s.h[k] !== hv) rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo: r.tipo, id: r.id, datos: r.datos, borrado: false, dispositivo: s.dev }); });
-    Object.keys(s.h).forEach((k) => { if (!snap.has(k)) { const [tipo, ...rest] = k.split("|"); rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id: rest.join("|"), datos: {}, borrado: true, dispositivo: s.dev }); } });
+    // Solo se revisan las ventas, movimientos y kardex de los meses que cambiaron desde la última subida
+    // (al abrir la caja, si falló una subida o tras recuperar/importar, se revisa todo una vez).
+    const s = cloudLoad(), rows = [], hashes = {}, seen = new Set(), full = force || !cloud.dm, dm = cloud.dm || new Set();
+    cloud.dm = new Set();
+    const put = (tipo, id, datos, k, hv) => { hashes[k] = hv; if (force || s.h[k] !== hv) rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id, datos, borrado: false, dispositivo: s.dev }); };
+    CLOUD_TYPES.forEach((t) => (DB[t] || []).forEach((x) => {
+      const id = cloudKeyOf(x), k = t + "|" + id; seen.add(k);
+      if (!full && BIG[t] && s.h[k] && !dm.has(mOf(BIG[t](x)))) { hashes[k] = s.h[k]; return; }
+      put(t, id, x, k, cloudHashOf(x));
+    }));
+    { const k = "config|tienda", d = cloudConfigDoc(); seen.add(k); put("config", "tienda", d, k, cloudHashOf(d)); }
+    Object.keys(s.h).forEach((k) => { if (!seen.has(k)) { const [tipo, ...rest] = k.split("|"); rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id: rest.join("|"), datos: {}, borrado: true, dispositivo: s.dev }); } });
     cloud.pending = rows.length;
     for (let i = 0; i < rows.length; i += 400) {
       const part = rows.slice(i, i + 400);
@@ -2751,6 +2817,7 @@ async function cloudPush(force) {
     }
     s.last = Date.now(); cloud.pending = 0; cloudStore();
   } catch (e) {
+    cloud.dm = null; // algo no subió: la próxima vez se revisa todo
     cloud.err = /auth/.test(e.message) ? cloud.err || "Vuelve a entrar con Google." : navigator.onLine ? "No se pudo subir. Se reintenta solo." : "Sin internet: se sube solo cuando vuelva la señal.";
   } finally { cloud.busy = false; cloudPaint(); }
 }
@@ -3025,7 +3092,8 @@ function cloudBoot() {
   else if (cloudLoad().ses) { applySusp(); cloudStart(); } // entró con Google pero no terminó de conectar
   else applySusp();
   // Cada vez que la app guarda algo, se programa una subida (agrupa los cambios de varios segundos).
-  const _save = save; save = function () { const out = _save.apply(this, arguments); cloudSchedule(); return out; };
+  const _save = save; save = function (...dates) { const out = _save.apply(this, arguments); if (cloud.dm) { cloud.dm.add(mOf()); dates.forEach((d) => d && cloud.dm.add(mOf(d))); } cloudSchedule(); return out; };
+  const _saveAll = saveAll; saveAll = function () { cloud.dm = null; return _saveAll.apply(this, arguments); };
   window.addEventListener("online", () => cloudSchedule(1000));
   setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } else applySusp(); }, 120000);
 }
@@ -5295,7 +5363,7 @@ document.addEventListener("keydown", (e) => {
 // En el programa de Windows se registra "sw.js?escritorio=1": ese service worker no usa el almacén de copias (ver sw.js).
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register(/Electron\/|CajaFacilEscritorio/.test(navigator.userAgent) ? "sw.js?escritorio=1" : "sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
-window.CF = { get DB() { return DB; }, ui, flush, save, dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan };
+window.CF = { get DB() { return DB; }, ui, flush, save: (...a) => save(...a), dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan };
 async function boot() {
   await loadDB();
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; a.on = true; a.role = "admin"; }

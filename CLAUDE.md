@@ -86,6 +86,15 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 - Imágenes en el HTML: nunca pegar `data:` en los `src`. `imgSrc`/`catImg`/`IB()`/`FB()` las convierten una vez en `blob:` (`bu`) y `calentar()` lo hace por tandas. Antes, Fichas con fotos generaba ≈480 KB de HTML por pintada y Productos ≈400 KB.
 - **Modo rápido** (`html.lite`, `src/68-install.js`): quita transparencias, animaciones y sombras grandes (variables `--sh*`). `localStorage` `cf-lite` = "1" siempre / "0" nunca / vacío = automático (2 núcleos, ≤2 GB, o `liteBench()`: una cuenta corta que tarde >70 ms, una vez cada 30 días, guarda `cf-lite-auto`). Interruptor en Ajustes › Negocio. Es por equipo, no va a la nube.
 - Para medir: Playwright con `Emulation.setCPUThrottlingRate` y red 3G; en 3G + CPU 4x la caja pasó de 6.6 s a 1.6 s hasta estar lista.
+- **Optimización oct 2026** (medida con 1540 productos, 300 clientes y 5000+ ventas, CPU 6x):
+  - Ticket aparte: `saveCart()` (00-core) guarda solo `tickets/cur/tseq` en la clave IndexedDB `tk` (se lee al cargar y pisa los de `core`). Agregar/quitar/cambiar cantidad, cambiar de ticket, cliente o comprobante ya no reescriben productos ni el mes de ventas (58 ms → 1 ms por producto). Lo que toca ventas, productos o la bitácora sigue con `save()`.
+  - `flush` ya no recorre toda la historia para saber los meses (`monthsScan`, solo al cargar, con `saveAll` o con un mes nuevo).
+  - `DBV` sube en cada `save()`: índices que se rehacen solo si cambió algo (`cliIndex` en 50-clients: ventas y abonos por cliente en una pasada; `idleItems` en 40-products). `topIds` (más vendidos) se recuerda por día + n.º de ventas; `imgKey` y `norm` recuerdan resultados.
+  - `paintGrid`: si la lista no cambió (solo el ticket), no redibuja; `qtyMarks` pone/quita la cantidad en cada ficha/fila (Fichas: agregar 820 → 154 ms). `vitHome`/`scanHome` tampoco se redibujan si salen iguales (`el._gh`).
+  - Nube: solo se revisan ventas/movimientos/kardex de los meses tocados desde la última subida (`cloud.dm`, lo llena el envoltorio de `save(...fechas)`; `null` = revisar todo: al abrir, si falla una subida o con `saveAll`). Las claves de kardex (sin id) se calculan una vez (`cloudKeyMemo`). No guardar copias en texto de cada registro (memoria). `window.CF.save` llama al `save` actual (con el envoltorio de la nube).
+  - CSS: fichas y filas fuera de pantalla con `content-visibility:auto`; sin `backdrop-filter` en lo siempre visible (etiquetas de cada ficha, menú, fondo de ventanas, avisos, Luis).
+  - Probado y descartado: `Intl.Collator` propio para ordenar (más lento que `localeCompare(…, "es")`, que es lo que usa `cmpEs`).
+  - Scripts de medición en el scratchpad de la sesión (`perf/perf.py`, `bench2.py`, `cloudt.py`, `func.py`); ojo: la pantalla de licencia `#susp` bloquea clics, quitarla justo antes de cada acción.
 
 ## Programa de Windows
 - `desktop/` (Electron): ventana que abre la caja publicada (se actualiza sola). El .exe lo fabrica GitHub Actions (`.github/workflows/escritorio.yml`) y lo publica en Releases como `CajaFacil-Setup.exe`. Para una versión nueva del programa sube `version` en `desktop/package.json`.

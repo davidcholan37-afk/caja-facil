@@ -1,5 +1,14 @@
 /* ===================== 50 · CLIENTES: crédito, cuenta corriente, historial y puntos ===================== */
-const clientSales = (c) => DB.sales.filter((s) => s.client === c.id);
+// Ventas y abonos agrupados por cliente en una sola pasada. Antes, la lista de Clientes revisaba todas las ventas una vez por cada cliente.
+let cliIdx = { v: -1 };
+function cliIndex() {
+  if (cliIdx.v === DBV && cliIdx.n === DB.sales.length && cliIdx.m === DB.moves.length) return cliIdx;
+  const s = new Map(), a = new Map(), add = (mp, k, x) => { const l = mp.get(k); if (l) l.push(x); else mp.set(k, [x]); };
+  DB.sales.forEach((x) => { if (x.client) add(s, x.client, x); });
+  DB.moves.forEach((m) => { if (m.type === "abono" && m.client) add(a, m.client, m); });
+  cliIdx = { v: DBV, n: DB.sales.length, m: DB.moves.length, s, a }; return cliIdx;
+}
+const clientSales = (c) => (cliIndex().s.get(c.id) || []).slice();
 // Cuenta corriente: cargos (ventas al crédito) y abonos (pagos y devoluciones), con saldo.
 function ledgerOf(c) {
   const e = [];
@@ -9,7 +18,7 @@ function ledgerOf(c) {
     if (cr > 0) e.push({ t: s.t, date: s.date, what: `Compra ${docShort(s)}`, cargo: r2(cr), abono: 0, sale: s.id });
     (s.returns || []).forEach((r) => { if (r.m === "credito") e.push({ t: r.t, date: dkey(new Date(r.t)), what: `Devolución ${docShort(s)}`, cargo: 0, abono: r.amount, sale: s.id }); });
   });
-  DB.moves.filter((m) => m.type === "abono" && m.client === c.id).forEach((m) => e.push({ t: m.t, date: m.date, what: `Pago en ${METHODS[m.m] || "efectivo"}${m.note ? " · " + m.note : ""}`, cargo: 0, abono: m.amount, mv: m.id }));
+  (cliIndex().a.get(c.id) || []).forEach((m) => e.push({ t: m.t, date: m.date, what: `Pago en ${METHODS[m.m] || "efectivo"}${m.note ? " · " + m.note : ""}`, cargo: 0, abono: m.amount, mv: m.id }));
   e.sort((a, b) => a.t - b.t);
   let bal = 0; e.forEach((x) => { bal = r2(bal + x.cargo - x.abono); x.bal = bal; });
   return e;
@@ -44,7 +53,7 @@ function paintCList() {
   const q = norm(ui.cq), raw = ui.cq || "";
   let list = DB.clients.map((c) => ({ c, a: agingOf(c) })).filter(({ c }) => !q || norm(c.name).includes(q) || (c.doc || "").includes(raw) || (c.phone || "").replace(/\D/g, "").includes(raw.replace(/\D/g, "") || "~"));
   if (ui.cf === "deuda") list = list.filter((x) => x.a.debt > 0); else if (ui.cf === "vencidos") list = list.filter((x) => x.a.late);
-  list.sort((a, b) => b.a.debt - a.a.debt || a.c.name.localeCompare(b.c.name, "es"));
+  list.sort((a, b) => b.a.debt - a.a.debt || cmpEs(a.c.name, b.c.name));
   el.innerHTML = list.slice(0, 300).map(({ c, a }) => { const pts = DB.cfg.pts.on ? pointsOf(c) : 0; return `<button class="it" data-a="cliopen" data-id="${c.id}"><span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span><div class="t"><b>${esc(c.name)}</b><small>${c.doc ? esc(c.dt + " " + c.doc) : "Sin documento"}${c.phone ? " · " + esc(fmtPhone(c.phone)) : ""}${pts ? ` · ${pts} pts` : ""}</small>${a.late ? ` <span class="tag out">Vencido hace ${a.days - c.days} d</span>` : ""}</div><div class="v num ${a.debt > 0 ? "warn" : ""}">${a.debt > 0 ? money(a.debt) : "Al día"}<small>${a.debt > 0 ? "debe" : ""}</small></div></button>`; }).join("") || `<div class="empty"><p>Nadie coincide con ese filtro.</p></div>`;
 }
 function openClient(id, cb) {

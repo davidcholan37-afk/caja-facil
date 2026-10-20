@@ -11,7 +11,10 @@ const r3 = (n) => Math.round((+n || 0) * 1000) / 1000;
 const fmtQ = (n) => String(+(+n || 0).toFixed(3));
 const money = (n) => "S/ " + r2(n).toFixed(2);
 const num = (v) => { const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
-const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const normCalc = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+// norm() se usa por cada producto en cada tecla de la búsqueda: se recuerda el resultado (nombres de productos se repiten mucho).
+const normMemo = new Map();
+const norm = (s) => { if (s == null || s === "") return ""; const k = typeof s === "string" ? s : String(s), h = normMemo.get(k); if (h !== undefined) return h; const v = normCalc(k); if (normMemo.size > 20000) normMemo.clear(); normMemo.set(k, v); return v; };
 // Buscar por palabras sueltas, en cualquier orden: «manz vin» encuentra «Vinagre de manzana». q ya viene con norm().
 const nameHit = (name, q) => { const n = norm(name), pw = n.split(/\s+/); return q.split(/\s+/).filter(Boolean).every((w) => pw.some((x) => x.startsWith(w)) || (w.length >= 3 && n.includes(w))); };
 // Primero los que empiezan con lo escrito, luego los que lo tienen en otra palabra, al final el resto.
@@ -175,11 +178,16 @@ function wire(db) {
   return db;
 }
 let DB = normalize(null);
+// Ordenar por nombre en español (localeCompare con "es": V8 lo hace rápido; un Intl.Collator propio resultó más lento).
+const cmpEs = (a, b) => String(a).localeCompare(String(b), "es");
 
 /* ---------- guardado: IndexedDB por meses (rápido aunque haya miles de ventas) ---------- */
 const LSKEY = "caja-facil-v1";
 const BIG = { sales: (x) => x.date, moves: (x) => x.date, kx: (x) => x.d, log: (x) => x.d };
-let idb = null, saveT = 0, dirtyCore = false, dirtyM = new Set(), inflight = 0, knownMonths = [];
+let idb = null, saveT = 0, dirtyCore = false, dirtyCart = false, dirtyM = new Set(), inflight = 0, knownMonths = [], monthsScan = true;
+// El ticket en curso se guarda aparte («tk»): agregar un producto ya no vuelve a escribir todos los productos ni el mes de ventas.
+const CART_KEYS = ["tickets", "cur", "tseq"];
+const cartJSON = () => JSON.stringify({ tickets: DB.tickets, cur: DB.cur, tseq: DB.tseq });
 const mOf = (date) => String(date || dkey()).slice(0, 7);
 function idbOpen() {
   return new Promise((ok, no) => {
@@ -193,12 +201,15 @@ function monthJSON(m) { const o = {}; Object.keys(BIG).forEach((k) => { o[k] = D
 function allMonths() { const s = new Set(); Object.keys(BIG).forEach((k) => DB[k].forEach((x) => s.add(mOf(BIG[k](x))))); s.add(mOf()); return [...s].sort(); }
 function lsSave(str) { try { localStorage.setItem(LSKEY, str); return true; } catch (e) { toast("No se pudo guardar: el almacenamiento está lleno. Descarga un respaldo."); return false; } }
 function flush(hiding) {
-  if (dirtyCore || dirtyM.size) {
-    if (!idb) { dirtyCore = false; dirtyM.clear(); lsSave(JSON.stringify(DB)); return; }
-    const months = allMonths(), puts = [["core", coreJSON()], ["months", JSON.stringify(months)]];
+  if (dirtyCore || dirtyM.size || dirtyCart) {
+    if (!idb) { dirtyCore = false; dirtyCart = false; dirtyM.clear(); lsSave(JSON.stringify(DB)); return; }
+    // Recorrer toda la historia para saber qué meses hay solo cuando hace falta (al cargar, al borrar o con un mes nuevo).
+    const fast = !monthsScan && [...dirtyM].every((m) => knownMonths.includes(m));
+    const months = fast ? knownMonths : allMonths(), puts = [["tk", cartJSON()]];
+    if (dirtyCore || dirtyM.size) puts.push(["core", coreJSON()], ["months", JSON.stringify(months)]);
     dirtyM.forEach((m) => puts.push(["m:" + m, monthJSON(m)]));
     const gone = knownMonths.filter((m) => !months.includes(m));
-    dirtyCore = false; dirtyM.clear(); knownMonths = months;
+    dirtyCore = false; dirtyCart = false; dirtyM.clear(); knownMonths = months; monthsScan = false;
     try {
       const tx = idb.transaction("kv", "readwrite"), st = tx.objectStore("kv");
       puts.forEach(([k, v]) => st.put(v, k)); gone.forEach((m) => st.delete("m:" + m));
@@ -210,8 +221,10 @@ function flush(hiding) {
   if (hiding === true && idb && inflight) { try { localStorage.setItem(LSKEY, JSON.stringify(DB)); } catch (e) {} }
 }
 // save() guarda lo general y el mes actual; si se cambia algo de otro mes, se pasa su fecha.
-function save(...dates) { dirtyCore = true; dirtyM.add(mOf()); dates.forEach((d) => d && dirtyM.add(mOf(d))); clearTimeout(saveT); saveT = setTimeout(flush, 30); }
-function saveAll() { allMonths().forEach((m) => dirtyM.add(m)); save(); }
+function saveCart() { dirtyCart = true; clearTimeout(saveT); saveT = setTimeout(flush, 30); }
+let DBV = 0; // sube con cada cambio guardado: los índices (ventas por cliente…) se rehacen solo cuando cambia
+function save(...dates) { DBV++; dirtyCore = true; dirtyM.add(mOf()); dates.forEach((d) => d && dirtyM.add(mOf(d))); clearTimeout(saveT); saveT = setTimeout(flush, 30); }
+function saveAll() { monthsScan = true; allMonths().forEach((m) => dirtyM.add(m)); save(); }
 window.addEventListener("pagehide", () => flush(true));
 document.addEventListener("visibilitychange", () => { if (document.hidden) flush(true); });
 async function loadDB() {
@@ -226,6 +239,7 @@ async function loadDB() {
         const months = JSON.parse((await idbGet("months")) || "[]"); knownMonths = months;
         Object.keys(BIG).forEach((k) => { obj[k] = []; });
         for (const m of months) { const ch = JSON.parse((await idbGet("m:" + m)) || "null"); if (ch) Object.keys(BIG).forEach((k) => { obj[k] = obj[k].concat(ch[k] || []); }); }
+        try { const tk = JSON.parse((await idbGet("tk")) || "null"); if (tk && Array.isArray(tk.tickets) && tk.tickets.length) CART_KEYS.forEach((k) => { obj[k] = tk[k]; }); } catch (e) {}
       } else {
         const old = await idbGet("db"); // versión 3
         if (old) { obj = JSON.parse(old); fresh = true; }

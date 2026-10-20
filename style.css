@@ -2360,3 +2360,16 @@ html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(
   body:not(._) .sidefoot .uchip{margin:2px 0}
 }
 html[data-theme=dark] body:not(._) .side,html[data-theme=dark] body:not(._).vit .side{background:var(--fv)!important;border-right:1px solid rgba(255,255,255,.05)!important}
+
+/* ===== Rendimiento: las fichas y filas fuera de la pantalla no se dibujan hasta que llegas a ellas ===== */
+#grid > .pt{content-visibility:auto;contain-intrinsic-size:auto 220px}
+#grid > .prow{content-visibility:auto;contain-intrinsic-size:auto 64px}
+#plist > .it,#vlist > .it,.list > .it{content-visibility:auto;contain-intrinsic-size:auto 66px}
+/* Sin vidrio borroso en lo que siempre está a la vista (etiquetas de cada ficha, menú, fondo de las ventanas, avisos):
+   en tarjetas de video débiles cada desenfoque se recalcula al mover o abrir algo. Se ve casi igual con fondos sólidos. */
+.cd,.kgb,.presb,.side,.cb-open,.tabs,#toast,.help-launcher,.keypad button,#modal.modal,body.vit .vqk,body.vit .vlast,.datebar,.chip,.tool,body.vit[data-tab=venta] .cart .lh{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.cd,.kgb,.presb{background:rgba(255,255,255,.94)}
+html[data-theme=dark] .cd,html[data-theme=dark] .kgb,html[data-theme=dark] .presb{background:rgba(24,28,34,.94)}
+#modal.modal{background:rgba(17,24,39,.34)}
+html[data-theme=dark] #modal.modal{background:rgba(0,0,0,.58)}
+html:not([data-theme=dark]) .help-launcher{background:rgba(250,250,252,.97)!important}

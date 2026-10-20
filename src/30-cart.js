@@ -43,7 +43,7 @@ function setLine(id, pres, qty, opts = {}) {
     if (l) l.qty = r3(qty); else DB.cart.items.push({ id, pres: pres || "", qty: r3(qty) });
     ui.sel = k;
   }
-  save(); if (!opts.quiet) beep(true); paintSale(); return true;
+  saveCart(); if (!opts.quiet) beep(true); paintSale(); return true;
 }
 function addToCart(p, qty = 1, pres = "") {
   const l = DB.cart.items.find((i) => lineKey(i.id, i.pres) === lineKey(p.id, pres));
@@ -52,7 +52,7 @@ function addToCart(p, qty = 1, pres = "") {
 function changeQty(k, d) {
   const l = DB.cart.items.find((i) => lineKey(i.id, i.pres) === k); if (!l) return;
   const r = resolveLine(l); if (!r) return;
-  if (l.quick) { l.qty = Math.max(0, l.qty + d); if (!l.qty) DB.cart.items = DB.cart.items.filter((i) => i !== l); save(); paintSale(); return; }
+  if (l.quick) { l.qty = Math.max(0, l.qty + d); if (!l.qty) DB.cart.items = DB.cart.items.filter((i) => i !== l); saveCart(); paintSale(); return; }
   setLine(l.id, l.pres, r3(l.qty + d * (r.unit === "kg" ? 0.1 : 1)));
 }
 function dropCurrentTicket() {
@@ -61,7 +61,7 @@ function dropCurrentTicket() {
   ui.sel = null;
 }
 function newTicketNow(extra = {}) {
-  DB.tickets.push(Object.assign(newTicket(++DB.tseq), extra)); DB.cur = DB.tickets.length - 1; ui.sel = null; save();
+  DB.tickets.push(Object.assign(newTicket(++DB.tseq), extra)); DB.cur = DB.tickets.length - 1; ui.sel = null; saveCart();
 }
 const ticketLabel = (t) => t.mesa ? `Mesa ${t.mesa}` : t.prev ? `Preventa ${t.prev}` : t.name || "Ticket " + t.n;
 
@@ -80,7 +80,7 @@ function goTable(m) {
     if (!DB.cart.items.length && !DB.cart.mesa && !DB.cart.prev) { Object.assign(DB.cart, { mesa: m, name: "", t0: Date.now() }); i = DB.cur; }
     else { newTicketNow({ mesa: m, t0: Date.now() }); i = DB.cur; }
   }
-  DB.cur = i; save(); closeModal(); paintSale(); toast(`Mesa ${m}`);
+  DB.cur = i; saveCart(); closeModal(); paintSale(); toast(`Mesa ${m}`);
 }
 
 /* ---------- preventas: el vendedor arma el pedido, la caja lo cobra ---------- */
@@ -98,7 +98,7 @@ function loadPrev(no) {
   if (!pv) { toast(`No existe la preventa N° ${no}`); beep(false); return false; }
   if (pv.status !== "pendiente") { toast(pv.status === "cobrada" ? `La preventa N° ${no} ya fue cobrada` : `La preventa N° ${no} está anulada`); beep(false); return false; }
   const open = DB.tickets.findIndex((x) => x.prev === pv.no);
-  if (open >= 0) { DB.cur = open; save(); paintSale(); return true; }
+  if (open >= 0) { DB.cur = open; saveCart(); paintSale(); return true; }
   const data = { prev: pv.no, items: pv.items.map((i) => Object.assign({}, i)), disc: pv.disc, client: pv.client };
   if (!DB.cart.items.length && !DB.cart.mesa && !DB.cart.prev) Object.assign(DB.cart, data); else newTicketNow(data);
   save(); beep(true); paintSale(); toast(`Preventa N° ${no} lista para cobrar`); return true;
