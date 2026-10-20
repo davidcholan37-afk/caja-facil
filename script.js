@@ -1102,7 +1102,7 @@ function paintPay() {
       <button class="btn lg${p.method === "culqi" ? " go culqi" : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" ? "Culqi" : METHODS[p.method].toLowerCase()}</button>`;
   openModal(`<div class="payhead"><div class="paytot"><span>A cobrar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
     ${ptsBlock()}
-    <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}">${METHODS[k]}</button>`).join("")}</div>
+    <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}" data-k="${KEYL[k]}"><span>${METHODS[k]}</span></button>`).join("")}</div>
     <div class="paybody">${body}</div>
     <div class="payfoot"><button class="link" data-a="close">Volver</button><button class="link" data-a="split">Dividir pago <span class="kbd">F7</span></button></div>`, "paym");
   ui.mk = "pay"; updPay();

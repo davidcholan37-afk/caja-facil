@@ -2211,3 +2211,96 @@ html[data-theme=dark] body.vit[data-tab=venta] .searchbar .sbox,html[data-theme=
 /* Fresco verde: el color de acento de toda la caja pasa a verde */
 body.vit{--ac:#1D8A4E;--ac2:#2FA864;--ac-t:rgba(29,138,78,.10);--ac-ink:#0F6B3B;--grad:linear-gradient(180deg,var(--ac2),var(--ac))}
 html[data-theme=dark] body.vit{--ac:#2FA864;--ac2:#4CC07E;--ac-t:rgba(47,168,100,.16);--ac-ink:#8EDCAE;--grad:linear-gradient(180deg,var(--ac2),var(--ac))}
+
+/* ===== Cobro v2: franja del color del medio elegido, medios en fichas con ícono y tecla, billetes con color, botón del color del medio. Para todos los modos; sigue --ac del tema. ===== */
+.sheet.paym{--mc:#15A048;--mci:#fff;--mcd:#0E7A36}
+.sheet.paym:has(.mth.yape.on){--mc:#742284;--mci:#fff;--mcd:#5A1A67}
+.sheet.paym:has(.mth.plin.on){--mc:#00B2D6;--mci:#03323C;--mcd:#00728A}
+.sheet.paym:has(.mth.culqi.on){--mc:#FF7A1A;--mci:#2A1300;--mcd:#B8500A}
+.sheet.paym:has(.mth.tarjeta.on){--mc:#1F3A8A;--mci:#fff;--mcd:#1F3A8A}
+.sheet.paym:has(.mth.transferencia.on){--mc:#0F766E;--mci:#fff;--mcd:#0F766E}
+.sheet.paym:has(.mth.credito.on){--mc:#B45309;--mci:#fff;--mcd:#9A4508}
+/* Franja de arriba */
+html body .sheet.paym:has(.paybody) .payhead{position:relative;align-items:flex-end;margin:0 0 14px;padding:18px 20px 16px;border-radius:20px;background:var(--mc);color:var(--mci);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -3px 0 rgba(0,0,0,.14)}
+html body .sheet.paym:has(.paybody) .payhead .paytot span{color:var(--mci);opacity:.85;font:600 14px var(--f)}
+html body .sheet.paym:has(.paybody) .payhead .paytot b{color:var(--mci);font-size:3.6rem;font-weight:800;letter-spacing:-.045em;line-height:1}
+html body .sheet.paym:has(.paybody) .payhead .paytot small{color:var(--mci);opacity:.8}
+.sheet.paym:has(.mth.efectivo.on) .paytot span::after{content:" en efectivo"}
+.sheet.paym:has(.mth.yape.on) .paytot span::after{content:" con Yape"}
+.sheet.paym:has(.mth.plin.on) .paytot span::after{content:" con Plin"}
+.sheet.paym:has(.mth.culqi.on) .paytot span::after{content:" con Culqi"}
+.sheet.paym:has(.mth.tarjeta.on) .paytot span::after{content:" con tarjeta"}
+.sheet.paym:has(.mth.transferencia.on) .paytot span::after{content:" por transferencia"}
+.sheet.paym:has(.mth.credito.on) .paytot span::after{content:" al crédito"}
+html body .sheet.paym:has(.paybody) .payhead .tag{align-self:flex-start;background:rgba(255,255,255,.2);color:var(--mci);border:0;font-weight:650}
+.sheet.paym:has(.mth.plin.on) .payhead .tag,.sheet.paym:has(.mth.culqi.on) .payhead .tag{background:rgba(255,255,255,.4)}
+/* Medios de pago en fichas: 4 grandes arriba, 3 abajo */
+html body .sheet.paym:has(.paybody) .methods{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;margin:0 0 16px;padding:0;background:none;box-shadow:none;border-radius:0;overflow:visible}
+html body .sheet.paym:has(.paybody) .mth{--c:#15A048;position:relative;grid-column:span 3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:8px 4px;border:0;border-radius:16px;background:var(--s1,#fff);color:var(--t1);font:650 14px var(--f);box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.14));cursor:pointer}
+html body .sheet.paym:has(.paybody) .mth.tarjeta,html body .sheet.paym:has(.paybody) .mth.transferencia,html body .sheet.paym:has(.paybody) .mth.credito{grid-column:span 4;flex-direction:row;min-height:50px;gap:9px}
+html body .sheet.paym:has(.paybody) .mth.yape{--c:#742284}html body .sheet.paym:has(.paybody) .mth.plin{--c:#00A3C4}html body .sheet.paym:has(.paybody) .mth.culqi{--c:#F26A0A}
+html body .sheet.paym:has(.paybody) .mth.tarjeta{--c:#1F3A8A}html body .sheet.paym:has(.paybody) .mth.transferencia{--c:#0F766E}html body .sheet.paym:has(.paybody) .mth.credito{--c:#B45309}
+html body .sheet.paym:has(.paybody) .mth::before{content:"";flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--c);color:#fff;font:900 15px var(--f);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
+html body .sheet.paym:has(.paybody) .mth.tarjeta::before,html body .sheet.paym:has(.paybody) .mth.transferencia::before,html body .sheet.paym:has(.paybody) .mth.credito::before{width:28px;height:28px;border-radius:8px}
+html body .sheet.paym:has(.paybody) .mth.efectivo::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3C/svg%3E") center/18px no-repeat}
+html body .sheet.paym:has(.paybody) .mth.yape::before{content:"Y"}
+html body .sheet.paym:has(.paybody) .mth.plin::before{content:"P"}
+html body .sheet.paym:has(.paybody) .mth.culqi::before{content:"C"}
+html body .sheet.paym:has(.paybody) .mth.tarjeta::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='M2.5 10h19M6.5 15h4'/%3E%3C/svg%3E") center/18px no-repeat}
+html body .sheet.paym:has(.paybody) .mth.transferencia::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h14l-3.5-3.5M20 16H6l3.5 3.5'/%3E%3C/svg%3E") center/18px no-repeat}
+html body .sheet.paym:has(.paybody) .mth.credito::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v14.5a1 1 0 0 1-1 1H6a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 6 3.5z'/%3E%3Cpath d='M8.5 8.5h6M8.5 12h6M8.5 15.5h3.5'/%3E%3C/svg%3E") center/18px no-repeat}
+html body .sheet.paym:has(.paybody) .mth.on{background:color-mix(in srgb,var(--c) 10%,var(--s1,#fff))!important;color:var(--t1)!important;box-shadow:inset 0 0 0 2.5px var(--c)!important}
+@media (hover:hover) and (pointer:fine){
+  html body .sheet.paym:has(.paybody) .mth:not(.on):hover{box-shadow:inset 0 0 0 1.5px var(--c)}
+  html body .sheet.paym:has(.paybody) .mth::after{content:attr(data-k);position:absolute;top:6px;right:7px;min-width:18px;height:18px;padding:0 4px;border-radius:5px;background:var(--s2,#F2F4F7);color:var(--t3);font:700 10.5px/18px var(--f);text-align:center}
+  html body .sheet.paym:has(.paybody) .mth.tarjeta::after,html body .sheet.paym:has(.paybody) .mth.transferencia::after,html body .sheet.paym:has(.paybody) .mth.credito::after{top:50%;transform:translateY(-50%)}
+}
+html body .sheet.paym:has(.paybody) .mth:active{transform:scale(.97)}
+html body .sheet.paym:has(.paybody) .mth:focus-visible{outline:3px solid var(--c);outline-offset:2px}
+/* Billetes */
+html body .sheet.paym:has(.paybody) .bills{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+html body .sheet.paym:has(.paybody) .bill{overflow:hidden;min-height:92px;padding:14px 12px 10px;border:0;border-radius:16px;background:var(--s1,#fff);box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.14))}
+html body .sheet.paym:has(.paybody) .bill::before{display:block!important;left:0;right:0;top:0;bottom:auto;width:auto;height:5px;background:var(--bc,#94A3B8)}
+html body .sheet.paym:has(.paybody) .bill small{color:var(--t3);font:600 12px var(--f)}
+html body .sheet.paym:has(.paybody) .bill b{color:var(--t1);font:800 21px var(--f);letter-spacing:-.03em}
+html body .sheet.paym:has(.paybody) .bill em{color:#15803D;font:650 12px var(--f)}
+html body .sheet.paym:has(.paybody) .bill.exact{--bc:var(--mc);background:color-mix(in srgb,var(--mc) 9%,var(--s1,#fff));box-shadow:inset 0 0 0 2.5px var(--mc)}
+html body .sheet.paym:has(.paybody) .bill.exact em{color:var(--mcd)}
+@media (hover:hover) and (pointer:fine){
+  html body .sheet.paym:has(.paybody) .bill:hover{box-shadow:inset 0 0 0 2px var(--bc,#94A3B8)}
+  html body .sheet.paym:has(.paybody) .bill.exact::after{content:"Enter";position:absolute;top:12px;right:9px;padding:1px 6px;border-radius:5px;background:var(--mc);color:var(--mci);font:700 10px/16px var(--f)}
+}
+/* Número de Yape / Plin */
+html body .sheet.paym:has(.paybody) .payto{border:0;border-radius:18px;padding:16px 14px 14px;background:color-mix(in srgb,var(--mc) 10%,var(--s1,#fff));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--mc) 30%,transparent)}
+html body .sheet.paym:has(.paybody) .payto span{color:var(--t2)}
+html body .sheet.paym:has(.paybody) .payto b{color:var(--mcd);font-size:2.5rem;font-weight:800;letter-spacing:.03em}
+html body .sheet.paym:has(.paybody) .payto small{color:var(--t2)}
+/* Botón final del color del medio */
+html body .sheet.paym:has(.paybody) .paybody .btn.lg{min-height:62px;border:0;border-radius:18px;background:var(--mc)!important;color:var(--mci)!important;font:750 18px var(--f);letter-spacing:-.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 -3px 0 rgba(0,0,0,.2),0 10px 22px -14px var(--mc)!important}
+html body .sheet.paym:has(.paybody) .paybody .btn.lg:disabled{background:var(--s3,#E5E7EB)!important;color:var(--t3)!important;box-shadow:none!important}
+html body .sheet.paym:has(.paybody) .payfoot .link{font-weight:650}
+/* Oscuro */
+html[data-theme=dark] body .sheet.paym:has(.paybody) .mth::after{background:rgba(255,255,255,.08)}
+html[data-theme=dark] body .sheet.paym:has(.paybody) .bill em{color:#5BD08A}
+html[data-theme=dark] body .sheet.paym:has(.paybody) .payto b{color:color-mix(in srgb,var(--mc) 55%,#fff)}
+html[data-theme=dark] body .sheet.paym:has(.paybody) .bill.exact em{color:color-mix(in srgb,var(--mc) 55%,#fff)}
+/* Celular: medios en 4 columnas sin letra, billetes en 3 */
+@media (max-width:640px){
+  html body .sheet.paym:has(.paybody) .mth{min-height:66px;font-size:12.5px}
+  html body .sheet.paym:has(.paybody) .mth.tarjeta,html body .sheet.paym:has(.paybody) .mth.transferencia,html body .sheet.paym:has(.paybody) .mth.credito{min-height:46px;font-size:12.5px;gap:6px}
+  html body .sheet.paym:has(.paybody) .mth::before{width:28px;height:28px}
+  html body .sheet.paym:has(.paybody) .bills{grid-template-columns:repeat(3,minmax(0,1fr))}
+  html body .sheet.paym:has(.paybody) .payhead .paytot b{font-size:2.8rem}
+}
+html body .sheet.paym:has(.paybody) .bills{grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+html body .sheet.paym:has(.paybody) .bill b{white-space:nowrap}
+html body .sheet.paym:has(.paybody) .bill.exact b{font-size:19px}
+html body .sheet.paym:has(.paybody) .mth.tarjeta,html body .sheet.paym:has(.paybody) .mth.transferencia,html body .sheet.paym:has(.paybody) .mth.credito{justify-content:flex-start;padding:0 30px 0 12px}
+html body .sheet.paym:has(.paybody) .mth span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+@media (max-width:640px){html body .sheet.paym:has(.paybody) .bills{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr))!important}html body .sheet.paym:has(.paybody) .mth.tarjeta,html body .sheet.paym:has(.paybody) .mth.transferencia,html body .sheet.paym:has(.paybody) .mth.credito{padding:0 8px}}
+@media (max-width:640px){
+  html body .sheet.paym:has(.paybody) .mth::after{display:none!important}
+  html body .sheet.paym:has(.paybody) .mth.tarjeta,html body .sheet.paym:has(.paybody) .mth.transferencia,html body .sheet.paym:has(.paybody) .mth.credito{flex-direction:column;justify-content:center;min-height:62px;padding:6px 4px;gap:4px;font-size:12px}
+  html body .sheet.paym:has(.paybody) .mth.tarjeta::before,html body .sheet.paym:has(.paybody) .mth.transferencia::before,html body .sheet.paym:has(.paybody) .mth.credito::before{width:24px;height:24px;background-size:15px}
+  html body .sheet.paym:has(.paybody) .bills{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
