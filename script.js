@@ -574,11 +574,12 @@ const IC = {
 const svg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k] || ""}</svg>`;
 
 /* ---------- navegación ---------- */
-const TABS = [["venta", "Vender", null], ["ventas", "Ventas", null], ["prod", "Productos", null], ["cli", "Clientes", null], ["caja", "Caja", "caja"], ["prov", "Proveedores", "caja"], ["rep", "Reportes", "reportes"], ["aj", "Ajustes", "ajustes"]];
+const TABS = [["venta", "Vender", null], ["ventas", "Ventas", null], ["prod", "Productos", null], ["cli", "Clientes", null], ["prov", "Proveedores", "caja"], ["caja", "Caja", "caja"], ["rep", "Reportes", "reportes"], ["aj", "Ajustes", "ajustes"]];
+const TAB_GRUPO = { prod: 1, caja: 1 }; // en el menú de la izquierda: línea antes de cada grupo
 const tabOk = (t) => { const x = TABS.find((y) => y[0] === t); return x && (!x[2] || can(x[2])); };
 function paintNav() {
   const u = me(), tabs = TABS.filter((t) => !t[2] || can(t[2]));
-  const btn = ([id, label]) => `<button class="tab ${ui.tab === id ? "on" : ""}" data-a="tab" data-t="${id}" ${ui.tab === id ? 'aria-current="page"' : ""}><span class="ic">${svg(id)}</span><span>${label}</span></button>`;
+  const btn = ([id, label]) => `<button class="tab ${ui.tab === id ? "on" : ""} ${TAB_GRUPO[id] ? "g" : ""}" data-a="tab" data-t="${id}" ${ui.tab === id ? 'aria-current="page"' : ""}><span class="ic">${svg(id)}</span><span>${label}</span></button>`;
   $("#sideNav").innerHTML = tabs.map(btn).join("");
   const mob = ["venta", "ventas", "caja", "prod"].filter((t) => tabs.some((x) => x[0] === t)).map((t) => tabs.find((x) => x[0] === t));
   const moreOn = !mob.some((x) => x[0] === ui.tab);
@@ -613,7 +614,7 @@ function toggleTheme() {
   const m = $('meta[name="theme-color"]'); if (m) m.content = dark ? "#07090D" : "#F3F4F7";
   if (modalOpen()) closeModal();
 }
-act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal, theme: toggleTheme });
+act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal, theme: toggleTheme , sidetoggle: () => { const off = document.documentElement.classList.toggle("side-off"); try { localStorage.setItem("cf-side", off ? "0" : "1"); } catch (e) {} (off ? $(".siderail") : $(".sidehide"))?.focus({ preventScroll: true }); } });
 
 /* ===================== 20 · USUARIOS, CLAVES Y PERMISOS ===================== */
 const initials = (n) => String(n || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
@@ -4624,6 +4625,7 @@ const HELP_KB = [
   { k: ["fichas", "fotos", "pantalla de venta", "minimarket", "modo escaner"], t: "Cambiar la pantalla de venta", go: "aj.venta", s: ["Entra a Ajustes › Pantalla de venta.", "Elige «Escáner (minimarket)» o «Fichas con fotos»."] },
   { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
+  { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
 ];
 function helpKB(text) {

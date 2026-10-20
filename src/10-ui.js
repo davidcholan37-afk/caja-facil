@@ -245,11 +245,12 @@ const IC = {
 const svg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k] || ""}</svg>`;
 
 /* ---------- navegación ---------- */
-const TABS = [["venta", "Vender", null], ["ventas", "Ventas", null], ["prod", "Productos", null], ["cli", "Clientes", null], ["caja", "Caja", "caja"], ["prov", "Proveedores", "caja"], ["rep", "Reportes", "reportes"], ["aj", "Ajustes", "ajustes"]];
+const TABS = [["venta", "Vender", null], ["ventas", "Ventas", null], ["prod", "Productos", null], ["cli", "Clientes", null], ["prov", "Proveedores", "caja"], ["caja", "Caja", "caja"], ["rep", "Reportes", "reportes"], ["aj", "Ajustes", "ajustes"]];
+const TAB_GRUPO = { prod: 1, caja: 1 }; // en el menú de la izquierda: línea antes de cada grupo
 const tabOk = (t) => { const x = TABS.find((y) => y[0] === t); return x && (!x[2] || can(x[2])); };
 function paintNav() {
   const u = me(), tabs = TABS.filter((t) => !t[2] || can(t[2]));
-  const btn = ([id, label]) => `<button class="tab ${ui.tab === id ? "on" : ""}" data-a="tab" data-t="${id}" ${ui.tab === id ? 'aria-current="page"' : ""}><span class="ic">${svg(id)}</span><span>${label}</span></button>`;
+  const btn = ([id, label]) => `<button class="tab ${ui.tab === id ? "on" : ""} ${TAB_GRUPO[id] ? "g" : ""}" data-a="tab" data-t="${id}" ${ui.tab === id ? 'aria-current="page"' : ""}><span class="ic">${svg(id)}</span><span>${label}</span></button>`;
   $("#sideNav").innerHTML = tabs.map(btn).join("");
   const mob = ["venta", "ventas", "caja", "prod"].filter((t) => tabs.some((x) => x[0] === t)).map((t) => tabs.find((x) => x[0] === t));
   const moreOn = !mob.some((x) => x[0] === ui.tab);
@@ -284,4 +285,4 @@ function toggleTheme() {
   const m = $('meta[name="theme-color"]'); if (m) m.content = dark ? "#07090D" : "#F3F4F7";
   if (modalOpen()) closeModal();
 }
-act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal, theme: toggleTheme });
+act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal, theme: toggleTheme , sidetoggle: () => { const off = document.documentElement.classList.toggle("side-off"); try { localStorage.setItem("cf-side", off ? "0" : "1"); } catch (e) {} (off ? $(".siderail") : $(".sidehide"))?.focus({ preventScroll: true }); } });

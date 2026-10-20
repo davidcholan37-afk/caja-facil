@@ -2313,3 +2313,49 @@ html body .sheet.paym:has(.paybody) .mth span{white-space:nowrap;overflow:hidden
 html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth.culqi::before{width:34px;height:34px;border-radius:10px}
 .paybox .pay4 .pm.yape,.paybox .pay4 .pm.plin,.paybox .pay4 .pm.culqi{gap:8px}
 @media (max-width:640px){html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth.culqi::before{width:30px;height:30px}}
+
+/* ===== Menú de la izquierda ordenado en grupos + «Ocultar» / franja para volver a mostrarlo (cf-side en localStorage, por equipo) ===== */
+.siderail{display:none}
+.sidehide{display:none}
+@media (min-width:960px){
+  body .side{gap:12px;padding:14px 8px 12px}
+  body #sideNav{gap:2px}
+  body #sideNav .tab{min-height:54px;font-size:11px;font-weight:600;gap:3px}
+  body #sideNav .tab.g{position:relative;margin-top:11px}
+  body #sideNav .tab.g::before{content:"";position:absolute;top:-6px;left:20px;right:20px;height:1px;background:rgba(255,255,255,.14)}
+  html:not([data-theme=dark]) body .side:not(:has(#sideNav .tab)) #sideNav .tab.g::before{background:rgba(15,23,42,.1)}
+  body .sidefoot{gap:2px;padding-top:10px;position:relative}
+  body .sidefoot::before{content:"";position:absolute;top:0;left:20px;right:20px;height:1px;background:rgba(255,255,255,.14)}
+  body .sidehide,body .sidefoot .themebtn,body .sidefoot .lockbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:100%;min-height:46px;border:0;border-radius:12px;background:none;font:600 10.5px var(--f);cursor:pointer}
+  body .sidehide svg,body .sidefoot .themebtn svg,body .sidefoot .lockbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  body .sidehide{color:#BFD8C9}
+  @media (hover:hover) and (pointer:fine){body .sidehide:hover,body .sidefoot .themebtn:hover,body .sidefoot .lockbtn:hover{background:rgba(255,255,255,.08)!important;color:#fff!important}}
+  body .sidehide:active,body .sidefoot .themebtn:active,body .sidefoot .lockbtn:active{transform:scale(.97)}
+  body .sidefoot .uchip{margin:4px 0}
+  body .sidefoot .uchip .av{width:38px;height:38px;box-shadow:0 0 0 2px rgba(255,255,255,.18)!important}
+  /* Menú escondido: queda una franja fina para volver a abrirlo */
+  html.side-off #app{grid-template-columns:22px 1fr}
+  html.side-off .side{display:none}
+  html.side-off .siderail{display:flex;position:sticky;top:0;height:100dvh;width:22px;align-items:center;justify-content:center;padding:0;border:0;background:var(--fv,#0F4D32);color:#BFD8C9;cursor:pointer}
+  html.side-off .siderail svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform 160ms var(--ease-out)}
+  @media (hover:hover) and (pointer:fine){html.side-off .siderail:hover{color:#fff;background:#14603F}html.side-off .siderail:hover svg{transform:translateX(2px)}}
+  html.side-off .siderail:focus-visible{outline:3px solid var(--fvl,#8BD448);outline-offset:-3px}
+}
+@media (min-width:960px){
+  body .side{overflow-y:auto;scrollbar-width:none}
+  body .side::-webkit-scrollbar{display:none}
+}
+@media (min-width:960px) and (max-height:720px){
+  body #sideNav .tab{min-height:46px}
+  body .sidehide,body .sidefoot .themebtn,body .sidefoot .lockbtn{min-height:40px}
+  body .sidefoot .uchip .av{width:32px;height:32px}
+}
+@media (min-width:960px) and (max-height:720px){
+  body .side{gap:8px;padding:10px 8px 8px}
+  body .side .logo{width:36px;height:36px}
+  body #sideNav .tab{min-height:42px;font-size:10.5px;gap:1px}
+  body #sideNav .tab .ic{height:28px}
+  body #sideNav .tab.g{margin-top:9px}
+  body .sidehide,body .sidefoot .themebtn,body .sidefoot .lockbtn{min-height:38px;gap:1px}
+  body .sidefoot .uchip{margin:2px 0}
+}
