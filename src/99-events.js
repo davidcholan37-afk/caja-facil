@@ -158,5 +158,6 @@ async function boot() {
   cloudBoot();
   libsLater();
   liteBench();
+  setTimeout(verNueva, 1500);
 }
 boot();

@@ -3107,6 +3107,24 @@ act({
   }
 });
 
+// Versión nueva al abrir: el programa de Windows (y a veces el navegador) abre la copia guardada de la página
+// hasta 10 minutos después de publicar. Al arrancar se pide la página a la red; si trae otra huella de script.js,
+// se recarga una sola vez (cuando no hay una ventana abierta ni algo escrito). Las ventas y el ticket no se tocan.
+function verNueva() {
+  if (!location.protocol.startsWith("http")) return;
+  const s = document.querySelector('script[src*="script.js?v="]'), cur = s && (s.getAttribute("src").match(/script\.js\?v=(\w+)/) || [])[1];
+  if (!cur) return;
+  fetch(location.href.split("#")[0], { cache: "reload" }).then((r) => (r.ok ? r.text() : "")).then((t) => {
+    const n = (t.match(/script\.js\?v=(\w+)/) || [])[1];
+    if (!n || n === cur) return;
+    try { if (sessionStorage.getItem("cf-ver") === n) return; sessionStorage.setItem("cf-ver", n); } catch (e) { return; }
+    const libre = () => !modalOpen() && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName) && document.activeElement.value);
+    let vueltas = 0;
+    const intenta = () => { if (libre()) location.reload(); else if (++vueltas < 40) setTimeout(intenta, 15000); };
+    intenta();
+  }).catch(() => {});
+}
+
 /* ===================== 69 · VOZ: «anota un yogurt», «paga 50 a Gloria» ===================== */
 // Gratis y sin claves. Dos oídos: con internet usa el de Chrome (mejor); sin internet usa Vosk (modelo en español de 34 MB
 // que se instala una vez). El mismo intérprete local entiende las frases con TUS productos, clientes y proveedores.
@@ -5291,6 +5309,7 @@ async function boot() {
   cloudBoot();
   libsLater();
   liteBench();
+  setTimeout(verNueva, 1500);
 }
 boot();
 
