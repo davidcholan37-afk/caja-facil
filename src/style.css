@@ -2372,3 +2372,23 @@ html[data-theme=dark] .cd,html[data-theme=dark] .kgb,html[data-theme=dark] .pres
 #modal.modal{background:rgba(17,24,39,.34)}
 html[data-theme=dark] #modal.modal{background:rgba(0,0,0,.58)}
 html:not([data-theme=dark]) .help-launcher{background:rgba(250,250,252,.97)!important}
+
+/* ===== Vitrina · «Toca la fruta»: fotos de los productos por kilo como botones (un toque abre el peso) ===== */
+body.vit .vfrs{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(var(--vr,4),minmax(0,1fr));gap:6px;padding:6px;background:#fff}
+html[data-theme=dark] body.vit .vfrs{background:#151C18}
+body.vit .vfr{position:relative;overflow:hidden;min-height:0;padding:0;border:0;border-radius:14px;background:var(--cc,#EEF4EF);cursor:pointer;text-align:left;transition:transform 160ms var(--ease-out)}
+body.vit .vfr:active{transform:scale(.97)}
+body.vit .vfr:focus-visible{outline:3px solid var(--fv2,#1D8A4E);outline-offset:2px}
+body.vit .vfr .vfi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+body.vit .vfr .vfi.k-art{inset:6% 18% 34%;width:64%;height:60%;object-fit:contain}
+body.vit .vfr .vfi.noimg{display:grid;place-items:center;inset:0 0 34%;height:auto;font:800 44px var(--f);color:rgba(15,23,42,.35)}
+body.vit .vfr .vfl{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-between;gap:6px;padding:26px 10px 8px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.66));color:#fff}
+body.vit .vfr .vfl b{min-width:0;font:700 15px/1.15 var(--f);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.vit .vfr .vfl em{flex:none;font:800 15px var(--f);font-style:normal;letter-spacing:-.02em}
+body.vit .vfr .vfl em small{font:600 11px var(--f);opacity:.85}
+body.vit .vfr .vfc{position:absolute;top:7px;left:7px;min-width:24px;height:22px;padding:0 6px;border-radius:7px;background:rgba(255,255,255,.94);color:#0F4D32;font:800 12px/22px var(--f);font-style:normal;text-align:center}
+body.vit .vfr.out{filter:grayscale(.85)}
+body.vit .vfr .vfo{position:absolute;top:7px;right:7px;padding:2px 8px;border-radius:7px;background:#B42318;color:#fff;font:700 11px/18px var(--f)}
+@media (hover:hover) and (pointer:fine){body.vit .vfr:hover .vfl{background:linear-gradient(180deg,transparent,rgba(0,0,0,.78))}}
+body.vit .vfr .vfl{flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:1px;padding:30px 10px 8px}
+body.vit .vfr .vfl b{max-width:100%;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}

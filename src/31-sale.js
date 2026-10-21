@@ -78,7 +78,23 @@ function vitHome() {
   const vc = vitCfg();
   const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
   if (vc.img) return `<div class="vit-home custom"><div class="vimgbox">${vitImgHtml(vc)}</div></div>`;
+  const fr = vitFruits();
+  if (fr.length) return `<div class="vit-home"><div class="vfrs" style="--vr:${Math.ceil(fr.length / 3)}">${fr.map(vitFruitHtml).join("")}</div></div>`;
   return `<div class="vit-home"><div class="vmos" aria-hidden="true">${tiles}</div></div>`;
+}
+// «Toca la fruta»: la vitrina muestra los productos por kilo con su foto, nombre y precio; un toque abre la cajita de peso
+// (escribes el peso y Enter). Lo que más vendes va primero. Si hay pocos por kilo, se completa con los que no tienen código de barras.
+function vitFruits() {
+  const tops = topIds(), on = DB.products.filter((p) => p.on !== false);
+  const rank = (a, b) => ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || cmpEs(a.name, b.name);
+  const kg = on.filter((p) => p.unit === "kg").sort(rank).slice(0, 12);
+  if (kg.length >= 6) return kg;
+  const more = on.filter((p) => p.unit !== "kg" && !(p.pres || []).length && (!p.code || p.code.length <= 5)).sort(rank);
+  return kg.concat(more).slice(0, kg.length ? 9 : 0);
+}
+function vitFruitHtml(p) {
+  const kg = p.unit === "kg", out = p.stock != null && p.stock <= 0;
+  return `<button class="vfr ${out ? "out" : ""}" data-a="add" data-id="${p.id}" style="--cc:${tintOf(p)}" title="${esc(p.name)}${kg ? " · escribe el peso y Enter" : ""}">${pimg(p, "vfi")}${p.code && p.code.length <= 5 ? `<i class="vfc" title="Código: escríbelo y Enter">${esc(p.code)}</i>` : ""}<span class="vfl"><b>${esc(p.name)}</b><em class="num">${money(p.price)}${kg ? "<small> /kg</small>" : ""}</em></span>${out ? `<span class="vfo">Agotado</span>` : ""}</button>`;
 }
 function vitResults(list, key) {
   const k = norm(key), hit = (n) => { const i = norm(n).indexOf(k); return k && i >= 0 && norm(n).length === n.length ? esc(n.slice(0, i)) + "<mark>" + esc(n.slice(i, i + k.length)) + "</mark>" + esc(n.slice(i + k.length)) : esc(n); };
