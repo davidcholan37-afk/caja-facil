@@ -118,7 +118,7 @@ async function cloudPush(force) {
     // Solo se revisan las ventas, movimientos y kardex de los meses que cambiaron desde la última subida
     // (al abrir la caja, si falló una subida o tras recuperar/importar, se revisa todo una vez).
     const s = cloudLoad(), rows = [], hashes = {}, seen = new Set(), full = force || !cloud.dm, dm = cloud.dm || new Set();
-    cloud.dm = new Set();
+    cloud.dm = new Set(); cloud.dmFly = dm; dmSave();
     const put = (tipo, id, datos, k, hv) => { hashes[k] = hv; if (force || s.h[k] !== hv) rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id, datos, borrado: false, dispositivo: s.dev }); };
     CLOUD_TYPES.forEach((t) => (DB[t] || []).forEach((x) => {
       const id = cloudKeyOf(x), k = t + "|" + id; seen.add(k);
@@ -134,9 +134,9 @@ async function cloudPush(force) {
       part.forEach((r) => { const k = r.tipo + "|" + r.id; if (r.borrado) delete s.h[k]; else s.h[k] = hashes[k]; });
       cloud.pending = Math.max(0, rows.length - i - part.length); cloudStore();
     }
-    s.last = Date.now(); cloud.pending = 0; cloudStore();
+    s.last = Date.now(); cloud.pending = 0; cloudStore(); cloud.dmFly = null; dmSave();
   } catch (e) {
-    cloud.dm = null; // algo no subió: la próxima vez se revisa todo
+    cloud.dm = null; cloud.dmFly = null; dmSave(); // algo no subió: la próxima vez se revisa todo
     cloud.err = /auth/.test(e.message) ? cloud.err || "Vuelve a entrar con Google." : navigator.onLine ? "No se pudo subir. Se reintenta solo." : "Sin internet: se sube solo cuando vuelva la señal.";
   } finally { cloud.busy = false; cloudPaint(); }
 }
@@ -398,7 +398,13 @@ act({
 });
 
 /* ---------- arranque: sesión que vuelve de Google, subida automática ---------- */
+// Meses pendientes de subir, guardados en el equipo: al abrir la caja no hace falta revisar toda la historia otra vez.
+// Se guardan los que están por subir y los que se están subiendo; solo se borran cuando la subida termina bien.
+const DM_KEY = "cf-cloud-dm";
+function dmSave() { try { if (cloud.dm) localStorage.setItem(DM_KEY, JSON.stringify([...new Set([...cloud.dm, ...(cloud.dmFly || [])])])); else localStorage.removeItem(DM_KEY); } catch (e) {} }
+function dmLoad() { try { const v = JSON.parse(localStorage.getItem(DM_KEY) || "null"); if (Array.isArray(v)) cloud.dm = new Set(v); } catch (e) {} }
 function cloudBoot() {
+  dmLoad();
   if (location.hash === "#login-escritorio") { // lo abre el programa de Windows para entrar con Google
     try { localStorage.setItem(DESK_KEY, String(Date.now())); } catch (e) {}
     history.replaceState(null, "", location.pathname); cloudLoginGoogle(); return;
@@ -411,8 +417,8 @@ function cloudBoot() {
   else if (cloudLoad().ses) { applySusp(); cloudStart(); } // entró con Google pero no terminó de conectar
   else applySusp();
   // Cada vez que la app guarda algo, se programa una subida (agrupa los cambios de varios segundos).
-  const _save = save; save = function (...dates) { const out = _save.apply(this, arguments); if (cloud.dm) { cloud.dm.add(mOf()); dates.forEach((d) => d && cloud.dm.add(mOf(d))); } cloudSchedule(); return out; };
-  const _saveAll = saveAll; saveAll = function () { cloud.dm = null; return _saveAll.apply(this, arguments); };
+  const _save = save; save = function (...dates) { const out = _save.apply(this, arguments); if (cloud.dm) { cloud.dm.add(mOf()); dates.forEach((d) => d && cloud.dm.add(mOf(d))); dmSave(); } cloudSchedule(); return out; };
+  const _saveAll = saveAll; saveAll = function () { cloud.dm = null; dmSave(); return _saveAll.apply(this, arguments); };
   window.addEventListener("online", () => cloudSchedule(1000));
   setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } else applySusp(); }, 120000);
 }

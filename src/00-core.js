@@ -196,6 +196,12 @@ function idbOpen() {
   });
 }
 const idbGet = (k) => new Promise((ok, no) => { const q = idb.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); });
+// Lee varias claves en una sola transacción y en paralelo (antes cada mes se pedía y esperaba uno por uno).
+const idbGetMany = (keys) => new Promise((ok, no) => {
+  if (!keys.length) return ok([]);
+  const st = idb.transaction("kv").objectStore("kv"), out = new Array(keys.length); let left = keys.length;
+  keys.forEach((k, i) => { const q = st.get(k); q.onsuccess = () => { out[i] = q.result; if (!--left) ok(out); }; q.onerror = () => no(q.error); });
+});
 function coreJSON() { const o = {}; Object.keys(DB).forEach((k) => { if (!BIG[k]) o[k] = DB[k]; }); return JSON.stringify(o); }
 function monthJSON(m) { const o = {}; Object.keys(BIG).forEach((k) => { o[k] = DB[k].filter((x) => mOf(BIG[k](x)) === m); }); return JSON.stringify(o); }
 function allMonths() { const s = new Set(); Object.keys(BIG).forEach((k) => DB[k].forEach((x) => s.add(mOf(BIG[k](x))))); s.add(mOf()); return [...s].sort(); }
@@ -238,7 +244,8 @@ async function loadDB() {
         obj = JSON.parse(core);
         const months = JSON.parse((await idbGet("months")) || "[]"); knownMonths = months;
         Object.keys(BIG).forEach((k) => { obj[k] = []; });
-        for (const m of months) { const ch = JSON.parse((await idbGet("m:" + m)) || "null"); if (ch) Object.keys(BIG).forEach((k) => { obj[k] = obj[k].concat(ch[k] || []); }); }
+        const raws = await idbGetMany(months.map((m) => "m:" + m));
+        raws.forEach((raw) => { const ch = JSON.parse(raw || "null"); if (ch) Object.keys(BIG).forEach((k) => { const a = ch[k], t = obj[k]; if (a) for (let i = 0; i < a.length; i++) t.push(a[i]); }); });
         try { const tk = JSON.parse((await idbGet("tk")) || "null"); if (tk && Array.isArray(tk.tickets) && tk.tickets.length) CART_KEYS.forEach((k) => { obj[k] = tk[k]; }); } catch (e) {}
       } else {
         const old = await idbGet("db"); // versión 3
