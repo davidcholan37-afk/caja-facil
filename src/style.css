@@ -2495,3 +2495,187 @@ body.vit .side .logo{box-shadow:0 10px 20px -12px rgba(139,212,72,.7)}
 .pmi.m-yape,.pmi.m-plin,.pmi.m-culqi{background:#fff center/86% no-repeat;box-shadow:inset 0 0 0 1px var(--hl2)}
 .pmi.m-yape{background-image:url(img/pagos/yape.png);background-size:cover}.pmi.m-plin{background-image:url(img/pagos/plin.png)}.pmi.m-culqi{background-image:url(img/pagos/culqi.png);background-size:84%}
 @media (max-width:520px){.vdia .vdtot b{font-size:1.9rem}.vdia .vdr b{min-width:0}}
+
+/* ===== Afiches: estilos (A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad, Día de la Madre), combo y lista. Marcado: .vs.s-X > .vs-w ===== */
+.vs{position:absolute;inset:0;container-type:size;overflow:hidden;text-align:left}
+.vs-w{position:absolute;inset:0;font-family:var(--f);color:#141414;line-height:1.05;overflow:hidden}
+.vs-w *{box-sizing:border-box}
+.vs-dec,.vs-biz{display:none}
+.vs-tg,.vs-nm,.vs-sb,.vs-old{display:block;min-width:0}
+.vs-nm{overflow-wrap:break-word;hyphens:manual}
+.vs-im{position:relative;min-height:0;min-width:0}
+.vs-im .vs-pim{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.vs-im.k-foto .vs-pim{object-fit:cover;border-radius:3cqmin}
+.vs-pr{display:inline-flex;align-items:flex-start;line-height:.8;white-space:nowrap;font-variant-numeric:lining-nums}
+.vs-pr small{font-size:.24em;margin:.1em .08em 0 0}
+.vs-pr sup{font-size:.42em;line-height:1;vertical-align:0;margin-top:.04em}
+.vs-pr sup i{font-style:normal}
+.vs-pr em{font-style:normal;font-size:.15em;align-self:flex-end;margin:0 0 .35em .2em;font-weight:600;letter-spacing:0}
+.vs-promo{letter-spacing:-.02em}
+.vs-rows{display:grid;gap:1.4cqmin;align-content:start;width:100%}
+.vs-rows>div{display:flex;align-items:baseline;gap:2cqmin;min-width:0}
+.vs-rows span{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vs-rows i{flex:1 1 4cqmin;min-width:4cqmin;border-bottom:.5cqmin dotted currentColor;opacity:.4;transform:translateY(-.3em)}
+.vs-rows b{flex:none;font-variant-numeric:tabular-nums}
+.vs-rows small{font-size:.7em}
+.t-lista .vs-nm{font-size:10cqmin}
+/* --- A mano: cartulina fosforescente, plumón, precio encerrado y cinta --- */
+.s-mano>.vs-w{background:radial-gradient(120% 90% at 50% 40%,#F7F45A 0%,#EDE832 70%,#DCD62A 100%);color:#16130F;font-family:"Caveat Brush",cursive;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8cqmin 8cqmin 7cqmin;gap:2cqmin}
+.s-mano>.vs-w::before,.s-mano>.vs-w::after{content:"";position:absolute;top:2.5cqmin;width:20cqmin;height:6cqmin;background:rgba(236,226,196,.82);box-shadow:0 .4cqmin 1cqmin rgba(0,0,0,.12)}
+.s-mano>.vs-w::before{left:-3cqmin;transform:rotate(-24deg)}.s-mano>.vs-w::after{right:-3cqmin;transform:rotate(22deg)}
+.s-mano .vs-tg{color:#D7141A;font-size:11cqmin;line-height:1;transform:rotate(-4deg)}
+.s-mano .vs-nm{position:relative;font-size:14cqmin;line-height:.95;padding-bottom:2.6cqmin;font-weight:400}
+.s-mano .vs-nm::after{content:"";position:absolute;left:8%;right:8%;bottom:0;height:2.6cqmin;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12' preserveAspectRatio='none'%3E%3Cpath d='M3 8 C40 2 70 11 105 6 S170 3 197 7' fill='none' stroke='%2316130F' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.s-mano.noimg .vs-tg{font-size:14cqmin}.s-mano.noimg .vs-nm{font-size:19cqmin}
+.s-mano.lg .vs-nm{font-size:11.5cqmin}.s-mano.xl .vs-nm{font-size:8.5cqmin}
+.s-mano .vs-im{width:46cqmin;height:28cqmin;flex:0 1 auto}
+.s-mano .vs-pz{display:flex;flex-direction:column-reverse;align-items:center;gap:1cqmin}
+.s-mano .vs-pr{position:relative;color:#D7141A;font-size:24cqmin;padding:3cqmin 9cqmin 4cqmin;font-family:"Caveat Brush",cursive}
+.s-mano .vs-pr::before{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100' preserveAspectRatio='none'%3E%3Cpath d='M30 12 C70 -2 160 2 188 30 C206 58 170 94 100 95 C34 96 4 74 8 46 C11 24 40 10 92 8' fill='none' stroke='%23D7141A' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.s-mano .vs-pr small{font-size:.42em;margin:.5em .15em 0 0}.s-mano .vs-pr sup{font-size:.5em;margin-top:0}.s-mano .vs-pr sup i{display:none}
+.s-mano .vs-pr em{font-size:.24em}
+.s-mano.noimg .vs-pr{font-size:34cqmin}
+.s-mano .vs-promo{font-size:30cqmin;padding:3cqmin 10cqmin}
+.s-mano .vs-old{font-size:6.5cqmin}.s-mano .vs-old s{text-decoration-thickness:.12em}
+.s-mano .vs-sb{font-size:6.5cqmin}
+.s-mano .vs-rows{font-size:7.5cqmin;text-align:left;max-width:88cqmin}.s-mano .vs-rows b{color:#D7141A}
+.s-mano.t-aviso .vs-nm{font-size:16cqmin}.s-mano.t-aviso.lg .vs-nm{font-size:12cqmin}.s-mano.t-aviso.xl .vs-nm{font-size:9.5cqmin}
+/* --- Súper: franja roja, precio con céntimos arriba, nombre de la tienda --- */
+.s-super>.vs-w{background:#fff;color:#141414;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:16cqmin auto minmax(0,1fr) auto auto;grid-template-areas:"tg tg" "nm im" "rw im" "pz pz" "bz bz"}
+.s-super .vs-tg{grid-area:tg;background:#E30613;color:#fff;font:900 9cqmin/1 "Archivo",var(--f);font-stretch:75%;text-transform:uppercase;letter-spacing:.01em;padding:0 6cqmin;display:flex;align-items:center}
+.s-super .vs-sb{position:absolute;top:0;right:6cqmin;height:16cqmin;max-width:48%;display:flex;align-items:center;justify-content:flex-end;text-align:right;color:#fff;font-weight:600;font-size:3.8cqmin;line-height:1.15}
+.s-super .vs-nm{grid-area:nm;padding:6cqmin 4cqmin 0 6cqmin;font-weight:700;font-size:9.5cqmin;letter-spacing:-.03em;line-height:1}
+.s-super.noimg .vs-nm{grid-column:1/3;font-size:11cqmin}.s-super.lg .vs-nm{font-size:8cqmin}.s-super.xl .vs-nm{font-size:6.4cqmin}
+.s-super .vs-im{grid-area:im;width:32cqmin;height:32cqmin;margin:6cqmin 6cqmin 0 0}
+.s-super .vs-rows{grid-area:rw;padding:4cqmin 6cqmin 0;font-size:5.6cqmin;font-weight:600}.s-super .vs-rows b{color:#E30613;font-weight:800}
+.s-super .vs-pz{grid-area:pz;display:flex;align-items:flex-end;justify-content:space-between;gap:3cqmin;padding:0 6cqmin 4cqmin}
+.s-super .vs-old{font-size:4.4cqmin;color:#5A5A5A;font-weight:500;padding-bottom:3cqmin}.s-super .vs-old s{color:#141414;font-weight:650}
+.s-super .vs-pr{margin-left:auto;font:900 40cqmin/.8 "Archivo",var(--f);font-stretch:75%;color:#E30613;letter-spacing:-.02em}
+.s-super.noimg .vs-pr{font-size:46cqmin}
+.s-super .vs-pr sup{text-decoration:underline;text-decoration-thickness:.07em;text-underline-offset:.08em}
+.s-super .vs-promo{font-size:30cqmin}
+.s-super .vs-biz{grid-area:bz;display:block;border-top:.5cqmin dashed #CFCFCF;padding:2.4cqmin 6cqmin;font-size:3.3cqmin;color:#5A5A5A;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-super.t-aviso .vs-nm{grid-row:2/4;grid-column:1/3;align-self:center;font-size:12cqmin}.s-super.t-aviso.lg .vs-nm{font-size:9.5cqmin}.s-super.t-aviso.xl .vs-nm{font-size:7.5cqmin}
+/* --- Pizarra: tiza sobre pizarra con marco de madera --- */
+.s-pizarra>.vs-w{background:radial-gradient(60% 40% at 30% 30%,rgba(255,255,255,.05),transparent 70%),radial-gradient(50% 35% at 75% 75%,rgba(255,255,255,.04),transparent 70%),#1F2B25;border:3.4cqmin solid #8A5A34;box-shadow:inset 0 0 0 .6cqmin #6B4325,inset 0 0 6cqmin rgba(0,0,0,.45);color:#F4F1E8;font-family:"Caveat Brush",cursive;display:flex;flex-direction:column;justify-content:center;gap:3cqmin;padding:6cqmin 8cqmin;text-shadow:0 0 .25cqmin rgba(255,255,255,.35)}
+.s-pizarra .vs-tg{align-self:flex-start;color:#F3DE7A;font-size:8cqmin;line-height:1;border-bottom:.6cqmin solid rgba(243,222,122,.75);padding-bottom:1cqmin}
+.s-pizarra .vs-nm{font-size:14cqmin;line-height:.95;font-weight:400}
+.s-pizarra.noimg .vs-tg{font-size:10cqmin}.s-pizarra.noimg .vs-nm{font-size:19cqmin}.s-pizarra.lg .vs-nm{font-size:11cqmin}.s-pizarra.xl .vs-nm{font-size:8.5cqmin}
+.s-pizarra .vs-im{width:40cqmin;height:24cqmin;flex:0 1 auto;filter:saturate(.9)}
+.s-pizarra .vs-pz{display:flex;flex-direction:row-reverse;justify-content:flex-end;align-items:flex-end;gap:5cqmin}
+.s-pizarra .vs-pr{color:#F3DE7A;font-size:26cqmin;font-family:"Caveat Brush",cursive;line-height:.85}
+.s-pizarra .vs-pr small{font-size:.45em;margin:.45em .15em 0 0}.s-pizarra .vs-pr sup{font-size:1em;margin:0}
+.s-pizarra.noimg .vs-pr{font-size:36cqmin}
+.s-pizarra .vs-promo{font-size:30cqmin}
+.s-pizarra .vs-old{font-size:6.5cqmin;opacity:.85;padding-bottom:2cqmin}.s-pizarra .vs-old s{text-decoration-thickness:.1em}
+.s-pizarra .vs-sb{font-size:6cqmin;opacity:.85}
+.s-pizarra .vs-rows{font-size:7.5cqmin}.s-pizarra .vs-rows b{color:#F3DE7A}
+.s-pizarra.t-aviso .vs-nm{font-size:15cqmin}.s-pizarra.t-aviso.lg .vs-nm{font-size:11.5cqmin}.s-pizarra.t-aviso.xl .vs-nm{font-size:9cqmin}
+/* --- Encarte: amarillo con letras gruesas y franja roja con el precio --- */
+.s-encarte>.vs-w{background:#FFD60A;color:#111;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr) auto auto auto;grid-template-areas:"tg tg" "nm im" "sb sb" "rw rw" "pz pz"}
+.s-encarte .vs-tg{grid-area:tg;justify-self:start;margin:6cqmin 6cqmin 0;background:#111;color:#FFD60A;font:900 6.5cqmin/1 "Archivo",var(--f);font-stretch:75%;text-transform:uppercase;padding:1.6cqmin 3cqmin}
+.s-encarte .vs-nm{grid-area:nm;align-self:end;padding:3cqmin 3cqmin 3cqmin 6cqmin;font:900 18cqmin/.86 "Archivo",var(--f);font-stretch:75%;text-transform:uppercase;letter-spacing:-.01em}
+.s-encarte.noimg .vs-nm{grid-column:1/3;font-size:21cqmin}.s-encarte.lg .vs-nm{font-size:13cqmin}.s-encarte.xl .vs-nm{font-size:9.5cqmin}
+.s-encarte .vs-im{grid-area:im;width:34cqmin;height:34cqmin;align-self:end;margin:0 6cqmin 3cqmin 0}
+.s-encarte .vs-sb{grid-area:sb;padding:0 6cqmin 3cqmin;font-weight:700;font-size:4.8cqmin}
+.s-encarte .vs-rows{grid-area:rw;padding:0 6cqmin 4cqmin;font:800 6cqmin/1.1 "Archivo",var(--f);font-stretch:85%}.s-encarte .vs-rows b{color:#D7141A}
+.s-encarte .vs-pz{grid-area:pz;position:relative;overflow:hidden;background:#D7141A;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:4cqmin;padding:4cqmin 6cqmin}
+.s-encarte .vs-old{font-weight:600;font-size:4.6cqmin}.s-encarte .vs-old s{opacity:.9}
+.s-encarte .vs-pr{margin-left:auto;font:900 34cqmin/.8 "Archivo",var(--f);font-stretch:75%}
+.s-encarte .vs-promo{font-size:24cqmin}
+.s-encarte.t-aviso .vs-nm{grid-row:2/5;align-self:center;font-size:15cqmin}.s-encarte.t-aviso.lg .vs-nm{font-size:11cqmin}.s-encarte.t-aviso.xl .vs-nm{font-size:8.5cqmin}
+/* --- Verde: los colores de tu caja, sobrio --- */
+.s-verde>.vs-w{background:#0F4D32;color:#fff;display:flex;flex-direction:column;padding:7cqmin}
+.s-verde .vs-tg{display:flex;align-items:center;gap:2cqmin;color:#8BD448;font-weight:650;font-size:4.6cqmin}
+.s-verde .vs-tg::before{content:"";width:2.2cqmin;height:2.2cqmin;border-radius:50%;background:#8BD448}
+.s-verde .vs-im{flex:1;width:100%;margin-top:4cqmin;background:#fff;border-radius:4cqmin}
+.s-verde .vs-im .vs-pim{inset:4cqmin;width:calc(100% - 8cqmin);height:calc(100% - 8cqmin)}
+.s-verde .vs-im.k-foto .vs-pim{inset:0;width:100%;height:100%;border-radius:4cqmin}
+.s-verde .vs-nm{margin-top:auto;padding-top:4cqmin;font-weight:650;font-size:10cqmin;letter-spacing:-.035em;line-height:1}
+.s-verde.noimg .vs-nm{font-size:15cqmin}.s-verde.lg .vs-nm{font-size:8cqmin}.s-verde.xl .vs-nm{font-size:6.4cqmin}
+.s-verde .vs-rows{margin-top:4cqmin;font-size:5.4cqmin;color:#E4F1E9}.s-verde .vs-rows b{color:#8BD448}
+.s-verde .vs-pz{display:flex;align-items:flex-end;justify-content:space-between;gap:4cqmin;margin-top:3cqmin;border-top:.4cqmin solid rgba(255,255,255,.18);padding-top:3cqmin}
+.s-verde .vs-old{color:#BFD8C9;font-size:4.2cqmin;font-weight:500;padding-bottom:2cqmin}.s-verde .vs-old s{color:#fff}
+.s-verde .vs-pr{margin-left:auto;font:800 30cqmin/.8 "Archivo",var(--f);font-stretch:75%;color:#8BD448;letter-spacing:-.02em}
+.s-verde .vs-pr small,.s-verde .vs-pr em{color:#fff}
+.s-verde.noimg .vs-pr{font-size:48cqmin}
+.s-verde .vs-promo{font-size:30cqmin}
+.s-verde .vs-sb{margin-top:2cqmin;color:#BFD8C9;font-size:4.2cqmin;font-weight:500}
+.s-verde.t-aviso .vs-nm{margin:auto 0;font-size:12cqmin}.s-verde.t-aviso.lg .vs-nm{font-size:9.5cqmin}.s-verde.t-aviso.xl .vs-nm{font-size:7.5cqmin}
+/* --- Fechas: Fiestas Patrias, Navidad y Día de la Madre (centrados) --- */
+.s-patrias>.vs-w,.s-navidad>.vs-w,.s-mama>.vs-w{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2.6cqmin;padding:8cqmin 10cqmin}
+.s-patrias .vs-im,.s-navidad .vs-im,.s-mama .vs-im{width:44cqmin;height:28cqmin;flex:0 1 auto}
+.s-patrias .vs-pz,.s-navidad .vs-pz,.s-mama .vs-pz{display:flex;flex-direction:column-reverse;align-items:center;gap:1.4cqmin}
+.s-patrias .vs-pr,.s-navidad .vs-pr,.s-mama .vs-pr{font:900 28cqmin/.8 "Archivo",var(--f);font-stretch:75%}
+.s-patrias.noimg .vs-pr,.s-navidad.noimg .vs-pr,.s-mama.noimg .vs-pr{font-size:38cqmin}
+.s-patrias .vs-promo,.s-navidad .vs-promo,.s-mama .vs-promo{font-size:26cqmin}
+.s-patrias .vs-old,.s-navidad .vs-old,.s-mama .vs-old,.s-patrias .vs-sb,.s-navidad .vs-sb,.s-mama .vs-sb{font-size:4.6cqmin;font-weight:600}
+.s-patrias .vs-nm,.s-navidad .vs-nm,.s-mama .vs-nm{font-weight:700;font-size:10cqmin;letter-spacing:-.03em}
+.s-patrias.noimg .vs-nm,.s-navidad.noimg .vs-nm,.s-mama.noimg .vs-nm{font-size:13cqmin}
+.s-patrias.lg .vs-nm,.s-navidad.lg .vs-nm,.s-mama.lg .vs-nm{font-size:8.5cqmin}.s-patrias.xl .vs-nm,.s-navidad.xl .vs-nm,.s-mama.xl .vs-nm{font-size:7cqmin}
+.s-patrias .vs-rows,.s-navidad .vs-rows,.s-mama .vs-rows{font-size:5.6cqmin;font-weight:600;text-align:left}
+.s-patrias>.vs-w{background:linear-gradient(90deg,#D91023 0 12%,#fff 12% 88%,#D91023 88%);color:#1A1A1A;padding:8cqmin 17cqmin}
+.s-patrias .vs-tg{color:#D91023;font:900 6cqmin/1 "Archivo",var(--f);font-stretch:80%;text-transform:uppercase;letter-spacing:.06em}
+.s-patrias .vs-pr,.s-patrias .vs-rows b{color:#D91023}
+.s-navidad>.vs-w{background:radial-gradient(rgba(255,255,255,.16) .45cqmin,transparent .55cqmin) 0 0/9cqmin 9cqmin,#0E3B2A;box-shadow:inset 0 0 0 2.4cqmin #0E3B2A,inset 0 0 0 2.9cqmin #D4AF37;color:#fff}
+.s-navidad .vs-tg{color:#F2C14E;font:400 10cqmin/1 "Caveat Brush",cursive}
+.s-navidad .vs-pr,.s-navidad .vs-rows b{color:#F2C14E}
+.s-navidad .vs-im{background:#fff;border-radius:4cqmin}.s-navidad .vs-im .vs-pim{inset:2.5cqmin;width:calc(100% - 5cqmin);height:calc(100% - 5cqmin)}
+.s-mama>.vs-w{background:radial-gradient(70% 60% at 85% 10%,rgba(219,39,119,.14),transparent 70%),radial-gradient(60% 50% at 10% 95%,rgba(219,39,119,.1),transparent 70%),#FDEBF1;color:#831843}
+.s-mama .vs-tg{color:#DB2777;font:400 11cqmin/1 "Caveat Brush",cursive}
+.s-mama .vs-pr,.s-mama .vs-rows b{color:#BE185D}
+.s-patrias.t-aviso .vs-nm,.s-navidad.t-aviso .vs-nm,.s-mama.t-aviso .vs-nm{font-size:13cqmin}
+.s-patrias.t-aviso.lg .vs-nm,.s-navidad.t-aviso.lg .vs-nm,.s-mama.t-aviso.lg .vs-nm{font-size:10cqmin}
+/* Clásico: combo y lista */
+.vtp-promo{font-size:20cqmin!important}
+.vtp-rows{display:grid;gap:1.2cqmin;width:min(100%,92cqmin);font:600 5.2cqmin/1.1 var(--f);color:inherit}
+.vtp-rows>div{display:flex;align-items:baseline;gap:2cqmin}.vtp-rows span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vtp-rows i{flex:1;border-bottom:.5cqmin dotted currentColor;opacity:.45}.vtp-rows b{flex:none;font-weight:800}
+/* Tira de estilos (chat de Luis y Ajustes) */
+.vsts{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;margin:8px 0 2px;scrollbar-width:thin}
+.vst{flex:none;display:grid;gap:4px;justify-items:center;border:0;background:none;padding:0;cursor:pointer;color:var(--t2);font:600 11px/1.2 var(--f);transition:transform .16s var(--ease-out,ease-out)}
+.vst-b{position:relative;display:block;width:58px;aspect-ratio:3/4;border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--hl2)}
+.vst.on .vst-b{box-shadow:0 0 0 2.5px var(--ac)}
+.vst.on small{color:var(--t1)}
+.vst:active{transform:scale(.97)}
+.vst:focus-visible{outline:none}.vst:focus-visible .vst-b{box-shadow:0 0 0 3px var(--ac)}
+.hl-vit .vsts{margin:8px -2px 4px}
+.hl-vit .vst{color:inherit;opacity:.72}.hl-vit .vst.on{opacity:1}
+.hl-vit .vst-b{box-shadow:0 0 0 1px rgba(127,127,127,.35)}.hl-vit .vst.on .vst-b{box-shadow:0 0 0 2.5px var(--ac)}
+.hl-vwhy{margin:8px 0 0;font-size:13px;line-height:1.4;color:inherit;opacity:.88}
+.hl-vco{display:flex;gap:8px;align-items:flex-start;margin:8px 0 2px;font-size:13px;line-height:1.35;color:inherit;cursor:pointer}
+.hl-vco input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--ac);flex:none}
+.hl-vco small{opacity:.65}
+.vtpf .vsts{margin:4px 0 0}
+/* Movimiento: al aparecer un afiche entra la etiqueta, sube el nombre y el precio cae como sello. Una sola vez, solo transform/opacity. */
+@keyframes vsDrop{from{opacity:0;transform:translateY(-18%)}}
+@keyframes vsUp{from{opacity:0;transform:translateY(14%)}}
+@keyframes vsStamp{0%{opacity:0;transform:scale(1.35)}60%{opacity:1}}
+@keyframes vsShine{from{transform:translateX(-130%) skewX(-18deg)}to{transform:translateX(330%) skewX(-18deg)}}
+@media (prefers-reduced-motion:no-preference){
+  html:not(.lite) .vsl.on .vs-tg,html:not(.lite) .vsl.on .vtp-tag{animation:vsDrop .3s var(--ease-out,ease-out) .1s both}
+  html:not(.lite) .vsl.on .vs-nm,html:not(.lite) .vsl.on .vtp-nm,html:not(.lite) .vsl.on .vs-rows,html:not(.lite) .vsl.on .vtp-rows,html:not(.lite) .vsl.on .vs-im{animation:vsUp .32s var(--ease-out,ease-out) .16s both}
+  html:not(.lite) .vsl.on .vs-pr,html:not(.lite) .vsl.on .vtp-pr{animation:vsStamp .28s cubic-bezier(.2,1.3,.4,1) .3s both}
+  html:not(.lite) .vsl.on .vtp-pr,html:not(.lite) .vsl.on .s-encarte .vs-pz,html:not(.lite) .vsl.on .s-super .vs-tg{position:relative;overflow:hidden}
+  html:not(.lite) .vsl.on .vtp-pr::after,html:not(.lite) .vsl.on .s-encarte .vs-pz::after,html:not(.lite) .vsl.on .s-super .vs-tg::after{content:"";position:absolute;top:0;bottom:0;left:0;width:30%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform:translateX(-130%) skewX(-18deg);animation:vsShine .7s ease-out .65s both;pointer-events:none}
+}
+/* Encarte con foto al lado: el nombre más chico para no cortar palabras */
+.s-encarte:not(.noimg) .vs-nm{font-size:14cqmin}.s-encarte.lg:not(.noimg) .vs-nm{font-size:11cqmin}
+.s-encarte.t-aviso.xl .vs-nm{font-size:10.5cqmin}.s-super.t-aviso.xl .vs-nm{font-size:9cqmin}
+.s-patrias.t-lista>.vs-w{padding:8cqmin 14cqmin}
+/* Afiches anchos (chat, Ajustes o pantallas muy anchas): la foto a la izquierda y el texto a la derecha */
+@container (min-aspect-ratio:5/4){
+  .s-mano:not(.noimg)>.vs-w,.s-pizarra:not(.noimg)>.vs-w,.s-patrias:not(.noimg)>.vs-w,.s-navidad:not(.noimg)>.vs-w,.s-mama:not(.noimg)>.vs-w{display:grid;grid-template-columns:42% minmax(0,1fr);grid-template-rows:1fr auto auto auto auto 1fr;grid-template-areas:". ." "im tg" "im nm" "im pz" "im sb" ". .";align-items:center;justify-items:center;column-gap:5cqmin;row-gap:1.6cqmin}
+  .s-pizarra:not(.noimg)>.vs-w{justify-items:start}
+  .s-mano:not(.noimg) .vs-im,.s-pizarra:not(.noimg) .vs-im,.s-patrias:not(.noimg) .vs-im,.s-navidad:not(.noimg) .vs-im,.s-mama:not(.noimg) .vs-im{grid-area:im;grid-row:1/-1;width:100%;height:78cqmin}
+  .s-mano .vs-tg,.s-pizarra .vs-tg,.s-patrias .vs-tg,.s-navidad .vs-tg,.s-mama .vs-tg{grid-area:tg}
+  .s-mano .vs-nm,.s-pizarra .vs-nm,.s-patrias .vs-nm,.s-navidad .vs-nm,.s-mama .vs-nm{grid-area:nm}
+  .s-mano .vs-pz,.s-pizarra .vs-pz,.s-patrias .vs-pz,.s-navidad .vs-pz,.s-mama .vs-pz{grid-area:pz}
+  .s-mano .vs-sb,.s-pizarra .vs-sb,.s-patrias .vs-sb,.s-navidad .vs-sb,.s-mama .vs-sb{grid-area:sb}
+  .s-verde:not(.noimg)>.vs-w{display:grid;grid-template-columns:46% minmax(0,1fr);grid-template-rows:auto 1fr auto auto;grid-template-areas:"im tg" "im nm" "im pz" "im sb";column-gap:6cqmin}
+  .s-verde:not(.noimg) .vs-im{grid-area:im;margin:0;height:100%}
+  .s-verde:not(.noimg) .vs-tg{grid-area:tg}.s-verde:not(.noimg) .vs-nm{grid-area:nm;align-self:end}.s-verde:not(.noimg) .vs-pz{grid-area:pz}.s-verde:not(.noimg) .vs-sb{grid-area:sb}
+  .s-verde:not(.noimg) .vs-pr{font-size:34cqmin}
+  .vs.t-aviso .vs-nm{font-size:7.5cqw!important}.vs.t-aviso.lg .vs-nm{font-size:6cqw!important}.vs.t-aviso.xl .vs-nm{font-size:4.8cqw!important}
+  .s-patrias>.vs-w{background:linear-gradient(90deg,#D91023 0 9%,#fff 9% 91%,#D91023 91%);padding-left:13cqw;padding-right:13cqw}
+}

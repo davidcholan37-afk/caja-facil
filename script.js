@@ -1787,14 +1787,27 @@ function vitImgForm(v) {
 }
 function vitTplForm(v) {
   const p = v.pid ? prod(v.pid) : null, names = DB.products.filter((x) => x.on !== false).slice(0, 600).map((x) => `<option value="${esc(x.name)}"></option>`).join("");
+  const T = v.tpl, conProd = !["aviso", "lista"].includes(T);
+  const rowsTxt = (v.rows || []).map((r) => `${r.name || (r.pid && prod(r.pid) ? prod(r.pid).name : "")}${+r.price ? " " + (+r.price).toFixed(2) : ""}`).join("\n");
   return `<div class="vtform"><div class="vtpwrap"><div class="vtp-prev" style="aspect-ratio:${vitAspect()}">${vitTplHtml(v)}</div>
-    <div class="vtpf"><div class="seg vtpk" role="group" aria-label="Plantilla">${VIT_TPLS.map(([k, n]) => `<button class="${v.tpl === k ? "on" : ""}" data-a="vtpset" data-k="tpl" data-v="${k}">${n}</button>`).join("")}</div>
-      <button class="btn sec sm" data-a="vtpset" data-k="tone" data-v="${((v.tone || 0) + 1) % 3}">Otro estilo de color</button>
-      ${v.tpl === "aviso" ? "" : `<label class="vtmini"><span>Producto</span><input class="inp" list="vtpprods" data-vtp="prod" value="${esc(p ? p.name : "")}" placeholder="Escribe y elige" autocomplete="off"><datalist id="vtpprods">${names}</datalist></label>`}
-      <label class="vtmini"><span>${v.tpl === "aviso" ? "Aviso" : "Título (vacío = nombre del producto)"}</span><input class="inp" data-vtp="title" maxlength="70" value="${esc(v.title || "")}"></label>
-      ${v.tpl === "aviso" ? "" : `<label class="vtmini"><span>Precio a mostrar (vacío = el de la caja)</span><input class="inp num" data-vtp="price" inputmode="decimal" value="${v.price ? (+v.price).toFixed(2) : ""}" placeholder="${p ? vitTplPrice(Object.assign({}, v, { price: 0 }), p).pr.toFixed(2) : "0.00"}"></label>`}
-      <label class="vtmini"><span>Texto chico (opcional)</span><input class="inp" data-vtp="sub" maxlength="50" value="${esc(v.sub || "")}" placeholder="${v.tpl === "aviso" ? "Ej: Gracias por su preferencia" : "Ej: Solo este fin de semana"}"></label>
+    <div class="vtpf"><div class="seg vtpk" role="group" aria-label="Plantilla">${VIT_TPLS.map(([k, n]) => `<button class="${T === k ? "on" : ""}" data-a="vtpset" data-k="tpl" data-v="${k}">${n}</button>`).join("")}</div>
+      <div class="vtmini"><span>Estilo</span>${vitStStrip(v, "vtpset")}</div>
+      ${!v.st || v.st === "clasico" ? `<button class="btn sec sm" data-a="vtpset" data-k="tone" data-v="${((v.tone || 0) + 1) % 3}">Otro color</button>` : ""}
+      ${conProd ? `<label class="vtmini"><span>Producto${T === "combo" ? " (opcional)" : ""}</span><input class="inp" list="vtpprods" data-vtp="prod" value="${esc(p ? p.name : "")}" placeholder="Escribe y elige" autocomplete="off"><datalist id="vtpprods">${names}</datalist></label>` : ""}
+      ${T === "combo" ? `<label class="vtmini"><span>Promoción</span><input class="inp" data-vtp="promo" maxlength="24" value="${esc(v.promo || "")}" placeholder="Ej: 2x1, 3x2, 3 x S/ 10"></label>` : ""}
+      <label class="vtmini"><span>${T === "aviso" ? "Aviso" : T === "lista" ? "Título" : "Título (vacío = nombre del producto)"}</span><input class="inp" data-vtp="title" maxlength="70" value="${esc(v.title || "")}"></label>
+      ${T === "lista" ? `<label class="vtmini"><span>Productos y precios (uno por línea; sin precio usa el de la caja)</span><textarea class="inp" data-vtp="rows" rows="5" placeholder="Papaya 3.50\nMango 5\nPlátano">${esc(rowsTxt)}</textarea></label>` : ""}
+      ${conProd && T !== "combo" ? `<label class="vtmini"><span>Precio a mostrar (vacío = el de la caja)</span><input class="inp num" data-vtp="price" inputmode="decimal" value="${v.price ? (+v.price).toFixed(2) : ""}" placeholder="${p ? vitTplPrice(Object.assign({}, v, { price: 0 }), p).pr.toFixed(2) : "0.00"}"></label>` : ""}
+      <label class="vtmini"><span>Texto chico (opcional)</span><input class="inp" data-vtp="sub" maxlength="50" value="${esc(v.sub || "")}" placeholder="${T === "aviso" ? "Ej: Gracias por su preferencia" : "Ej: Solo este fin de semana"}"></label>
       ${vitUntilFld(v)}<button class="btn sec sm" data-a="vitquitar">Borrar esta vitrina</button></div></div></div>`;
+}
+// «Papaya 3.50» por línea → filas de la lista (busca el producto para tomar su precio si no pones uno)
+function vitRowsParse(txt) {
+  return String(txt || "").split(/\n/).map((l) => l.trim()).filter(Boolean).slice(0, 8).map((l) => {
+    const m = l.match(/^(.*?)\s+(?:s\/\.?\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:soles|sol)?$/i), nm = (m ? m[1] : l).trim(), k = norm(nm);
+    const p = DB.products.find((x) => norm(x.name) === k) || (k.length > 2 ? DB.products.find((x) => x.on !== false && norm(x.name).startsWith(k + " ")) || vitFindProd(nm) : null);
+    return { pid: p ? p.id : "", name: p && norm(p.name) === k ? p.name : nm.slice(0, 40), price: m ? r2(num(m[2])) : 0 };
+  });
 }
 function vitSet(patch, soft) {
   const L = vitList(), i = L.findIndex((x) => x.id === ui.vsl); if (i < 0) return;
@@ -1886,9 +1899,9 @@ document.addEventListener("wheel", (e) => {
 }, { passive: false });
 
 /* ---------- diseños con un producto: se arman en vivo con su foto, nombre y precio (gratis y sin internet) ---------- */
-const VIT_TPLS = [["oferta", "Oferta"], ["nuevo", "Nuevo"], ["precio", "Precio especial"], ["destacado", "Destacado"], ["aviso", "Aviso"]];
+const VIT_TPLS = [["oferta", "Oferta"], ["nuevo", "Nuevo"], ["precio", "Precio especial"], ["destacado", "Destacado"], ["combo", "2x1 o combo"], ["lista", "Lista de precios"], ["aviso", "Aviso"]];
 const VIT_TPL_N = Object.fromEntries(VIT_TPLS);
-const VIT_TAG = { oferta: "Oferta", nuevo: "¡Nuevo!", precio: "Precio especial", destacado: "Recomendado", aviso: "Aviso" };
+const VIT_TAG = { oferta: "Oferta", nuevo: "¡Nuevo!", precio: "Precio especial", destacado: "Recomendado", combo: "Promoción", lista: "Precios de hoy", aviso: "Aviso" };
 // Precio que se muestra: el que pusiste; si no, el de la caja (con su oferta si está vigente, y el normal tachado).
 function vitTplPrice(v, p) {
   const nor = p ? +p.price || 0 : 0, of = p ? ofertaOf(p) : null, mine = +v.price || 0;
@@ -1897,26 +1910,28 @@ function vitTplPrice(v, p) {
   return { pr: nor, old: 0 };
 }
 function vitTplHtml(v) {
-  const p = v.tpl !== "aviso" && v.pid ? prod(v.pid) : null, d = vitTplPrice(v, p), kg = p && p.unit === "kg";
-  const name = v.title || (p ? p.name : v.tpl === "aviso" ? "Escribe tu aviso" : "Elige un producto");
-  const sub = v.sub || (v.h ? `Hasta el ${dmy(v.h).slice(0, 5)}` : "");
-  const img = p ? `<div class="vtp-im k-${imgKind(p)}">${pimg(p, "vtp-pim")}</div>` : "";
-  return `<div class="vtp t-${esc(v.tpl || "oferta")} tn-${(+v.tone || 0) % 3}${img ? "" : " noimg"}"><i class="vtp-dec" aria-hidden="true"></i><div class="vtp-in">${img}<div class="vtp-tx"><span class="vtp-tag">${VIT_TAG[v.tpl] || ""}</span><b class="vtp-nm">${esc(name)}</b>${d.old ? `<s class="vtp-old num">${money(d.old)}</s>` : ""}${d.pr > 0 && v.tpl !== "aviso" ? `<span class="vtp-pr num"><small>S/</small>${d.pr.toFixed(2)}${kg ? "<small>/kg</small>" : ""}</span>` : ""}${sub ? `<span class="vtp-sub">${esc(sub)}</span>` : ""}</div></div></div>`;
+  if (v.st && v.st !== "clasico" && VIT_ST_N[v.st]) return vitStHtml(v);
+  const D = vitTplData(v), p = D.p, d = D.d, kg = D.kg;
+  const img = p && v.tpl !== "lista" ? `<div class="vtp-im k-${imgKind(p)}">${pimg(p, "vtp-pim")}</div>` : "";
+  const big = v.tpl === "aviso" || v.tpl === "lista" ? "" : D.promo ? `<span class="vtp-pr vtp-promo">${esc(D.promo)}</span>` : d.pr > 0 ? `<span class="vtp-pr num"><small>S/</small>${d.pr.toFixed(2)}${kg ? "<small>/kg</small>" : ""}</span>` : "";
+  const old = d.old && !["combo", "lista"].includes(v.tpl) ? `<s class="vtp-old num">${money(d.old)}</s>` : "";
+  return `<div class="vtp t-${esc(v.tpl || "oferta")} tn-${(+v.tone || 0) % 3}${img ? "" : " noimg"}"><i class="vtp-dec" aria-hidden="true"></i><div class="vtp-in">${img}<div class="vtp-tx"><span class="vtp-tag">${D.tag}</span><b class="vtp-nm">${esc(D.name)}</b>${D.rows ? vitRowsHtml(D.rows, "vtp-rows") : ""}${old}${big}${D.sub ? `<span class="vtp-sub">${esc(D.sub)}</span>` : ""}</div></div></div>`;
 }
 const vitSlideHtml = (v, all) => (v.kind === "tpl" ? vitTplHtml(v) : `<div class="vimgbox">${vitImgHtml(v, all)}</div>`);
 // Las que salen en la venta: prendidas, sin vencer y con algo que mostrar.
-const vitActive = () => { const hoy = dkey(); return vitList().filter((v) => v.on !== false && (!v.h || v.h >= hoy) && (v.kind === "tpl" ? (v.tpl === "aviso" ? !!v.title : !!(v.pid && prod(v.pid)) || !!v.title) : !!v.img)); };
+const vitActive = () => { const hoy = dkey(); return vitList().filter((v) => v.on !== false && (!v.h || v.h >= hoy) && (v.kind === "tpl" ? (v.tpl === "aviso" ? !!v.title : v.tpl === "lista" ? !!(v.rows && v.rows.length) : !!(v.pid && prod(v.pid)) || !!v.title || !!v.promo) : !!v.img)); };
 function vitSlidesHtml() {
   const L = vitActive(); if (!L.length) return "";
   const cur = (ui.vsi || 0) % L.length;
-  return `<div class="vit-home custom vslides">${L.map((v, i) => `<div class="vsl${i === cur ? " on" : ""}">${vitSlideHtml(v)}</div>`).join("")}${L.length > 1 ? `<div class="vdots" aria-hidden="true">${L.map((v, i) => `<i class="${i === cur ? "on" : ""}"></i>`).join("")}</div>` : ""}</div>`;
+  // Solo se dibuja el afiche que se ve; los demás se dibujan cuando les toca (vitTurn): rápido aunque haya 12.
+  return `<div class="vit-home custom vslides">${L.map((v, i) => `<div class="vsl${i === cur ? " on" : ""}">${i === cur ? vitSlideHtml(v) : ""}</div>`).join("")}${L.length > 1 ? `<div class="vdots" aria-hidden="true">${L.map((v, i) => `<i class="${i === cur ? "on" : ""}"></i>`).join("")}</div>` : ""}</div>`;
 }
 // Turno: cada N segundos pasa a la siguiente (solo cambia clases, no vuelve a dibujar la pantalla).
 function vitTurn() {
   const box = document.querySelector("#grid .vslides");
   if (box && !document.hidden) {
     const sl = box.querySelectorAll(".vsl");
-    if (sl.length > 1) { const n = ((ui.vsi || 0) + 1) % sl.length; ui.vsi = n; sl.forEach((e, i) => e.classList.toggle("on", i === n)); box.querySelectorAll(".vdots i").forEach((e, i) => e.classList.toggle("on", i === n)); }
+    if (sl.length > 1) { const n = ((ui.vsi || 0) + 1) % sl.length; ui.vsi = n; if (!sl[n].firstChild) { const v = vitActive()[n]; if (v) sl[n].innerHTML = vitSlideHtml(v); } sl.forEach((e, i) => e.classList.toggle("on", i === n)); box.querySelectorAll(".vdots i").forEach((e, i) => e.classList.toggle("on", i === n)); }
   }
   setTimeout(vitTurn, Math.max(3, +DB.cfg.vitRot || 8) * 1000);
 }
@@ -1931,9 +1946,9 @@ act({
   vsel: (el) => { ui.vsl = ui.vsl === el.dataset.id ? null : el.dataset.id; render(); },
   vson: (el) => { const v = vitList().find((x) => x.id === el.dataset.id); if (!v) return; v.on = v.on === false; save(); render(); },
   vsmove: (el) => { const L = vitList(), i = L.findIndex((x) => x.id === el.dataset.id), j = i + (+el.dataset.d); if (i < 0 || j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; save(); render(); },
-  vtpnew: () => { const top = topIds()[0], p = (top && prod(top)) || DB.products.find((x) => x.on !== false); const n = vitNewTpl({ pid: p ? p.id : "", tpl: p ? "oferta" : "aviso" }); if (n) { ui.vsl = n.id; render(); } },
+  vtpnew: () => { const top = topIds()[0], p = (top && prod(top)) || DB.products.find((x) => x.on !== false); const n = vitNewTpl({ pid: p ? p.id : "", tpl: p ? "oferta" : "aviso", st: p ? "super" : "pizarra" }); if (n) { ui.vsl = n.id; render(); } },
   vianew: () => { helpOpen(); const i = $("#helpInput"); if (i) { i.value = "Dibuja "; i.focus(); try { i.setSelectionRange(7, 7); } catch (e) {} } },
-  vtpset: (el) => { const k = el.dataset.k; vitSet({ [k]: k === "tone" ? +el.dataset.v : el.dataset.v }); render(); }
+  vtpset: (el) => { const k = el.dataset.k, v = vitSel(); if (k === "st" && v && el.dataset.v === "clasico" && (!v.st || v.st === "clasico")) { vitSet({ tone: ((+v.tone || 0) + 1) % 3 }); return void render(); } vitSet({ [k]: k === "tone" ? +el.dataset.v : el.dataset.v }); render(); }
 });
 let vtpSaveT = 0;
 document.addEventListener("input", (e) => {
@@ -1944,6 +1959,8 @@ document.addEventListener("input", (e) => {
   let patch;
   if (d.vtp === "prod") { const n = norm(t.value), p = DB.products.find((x) => norm(x.name) === n); if (!p) return; patch = { pid: p.id }; }
   else if (d.vtp === "price") patch = { price: Math.max(0, r2(num(t.value) || 0)) };
+  else if (d.vtp === "rows") patch = { rows: vitRowsParse(t.value) };
+  else if (d.vtp === "promo") patch = { promo: t.value.slice(0, 24) };
   else patch = { [d.vtp]: t.value.slice(0, 70) };
   vitSet(patch, true); vitTplLive(); clearTimeout(vtpSaveT); vtpSaveT = setTimeout(save, 500);
 });
@@ -1982,27 +1999,32 @@ function vitFindProd(q) {
   });
   return bs >= 10 ? best : null;
 }
-const VIT_RELLENO = new Set("haz hazme hace crea creame pon ponme ponle arma armame prepara preparame genera quiero una un uno la el lo los las de del para en con a al por que mi mis tu su vitrina afiche cartel letrero banner poster publicidad anuncio anuncia imagen diseno diseño oferta ofertita promo promocion descuento remate liquidacion nuevo nueva novedad llego llegaron recien destaca destacado destacada recomendado recomendada recomienda precio especial aviso avisa luis porfa favor soles sol s/ s/. esta este solo nomas hoy hasta y ya tenemos hay venta".split(" "));
+const VIT_RELLENO = new Set("haz hazme hace crea creame pon ponme ponle arma armame prepara preparame genera quiero una un uno la el lo los las de del para en con a al por que mi mis tu su vitrina afiche cartel letrero banner poster publicidad anuncio anuncia imagen diseno diseño oferta ofertas ofertita promo promocion descuento remate liquidacion nuevo nueva novedad llego llegaron recien destaca destacado destacada recomendado recomendada recomienda precio precios especial aviso avisa luis porfa favor soles sol s/ s/. esta este solo nomas hoy hasta y ya tenemos hay venta estilo tipo como combo lista lleva llevas paga pagas x".split(" "));
 function vitParseLuis(text) {
   const t = String(text || "").trim(), n = norm(t).replace(/\s+/g, " ");
   // 1) dibujo con IA
   const ia = n.match(/^(?:luis,?\s+)?(?:por favor\s+)?(?:dibuja|dibujame|dibujar|genera|generame|crea|creame|haz|hazme)\s+(?:una?\s+)?(?:imagen|foto|dibujo|fondo|ilustracion)\b(?:\s+con\s+ia)?[\s,:]*(?:de|con|para)?\s*/) || n.match(/^(?:luis,?\s+)?(?:dibuja|dibujame)\s+/);
   if (ia) { const idea = t.slice(ia[0].length).trim(); return { ia: idea || t }; }
-  // 2) afiche con un producto o un aviso
-  const ctx = /\b(vitrina|afiche|cartel|letrero|banner|poster|publicidad)\b/.test(n);
-  const tpl = /\b(oferta|ofertita|promo|promocion|descuento|remate|liquidacion)\b/.test(n) ? "oferta"
+  // 2) ideas de Luis: «¿qué oferta hago?», «sugiéreme ofertas»
+  if (vitIdeasPedido(n)) return { ideas: true };
+  // 3) afiche con un producto, combo, lista de precios o aviso (con estilo si lo dice)
+  const sty = vitParseStyle(n), stv = sty ? sty[0] : "";
+  const ctx = /\b(vitrina|afiche|cartel|letrero|banner|poster|publicidad)\b/.test(n) || !!sty;
+  const promo = vitParsePromo(n), lista = /\b(oferta|ofertas|promo|promocion|lista de precios?|precios de)\b/.test(n) ? vitParseList(t, n) : null;
+  if (lista) return Object.assign({ tpl: "lista", st: stv, tone: 0, pid: "", sub: "", price: 0, h: (vitHasta(n) || [""])[0] }, lista);
+  const tpl = promo || /\bcombo\b/.test(n) ? "combo" : /\b(oferta|ofertita|promo|promocion|descuento|remate|liquidacion)\b/.test(n) ? "oferta"
     : /^(?:luis,?\s+)?(?:pon(?:me)?\s+(?:un\s+)?|haz(?:me)?\s+un\s+|crea\s+un\s+)?(aviso|anuncio|comunicado)\b|\b(avisa|anuncia) que\b|\bque diga\b/.test(n) ? "aviso"
     : /\b(destaca|destacado|destacada|recomendado|recomendada|recomienda)\b/.test(n) ? "destacado"
     : /\bprecio especial\b/.test(n) ? "precio"
     : /\b(nuevo|nueva|novedad|llego|recien llegad)/.test(n) && ctx ? "nuevo" : ctx ? "destacado" : null;
   if (!tpl) return null;
-  const out = { tpl, tone: 0, pid: "", title: "", sub: "", price: 0, h: "" };
-  let rest = n;
+  const out = { tpl, st: stv, tone: 0, pid: "", title: "", sub: "", price: 0, h: "", promo: promo ? promo[0] : "" };
+  let rest = n; if (sty) rest = rest.replace(sty[1], " "); if (promo) rest = rest.replace(promo[1], " " + (promo[2] || "") + " ");
   const ha = vitHasta(n); if (ha) { out.h = ha[0]; out.sub = ha[1]; rest = rest.replace(ha[2], " "); }
   if (tpl === "aviso") {
     const m = t.match(/(?:aviso|anuncio|comunicado|avisa que|anuncia que|que diga)\s*[:,]?\s*/i);
     let tx = m ? t.slice(t.toLowerCase().indexOf(m[0].toLowerCase()) + m[0].length) : "";
-    tx = tx.replace(/^["'«“]+|["'»”]+$/g, "").replace(/\s+en la vitrina\.?$/i, "").trim();
+    tx = tx.replace(/^["'«“]+|["'»”]+$/g, "").replace(/\s+en la vitrina\.?$/i, "").replace(/\s*,?\s*(?:estilo|tipo)\s+[a-záéíóúñ ]+$/i, "").trim();
     out.title = tx ? tx.charAt(0).toUpperCase() + tx.slice(1, 70) : "";
     out.sub = ""; return out;
   }
@@ -2015,11 +2037,16 @@ function vitParseLuis(text) {
 }
 let vitCards = {}, vitCardN = 0;
 function vitCardPrev(v) { return v.kind === "tpl" ? vitTplHtml(v) : `<img class="hl-vimg" src="${bu("ia:" + v.ts, v.img)}" alt="">`; }
-function vitCard(v) {
+// ¿Este afiche baja el precio de un producto? Entonces se puede cobrar así en la caja (p.oferta).
+const vitCobrable = (v) => { const p = v.kind === "tpl" && ["oferta", "precio"].includes(v.tpl) && v.pid ? prod(v.pid) : null; return p && +v.price > 0 && +v.price < +p.price - 0.004 ? p : null; };
+function vitCard(v, why) {
   const id = ++vitCardN, w = document.createElement("div"); vitCards[id] = { v, el: w };
+  const pc = vitCobrable(v);
   w.className = "hl-card hl-vit";
-  w.innerHTML = `<div class="hl-ch"><i aria-hidden="true"></i>Para tu vitrina</div><div class="hl-vprev">${vitCardPrev(v)}</div>
-    <div class="hl-cb"><button type="button" class="hl-b sec" data-a="vlNo" data-id="${id}">Cancelar</button>${v.kind === "tpl" ? `<button type="button" class="hl-b sec" data-a="vlOtro" data-id="${id}">Otro estilo</button>` : ""}<button type="button" class="hl-b" data-a="vlSi" data-id="${id}">Poner en la vitrina</button></div>`;
+  w.innerHTML = `<div class="hl-ch"><i aria-hidden="true"></i>${why ? "Idea de Luis" : "Para tu vitrina"}</div>${why ? `<p class="hl-vwhy">${esc(why)}</p>` : ""}<div class="hl-vprev">${vitCardPrev(v)}</div>
+    ${v.kind === "tpl" ? vitStStrip(v, "vlSt", id) : ""}
+    ${pc ? `<label class="hl-vco"><input type="checkbox" data-vco="${id}"${v.cobrar !== false ? " checked" : ""}><span>Cobrar ${money(v.price)} en la caja${v.h ? ` hasta el ${dmy(v.h).slice(0, 5)}` : ""} <small>(ahora ${money(pc.price)})</small></span></label>` : ""}
+    <div class="hl-cb"><button type="button" class="hl-b sec" data-a="vlNo" data-id="${id}">${why ? "No, gracias" : "Cancelar"}</button><button type="button" class="hl-b" data-a="vlSi" data-id="${id}">Poner en la vitrina</button></div>`;
   return w;
 }
 // Devuelve true si el texto era un pedido para la vitrina y ya se atendió.
@@ -2027,11 +2054,20 @@ function vitLuis(text) {
   let r; try { r = vitParseLuis(text); } catch (e) { return false; }
   if (!r) return false;
   if (r.ia !== undefined) { vitIA(r.ia); return true; }
-  if (r.tpl !== "aviso" && !r.pid && !r.title) { helpSay("¿De qué producto hago el afiche? Por ejemplo: «haz una oferta de Inca Kola a 2.90 hasta el domingo»."); return true; }
+  if (r.ideas) {
+    const I = vitIdeas();
+    if (!I.length) { helpSay("Por ahora no veo productos por vencer ni parados, y aún no tienes ventas para saber qué destacar. Pídeme uno directo, por ejemplo: «haz una oferta de Inca Kola a 2.90 hasta el domingo»."); return true; }
+    helpSay(I.length === 1 ? "Te propongo esta:" : `Te propongo ${I.length} ideas. Elige el estilo que más te guste y ponlas en tu vitrina:`);
+    I.forEach((x) => helpAppend("assistant", "", { node: vitCard(Object.assign({ kind: "tpl" }, x.v), x.why), instant: true }));
+    return true;
+  }
+  if (r.tpl === "lista" && !(r.rows && r.rows.length)) { helpSay("¿Qué productos pongo en la lista? Por ejemplo: «lista de precios de frutas» o «oferta de papaya 3.50, mango 5 y plátano 2»."); return true; }
+  if (!["aviso", "lista"].includes(r.tpl) && !r.pid && !r.title && !r.promo) { helpSay("¿De qué producto hago el afiche? Por ejemplo: «haz una oferta de Inca Kola a 2.90 hasta el domingo»."); return true; }
   if (r.tpl === "aviso" && !r.title) { helpSay("¿Qué pongo en el aviso? Por ejemplo: «aviso: hoy cerramos a las 9 pm»."); return true; }
   const v = Object.assign({ kind: "tpl" }, r), p = v.pid ? prod(v.pid) : null;
-  const nota = p && !v.price ? ` Usé el precio de tu caja (${money(vitTplPrice(v, p).pr)}).` : !p && v.tpl !== "aviso" ? " No encontré ese producto en tu caja, así que va sin foto." : "";
-  helpSay("Así quedaría." + nota + " Puedes cambiarle el color o ponerlo en tu vitrina.", { node: vitCard(v), instant: true });
+  if (!v.st) v.st = VIT_ST_DEF[v.tpl] || "super";
+  const nota = p && !v.price && v.tpl !== "combo" ? ` Usé el precio de tu caja (${money(vitTplPrice(v, p).pr)}).` : !p && !["aviso", "lista"].includes(v.tpl) ? " No encontré ese producto en tu caja, así que va sin foto." : v.tpl === "combo" && v.promo ? ` ${/^\d+x\d+$/.test(v.promo) ? `El ${v.promo}` : "La promoción"} sale en el afiche; al cobrar, aplícalo con un descuento.` : "";
+  helpSay("Así quedaría." + nota + " Elige el estilo que más te guste y ponlo en tu vitrina.", { node: vitCard(v), instant: true });
   return true;
 }
 const vitImgToCanvas = (src) => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(vitDraw(im, im.naturalWidth, im.naturalHeight)); im.onerror = no; im.src = src; });
@@ -2047,20 +2083,34 @@ async function vitIA(idea) {
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.img) throw Object.assign(new Error("ia"), { status: r.status || 0 });
     const c = await vitImgToCanvas(d.img);
-    const v = { kind: "ia", img: vitEncode(c), ts: Date.now(), fit: "cover", zoom: 100, tx: 0, ty: 0, bg: "#ffffff", txt: [] };
+    const v = { kind: "ia", img: vitEncode(c), ts: Date.now(), fit: "cover", zoom: 100, tx: 0, ty: 0, bg: "#ffffff", txt: vitIATextos(idea) };
     if (wait) wait.remove();
     helpSay("Aquí está. Si te gusta, ponla en tu vitrina; después puedes agregarle textos y precios en Ajustes › Pantalla de venta.", { node: vitCard(v), instant: true });
   } catch (e) {
     if (wait) wait.remove();
     const st = e.status || 0;
     helpSay(st === 503 || st === 404 ? "La IA de dibujo todavía no está activada: falta poner la clave del servicio de imágenes. Mientras tanto puedo armarte afiches con tus productos, por ejemplo: «haz una oferta de Inca Kola a 2.90»."
+      : st === 429 ? "La IA gratuita está dibujando otra imagen. Espera unos segundos y vuelve a pedírmelo."
       : st === 403 ? "La IA de dibujo es parte del extra de voz e IA, o ya usaste los pedidos de hoy. Pídele a tu proveedor que lo active."
       : st === 401 ? "Tu sesión de Google venció. Vuelve a entrar en Ajustes › Nube." : "No pude dibujar ahora. Inténtalo otra vez en un momento.");
   } finally { if (wait) wait.remove(); helpBusy = false; if (chat) chat.classList.remove("busy"); }
 }
+// «dibuja una canasta de frutas para la oferta de papaya a 3.50» → etiqueta «Oferta» y sello con el precio encima del dibujo
+function vitIATextos(idea) {
+  const n = norm(idea), m = n.match(/(?:\ba|\bpor|s\/\.?)\s*(\d+(?:[.,]\d{1,2})?)\b|(\d+(?:[.,]\d{1,2})?)\s*(?:soles|sol)\b/), out = [], id = () => "t" + Date.now().toString(36) + Math.floor(Math.random() * 999);
+  const tag = /\b(oferta|promo|promocion|descuento|remate)\b/.test(n) ? "oferta" : /\b(nuevo|nueva|novedad)\b/.test(n) ? "nuevo" : "";
+  if (tag) out.push(Object.assign({ id: id() }, VIT_TXT[tag]));
+  if (m) out.push(Object.assign({ id: id() }, VIT_TXT.precio, { t: "S/ " + (+num(m[1] || m[2])).toFixed(2) }));
+  return out;
+}
 function vitCardDone(c, txt) { c.done = true; c.el.querySelectorAll("button").forEach((b) => { b.disabled = true; }); if (txt) helpSay(txt.t, txt.o); }
 act({
-  vlOtro: (el) => { const c = vitCards[el.dataset.id]; if (!c || c.done) return; c.v.tone = ((+c.v.tone || 0) + 1) % 3; const b = c.el.querySelector(".hl-vprev"); if (b) b.innerHTML = vitCardPrev(c.v); },
+  vlSt: (el) => {
+    const c = vitCards[el.dataset.id]; if (!c || c.done) return; const k = el.dataset.v, cur = c.v.st || "clasico";
+    if (k === "clasico" && cur === "clasico") c.v.tone = ((+c.v.tone || 0) + 1) % 3; else c.v.st = k;
+    const b = c.el.querySelector(".hl-vprev"); if (b) b.innerHTML = vitCardPrev(c.v);
+    c.el.querySelectorAll(".vst").forEach((x) => { const on = x.dataset.v === k; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); });
+  },
   vlNo: (el) => { const c = vitCards[el.dataset.id]; if (!c || c.done) return; vitCardDone(c, { t: "Listo, no la puse." }); },
   vlSi: (el) => {
     const c = vitCards[el.dataset.id]; if (!c || c.done) return;
@@ -2068,15 +2118,110 @@ act({
       const L = vitList(), v = c.v;
       if (L.length >= VIT_MAX) return void helpSay(`Ya tienes ${VIT_MAX} vitrinas. Borra alguna en Ajustes › Pantalla de venta y vuelve a intentarlo.`, { go: ["aj.venta"] });
       if (v.kind === "ia" && L.filter((x) => x.kind !== "tpl").length >= VIT_MAX_IMG) return void helpSay(`Ya tienes ${VIT_MAX_IMG} imágenes (pesan). Borra alguna en Ajustes › Pantalla de venta.`, { go: ["aj.venta"] });
-      const n = Object.assign({ id: vitId(), on: true }, v); L.push(n); ui.vsi = vitActive().findIndex((x) => x.id === n.id); save(); log("Vitrina", (v.kind === "ia" ? "Dibujo con IA" : vitName(n)) + " (Luis)");
+      const n = Object.assign({ id: vitId(), on: true }, v); delete n.cobrar; L.push(n);
+      // Cobrar ese precio en la caja: precio de oferta del producto hasta la misma fecha del afiche.
+      const pc = vitCobrable(v), ck = c.el.querySelector("[data-vco]"); let cobro = "";
+      if (pc && ck && ck.checked) { if (can("precios")) { pc.oferta = { p: r2(+v.price), hasta: v.h || "" }; log("Precio de oferta", `${pc.name}: ${money(v.price)}${v.h ? " hasta " + dmy(v.h) : ""} (Luis)`); cobro = ` La caja ya cobra ${pc.name} a ${money(v.price)}${v.h ? ` hasta el ${dmy(v.h).slice(0, 5)}` : ""}.`; } else cobro = " El precio de la caja no lo cambié: tu usuario no tiene permiso de precios."; }
+      ui.vsi = vitActive().findIndex((x) => x.id === n.id); save(); log("Vitrina", (v.kind === "ia" ? "Dibujo con IA" : vitName(n)) + " (Luis)");
       if (ui.tab === "venta") paintSale();
       const otra = DB.cfg.view !== "vit";
-      vitCardDone(c, { t: otra ? "Listo, ya está guardada. Tu pantalla de venta no está en modo Vitrina; actívalo para verla." : `Listo, ya está en tu vitrina.${vitActive().length > 1 ? ` Se turna con las demás cada ${+DB.cfg.vitRot || 8} segundos.` : ""}`, o: otra ? { node: vitVerBtn() } : {} });
+      vitCardDone(c, { t: (otra ? "Listo, ya está guardada. Tu pantalla de venta no está en modo Vitrina; actívalo para verla." : `Listo, ya está en tu vitrina.${vitActive().length > 1 ? ` Se turna con las demás cada ${+DB.cfg.vitRot || 8} segundos.` : ""}`) + cobro, o: otra ? { node: vitVerBtn() } : {} });
     }, "Cambiar la vitrina");
   },
   vlVer: () => { DB.cfg.view = "vit"; save(); helpClose(); go("venta"); }
 });
 function vitVerBtn() { const w = document.createElement("div"); w.className = "hl-go"; w.innerHTML = `<button type="button" class="hl-gob" data-a="vlVer">Activar la Vitrina y verla</button>`; return w; }
+
+/* ---------- Afiches: estilos (a mano, súper, pizarra, encarte, verde y fechas), combos, lista de precios e ideas de Luis.
+   Todo se dibuja con CSS (sin imágenes ni librerías), así pesa poco y se ve nítido en cualquier pantalla. ---------- */
+const VIT_ST = [["clasico", "Clásico"], ["mano", "A mano"], ["super", "Súper"], ["pizarra", "Pizarra"], ["encarte", "Encarte"], ["verde", "Verde"], ["patrias", "Fiestas Patrias"], ["navidad", "Navidad"], ["mama", "Día de la Madre"]];
+const VIT_ST_N = Object.fromEntries(VIT_ST);
+// Estilo con el que empieza cada tipo cuando no se pide uno (se cambia con un toque)
+const VIT_ST_DEF = { oferta: "super", precio: "super", nuevo: "verde", destacado: "verde", combo: "encarte", lista: "pizarra", aviso: "pizarra" };
+const vitSplit = (n) => { const [e, c] = (+n || 0).toFixed(2).split("."); return { e, c }; };
+// «2x1» → «Llevas 2, pagas 1»
+const vitPromoSub = (pr) => { const m = String(pr || "").match(/^(\d+)\s*x\s*(\d+)$/i); return m ? `Llevas ${m[1]}, pagas ${m[2]}` : ""; };
+// Lo que muestra el afiche, igual para todos los estilos.
+function vitTplData(v) {
+  const p = !["aviso", "lista"].includes(v.tpl) && v.pid ? prod(v.pid) : null, d = vitTplPrice(v, p), kg = !!(p && p.unit === "kg");
+  const name = v.title || (p ? p.name : v.tpl === "aviso" ? "Escribe tu aviso" : v.tpl === "lista" ? "Precios de hoy" : "Elige un producto");
+  const sub = v.sub || (v.tpl === "combo" ? vitPromoSub(v.promo) : "") || (v.h ? `Hasta el ${dmy(v.h).slice(0, 5)}` : "");
+  const rows = v.tpl === "lista" ? (v.rows || []).slice(0, 8).map((r) => { const q = r.pid ? prod(r.pid) : null; return { name: r.name || (q ? q.name : ""), pr: +r.price || (q ? ofertaOf(q) || +q.price || 0 : 0), kg: !!(q && q.unit === "kg") }; }).filter((r) => r.name && r.pr > 0) : null;
+  const tag = VIT_TAG[v.tpl] || "";
+  return { p, d, kg, name, sub, rows, promo: v.tpl === "combo" ? String(v.promo || "").trim() : "", tag: norm(tag).replace(/[¡!]/g, "") === norm(name).replace(/[¡!]/g, "") ? "" : tag };
+}
+const vitPriceHtml = (pr, kg, cls = "vs-pr") => { const { e, c } = vitSplit(pr); return `<span class="${cls} num"><small>S/</small>${e}<sup><i>.</i>${c}</sup>${kg ? "<em>kilo</em>" : ""}</span>`; };
+const vitRowsHtml = (rows, cls) => `<div class="${cls}">${rows.map((r) => `<div><span>${esc(r.name)}</span><i></i><b class="num">S/ ${r.pr.toFixed(2)}${r.kg ? "<small> kg</small>" : ""}</b></div>`).join("")}</div>`;
+// Estilos nuevos: un solo armado; cada estilo lo acomoda con su CSS (bloque «Afiches: estilos» de style.css).
+function vitStHtml(v) {
+  const D = vitTplData(v), st = VIT_ST_N[v.st] ? v.st : "mano";
+  const img = D.p && imgSrc(D.p) ? `<div class="vs-im k-${imgKind(D.p)}">${pimg(D.p, "vs-pim")}</div>` : "";
+  const tag = st === "mano" && D.tag ? `¡${D.tag.replace(/[¡!]/g, "")}!` : D.tag;
+  const big = v.tpl === "aviso" || v.tpl === "lista" ? "" : D.promo ? `<span class="vs-pr vs-promo">${esc(D.promo)}</span>` : D.d.pr > 0 ? vitPriceHtml(D.d.pr, D.kg) : "";
+  const old = D.d.old && !["combo", "lista", "aviso"].includes(v.tpl) ? `<span class="vs-old">Antes <s>S/ ${D.d.old.toFixed(2)}</s></span>` : "";
+  const n = D.name.length;
+  return `<div class="vs s-${st} t-${esc(v.tpl || "oferta")}${img ? "" : " noimg"}${n > 14 ? " lg" : ""}${n > 30 ? " xl" : ""}"><div class="vs-w"><i class="vs-dec" aria-hidden="true"></i>${tag ? `<span class="vs-tg">${esc(tag)}</span>` : ""}<b class="vs-nm">${esc(D.name)}</b>${img}${D.rows ? vitRowsHtml(D.rows, "vs-rows") : ""}${big || old ? `<div class="vs-pz">${old}${big}</div>` : ""}${D.sub ? `<span class="vs-sb">${esc(D.sub)}</span>` : ""}<span class="vs-biz">${esc(DB.biz.name || "")}</span></div></div>`;
+}
+// Tira de estilos para elegir (en el chat de Luis y en Ajustes): cada uno se ve en chiquito con el mismo contenido.
+function vitStStrip(v, a, id) {
+  const cur = VIT_ST_N[v.st] ? v.st : "clasico";
+  return `<div class="vsts" role="group" aria-label="Estilo del afiche">${VIT_ST.map(([k, nm]) => `<button type="button" class="vst${cur === k ? " on" : ""}" data-a="${a}" ${id ? `data-id="${id}" ` : `data-k="st" `}data-v="${k}" aria-pressed="${cur === k}"><span class="vst-b">${vitTplHtml(Object.assign({}, v, { st: k }))}</span><small>${nm}</small></button>`).join("")}</div>`;
+}
+
+/* ---------- Luis entiende estilos, combos y listas ---------- */
+const VIT_ST_RX = [["mano", /\b(a mano|plumon|cartulina|fosforescente)\b/], ["super", /\b(?:estilo|tipo|como|de) (?:el |un )?(?:super|supermercado)\b|\betiqueta de super\b/], ["pizarra", /\b(pizarra|tiza|pizarrita)\b/], ["encarte", /\b(encarte|volante|folleto)\b/], ["verde", /\b(?:estilo|en|color|fondo|tipo) verde\b/], ["navidad", /\b(navidad|navideno|navidena|navidenos)\b/], ["patrias", /\b(fiestas patrias|patrio|patria|28 de julio)\b/], ["mama", /\b(dia de la madre|dia de las madres|para mama|para las mamas)\b/], ["clasico", /\b(?:estilo|tipo) clasico\b/]];
+const VIT_NUM = { uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6 };
+const vitN = (w) => (VIT_NUM[w] != null ? VIT_NUM[w] : +w);
+function vitParseStyle(n) { for (const [k, rx] of VIT_ST_RX) { const m = n.match(rx); if (m) return [k, m[0]]; } return null; }
+// «2x1», «3x2», «lleva 3 paga 2», «3 panetones por 50 soles» → [texto, trozo a quitar]
+function vitParsePromo(n) {
+  let m = n.match(/\b([2-9])\s*x\s*([1-8])\b/); if (m && +m[1] > +m[2]) return [`${m[1]}x${m[2]}`, m[0]];
+  m = n.match(/\blleva(?:s)? (\d|dos|tres|cuatro|cinco|seis) (?:y )?paga(?:s)? (\d|uno|una|dos|tres|cuatro|cinco)\b/); if (m && vitN(m[1]) > vitN(m[2])) return [`${vitN(m[1])}x${vitN(m[2])}`, m[0]];
+  m = n.match(/\b([2-9]|dos|tres|cuatro|cinco|seis)\s+((?:[a-zñ]+\s+){1,3}?)(?:por|x|a)\s+(\d+(?:[.,]\d{1,2})?)\s*(?:soles|sol|lucas)\b/);
+  if (m) return [`${vitN(m[1])} x S/ ${(+num(m[3])).toFixed(2).replace(/\.00$/, "")}`, m[0], m[2].trim()];
+  return null;
+}
+// «lista de precios de frutas» o «oferta de papaya 3.50, mango 5 y plátano 2» → filas
+function vitParseList(t, n) {
+  if (/\blista de precios?\b|\bprecios de (hoy|la semana)\b/.test(n)) {
+    const cats = [...new Set(DB.products.map((p) => p.cat).filter(Boolean))];
+    const cat = cats.find((c) => n.includes(norm(c))) || cats.find((c) => { const k = norm(c).replace(/s$/, ""); return k.length > 3 && n.includes(k); });
+    const top = topIds(), rank = (p) => { const i = top.indexOf(p.id); return i < 0 ? 999 : i; };
+    const ps = DB.products.filter((p) => p.on !== false && p.price > 0 && (!cat || p.cat === cat)).sort((a, b) => rank(a) - rank(b) || cmpEs(a.name, b.name)).slice(0, 6);
+    return ps.length ? { title: cat ? cat : "Precios de hoy", rows: ps.map((p) => ({ pid: p.id, name: p.name, price: 0 })) } : null;
+  }
+  const segs = t.split(/,|;|\s+y\s+(?=[a-záéíóúñ])/i).map((s) => s.trim()).filter(Boolean);
+  const rows = segs.map((s) => { const k = norm(s), m = k.match(/(\d+(?:[.,]\d{1,2})?)\s*(?:soles|sol)?\s*$/); if (!m) return null; const rest = k.slice(0, m.index).replace(/\b(a|en|por|de)\s*$/, ""), p = vitFindProd(rest); const nm = p ? p.name : rest.split(/\s+/).filter((w) => !VIT_RELLENO.has(w)).join(" "); return nm ? { pid: p ? p.id : "", name: p ? p.name : nm.charAt(0).toUpperCase() + nm.slice(1, 40), price: r2(num(m[1])) } : null; }).filter(Boolean);
+  return rows.length >= 2 ? { title: "Ofertas de hoy", rows: rows.slice(0, 8) } : null;
+}
+const vitIdeasPedido = (n) => (/\b(sugiere(me)?|sugerencias?|ideas?|propon(me|e)?|propuestas?)\b/.test(n) && /\b(ofertas?|promos?|promociones?|vitrina|afiches?|carteles?|descuentos?)\b/.test(n)) || /\bque (ofertas?|promos?|promociones?|descuentos?) (hago|pongo|puedo|me recomiendas|saco)\b/.test(n) || /\bque (puedo|deberia) (ofertar|rematar|poner en oferta)\b/.test(n);
+
+/* ---------- Ideas de Luis: con lo que vence y lo que no se mueve, más la fecha del año ---------- */
+const vitR10 = (x) => Math.max(0.1, Math.floor(x * 10 + 1e-6) / 10);
+function vitTemporada() {
+  const d = new Date(), m = d.getMonth() + 1, dia = d.getDate();
+  if ((m === 11 && dia >= 10) || (m === 12 && dia <= 24)) { const p = vitFindProd("paneton"); return { why: "Se viene Navidad: el panetón y el chocolate se venden más estas semanas.", v: p ? { tpl: "destacado", st: "navidad", pid: p.id } : { tpl: "aviso", st: "navidad", title: "¡Feliz Navidad! Panetón y chocolate para tu mesa" } }; }
+  if (m === 7 && dia <= 28) return { why: "Se vienen las Fiestas Patrias: un saludo en la vitrina se ve bien.", v: { tpl: "aviso", st: "patrias", title: "¡Felices Fiestas Patrias!" } };
+  const mayo = new Date(d.getFullYear(), 4, 1), madre = new Date(d.getFullYear(), 4, 1 + ((7 - mayo.getDay()) % 7) + 7);
+  if (d <= madre && (madre - d) / 864e5 <= 14) return { why: "Se viene el Día de la Madre.", v: { tpl: "aviso", st: "mama", title: "¡Feliz día, mamá!" } };
+  return null;
+}
+function vitIdeas() {
+  const out = [], used = new Set(), base = { kind: "tpl", tone: 0, title: "", sub: "", h: "", price: 0 };
+  expItems(10).filter((p) => daysTo(p.exp) >= 0 && +p.price > 0).slice(0, 2).forEach((p) => {
+    const pr = vitR10(p.price * 0.8); if (pr >= p.price) return; used.add(p.id);
+    out.push({ why: `${expTxt(p)}${p.stock != null ? ` y te quedan ${fmtQ(p.stock)}${p.unit === "kg" ? " kg" : ""}` : ""}. Te propongo bajarlo un 20% para que salga antes.`, v: Object.assign({}, base, { tpl: "oferta", st: "mano", pid: p.id, price: pr, h: p.exp, cobrar: true }) });
+  });
+  idleItems(30).filter((x) => !used.has(x.p.id) && +x.p.price > 0).slice(0, 2).forEach(({ p, days, val }) => {
+    const pr = vitR10(p.price * 0.88); if (pr >= p.price) return; used.add(p.id);
+    const h = new Date(); h.setDate(h.getDate() + 7);
+    out.push({ why: `No se vende hace ${days} días y tienes ${money(val)} parados en eso. Una oferta de una semana lo mueve.`, v: Object.assign({}, base, { tpl: "oferta", st: "encarte", pid: p.id, price: pr, h: dkey(h), cobrar: true }) });
+  });
+  const fx = vitTemporada(); if (fx) out.push({ why: fx.why, v: Object.assign({}, base, fx.v) });
+  const top = topIds().map((id) => prod(id)).find((p) => p && p.on !== false && !used.has(p.id));
+  if (top && out.length < 4) out.push({ why: "Es lo que más vendes: ponerlo a la vista ayuda a que lo pidan.", v: Object.assign({}, base, { tpl: "destacado", st: "super", pid: top.id }) });
+  return out.slice(0, 4);
+}
 
 /* ===================== 40 · PRODUCTOS E INVENTARIO ===================== */
 const lowItems = () => DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || cmpEs(a.name, b.name));
@@ -4932,7 +5077,7 @@ const HELP_CHIPS = {
 };
 function helpChips() {
   const box = $("#helpChips"); if (!box) return;
-  const s = HELP_CHIPS[ui.tab] || HELP_CHIPS.venta, list = ((ui.tab === "venta" || ui.tab === "aj") && can("ajustes") ? [{ t: "Haz una oferta para la vitrina", c: 1 }] : []).concat(vozOk() ? s.c.map((t) => ({ t, c: 1 })) : []).concat(s.q.map((t) => ({ t })));
+  const s = HELP_CHIPS[ui.tab] || HELP_CHIPS.venta, list = ((ui.tab === "venta" || ui.tab === "aj") && can("ajustes") ? [{ t: "¿Qué oferta hago?", c: 1 }, { t: "Haz una oferta para la vitrina", c: 1 }] : []).concat(vozOk() ? s.c.map((t) => ({ t, c: 1 })) : []).concat(s.q.map((t) => ({ t })));
   const key = ui.tab + "|" + (vozOk() ? 1 : 0); if (box.dataset.k === key) return; box.dataset.k = key;
   box.innerHTML = list.slice(0, 5).map((x, i) => `<button type="button" class="hl-chip${x.c ? " cmd" : ""}" data-a="ayudaChip" data-q="${esc(x.t)}" style="--i:${i}">${x.c ? '<b aria-hidden="true">›_</b>' : ""}${esc(x.t)}</button>`).join("");
 }
@@ -4974,7 +5119,7 @@ const HELP_KB = [
   { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
-  { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja"], t: "Imágenes para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «producto nuevo en la vitrina: panetón» o «aviso: hoy cerramos a las 9 pm».", "Te muestro cómo queda: toca «Otro estilo» para cambiar el color y «Poner en la vitrina».", "En Ajustes › Pantalla de venta ves todas tus vitrinas: puedes ocultarlas, cambiar el orden y elegir cada cuántos segundos cambian.", "Para dibujos nuevos con IA escribe «dibuja …» (necesita internet y el extra de IA)."] },
+  { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja", "2x1", "combo", "lista de precios", "pizarra", "estilo", "ideas"], t: "Afiches para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «2x1 en yogur», «lleva 3 paga 2 en atún», «lista de precios de frutas», «oferta de papaya 3.50, mango 5 y plátano 2» o «aviso: hoy cerramos a las 9 pm».", "Elige el estilo con un toque: Clásico, A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad o Día de la Madre. También puedes decirlo: «… estilo pizarra».", "Si la oferta baja el precio, marca «Cobrar … en la caja» y la caja cobra ese precio hasta la fecha del afiche.", "Escribe «¿qué oferta hago?» y te propongo afiches con lo que vence pronto o no se vende.", "En Ajustes › Pantalla de venta ves todas: ocultar, ordenar, editar y cada cuántos segundos cambian. «Dibuja …» hace un dibujo con IA (necesita internet y el extra de IA)."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
 ];
 function helpKB(text) {
