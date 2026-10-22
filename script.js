@@ -2743,6 +2743,18 @@ function zHtml(z) {
 }
 
 /* ---------- pantalla de caja ---------- */
+// «Ventas del día»: total grande, barra con lo que entró por cada medio y cada medio con su logo o ícono.
+function cajaDia(T) {
+  const rows = ["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia", "credito", "puntos"]
+    .filter((m) => T.by[m] || ["efectivo", "yape", "plin"].includes(m))
+    .map((m) => ({ m, amt: (m === "yape" ? T.yapeAll : T.by[m]) || 0 }));
+  const sum = rows.reduce((a, r) => a + r.amt, 0);
+  const pct = (a) => (sum > 0 ? Math.round((a / sum) * 100) : 0);
+  return `<div class="vdtop"><h2>Ventas del día</h2><div class="vdtot"><b class="num">${money(T.sales)}</b><span>${T.n === 1 ? "1 venta" : `${T.n} ventas`}</span></div></div>
+    ${sum > 0 ? `<div class="vdbar" role="img" aria-label="${rows.filter((r) => r.amt > 0).map((r) => `${METHODS[r.m]} ${pct(r.amt)}%`).join(", ")}">${rows.filter((r) => r.amt > 0).map((r) => `<i class="m-${r.m}" style="width:${((r.amt / sum) * 100).toFixed(2)}%"></i>`).join("")}</div>` : ""}
+    <div class="vdrows">${rows.map((r) => `<div class="vdr${r.amt ? "" : " cero"}"><i class="pmi m-${r.m}" aria-hidden="true"></i><span class="vdn">${METHODS[r.m]}${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</span>${sum > 0 && r.amt ? `<span class="vdp">${pct(r.amt)}%</span>` : ""}<b class="num">${money(r.amt)}</b></div>`).join("")}</div>`;
+}
+
 VIEWS.caja = function viewCash(v) {
   const k = ui.date, T = dayTotals(k), mine = curShift(), today = k === dkey();
   const shifts = DB.shifts.filter((s) => s.d0 === k || (!s.t1 && today)).filter((s, i, a) => a.indexOf(s) === i).sort((a, b) => a.t0 - b.t0);
@@ -2755,9 +2767,7 @@ VIEWS.caja = function viewCash(v) {
       <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="shcount" data-id="${mine.id}">Cerrar mi caja (arqueo)</button><button class="btn sec" data-a="liqprint" data-id="${mine.id}">${svg("print", "bi")}Corte parcial</button></div>`
       : `<div class="row sp wrap"><div><h2>Tu caja está cerrada</h2><p class="muted">Ábrela con el sencillo del cajón para empezar a cobrar.</p></div><button class="btn" data-a="shopen">Abrir caja</button></div>`}</div>` : ""}
     <div class="cols stack"><div class="stack">
-      <div class="card"><h2>Ventas del día</h2>
-        ${["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia", "credito", "puntos"].filter((m) => T.by[m] || ["efectivo", "yape", "tarjeta"].includes(m)).map((m) => `<div class="kv"><span>${METHODS[m]}${m === "yape" && T.yapeMan ? ` (+ ${money(T.yapeMan)} anotados)` : ""}</span><span class="num">${money(m === "yape" ? T.yapeAll : T.by[m] || 0)}</span></div>`).join("")}
-        <div class="kv strong"><span>Total vendido (${T.n} ventas)</span><span class="num">${money(T.sales)}</span></div>
+      <div class="card vdia">${cajaDia(T)}
         ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}</div>
       <div class="card"><h2>Movimientos</h2>${moves.length ? moves.map((m) => `<div class="kv"><span>${hhmm(m.t)} · ${MOVE[m.type] ? MOVE[m.type][0] : m.type}${m.m && m.m !== "efectivo" ? ` (${METHODS[m.m]})` : ""}${m.note ? " · " + esc(m.note) : ""}<small class="muted"> · ${esc(m.u || "")}</small></span><span class="num">${(MOVE[m.type] || [0, 0])[1] < 0 ? "−" : "+"} ${money(m.amount)}${can("cierre") && !["abono", "devolucion", "anulacion"].includes(m.type) && !isLocked(m.date) ? ` <button class="link xs" data-a="mvdel" data-id="${m.id}" aria-label="Borrar movimiento">✕</button>` : ""}</span></div>`).join("") : `<p class="muted">Sin gastos, pagos ni ingresos anotados.</p>`}</div>
     </div><div class="stack">

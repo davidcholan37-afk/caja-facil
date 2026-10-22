@@ -2361,7 +2361,7 @@ html[data-theme=dark] body:not(._) .side,html[data-theme=dark] body:not(._).vit 
    en tarjetas de video débiles cada desenfoque se recalcula al mover o abrir algo. Se ve casi igual con fondos sólidos. */
 .cd,.kgb,.presb,.side,.cb-open,.tabs,#toast,.help-launcher,.keypad button,#modal.modal,.datebar,.chip,.tool,body.vit[data-tab=venta] .cart .lh{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .cd,.kgb,.presb{background:rgba(255,255,255,.94)}
-html[data-theme=dark] .cd,html[data-theme=dark] .kgb,html[data-theme=dark] .presb{background:rgba(24,28,34,.94)}
+html[data-theme=dark] .cd,html[data-theme=dark] .kgb,html[data-theme=dark] .presb{background:rgba(24,34,29,.94)}
 #modal.modal{background:rgba(17,24,39,.34)}
 html[data-theme=dark] #modal.modal{background:rgba(0,0,0,.58)}
 html:not([data-theme=dark]) .help-launcher{background:rgba(250,250,252,.97)!important}
@@ -2459,3 +2459,39 @@ html.lite .vslides .vsl{transition:none}
 
 /* Celular: las opciones largas de Ajustes bajan a otra línea en vez de salirse de la pantalla. */
 @media (max-width:520px){.card .seg{flex-wrap:wrap}.card .seg>button{flex:1 1 auto}}
+
+/* ===== Fresco verde: grises y detalles en la misma familia verde (antes quedaban del diseño azul). Claro y oscuro. ===== */
+html:not([data-theme=dark]) body{--bg:#D7E3DB;--s2:#F4F7F5;--s3:#E7EEE9;--seg:#E4ECE7;--hov:rgba(15,77,50,.05);--hl:rgba(16,48,32,.16);--hl2:rgba(16,48,32,.30);--t1:#0C1913;--t2:#2D3B34;--t3:#46574E;--img:linear-gradient(165deg,#F6F9F7,#E9F0EB);--inv:#0F4D32;--inv-t:#FFFFFF;--glow:0 10px 24px -10px rgba(29,138,78,.6),inset 0 1px 0 rgba(255,255,255,.28);--scrim:rgba(8,28,18,.24);--tst:rgba(10,30,20,.92)}
+html[data-theme=dark] body{--bg:#070B09;--s1:#121A16;--s2:#0D1310;--s3:#1A241F;--glass:rgba(16,24,20,.72);--t1:#F1F6F3;--t2:#A5B5AC;--t3:#7F9087;--seg:#090E0B;--seg-on:#22302A;--img:linear-gradient(165deg,#1A241F,#121A16);--tst:rgba(30,42,36,.95);--inv:#2FA864;--inv-t:#06140C;--glow:0 10px 30px -8px rgba(47,168,100,.6),inset 0 1px 0 rgba(255,255,255,.2)}
+/* «Escanea un producto» y lo último que pasaste: menta en vez de celeste */
+html:not([data-theme=dark]) .lastp{background:#E6F3EA}
+/* Botones de pago sin ticket (Vitrina): gris verdoso */
+body.vit[data-tab=venta] .paybox .paymini .pm:disabled,body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#E1E9E4!important;color:#6F8177!important}
+html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:disabled{background:#1A241F!important;color:#7F9087!important}
+body.vit .side .logo{box-shadow:0 10px 20px -12px rgba(139,212,72,.7)}
+
+/* ===== Caja › Ventas del día: total grande, barra por medio de pago y logos ===== */
+.vdia .vdtop{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+.vdia .vdtop h2{margin:0 0 6px}
+.vdia .vdtot{text-align:right}
+.vdia .vdtot b{display:block;font-size:2.3rem;font-weight:750;letter-spacing:-.04em;line-height:1;color:var(--t1);font-variant-numeric:tabular-nums}
+.vdia .vdtot span{display:block;margin-top:4px;color:var(--t3);font-size:13px;font-weight:550}
+.vdia .vdbar{display:flex;gap:3px;height:10px;margin-bottom:12px;border-radius:99px;overflow:hidden;background:var(--s3)}
+.vdia .vdbar i{display:block;min-width:4px}
+.vdia .vdrows{display:grid}
+.vdia .vdr{display:flex;align-items:center;gap:12px;min-height:50px;padding:6px 0;border-top:1px solid var(--hl)}
+.vdia .vdr:first-child{border-top:0}
+.vdia .vdr .vdn{flex:1;min-width:0;font-weight:600;color:var(--t1)}
+.vdia .vdr .vdn small{display:block;color:var(--t3);font-weight:500;font-size:12px}
+.vdia .vdr .vdp{color:var(--t3);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.vdia .vdr b{min-width:96px;text-align:right;font-weight:650;color:var(--t1);font-variant-numeric:tabular-nums}
+.vdia .vdr.cero .vdn,.vdia .vdr.cero b{color:var(--t3);font-weight:500}
+.vdia .vdr.cero .pmi{opacity:.55}
+.pmi{flex:none;width:32px;height:32px;border-radius:9px;background:var(--c,#15A048) center/18px no-repeat;box-shadow:inset 0 -2px 0 rgba(0,0,0,.16)}
+.m-efectivo{--c:#15A048;background-color:#15A048}.m-yape{--c:#742284;background-color:#742284}.m-plin{--c:#00B2D6;background-color:#00B2D6}.m-culqi{--c:#FF7A1A;background-color:#FF7A1A}
+.m-tarjeta{--c:#1F3A8A;background-color:#1F3A8A}.m-transferencia{--c:#0F766E;background-color:#0F766E}.m-credito{--c:#B45309;background-color:#B45309}.m-puntos{--c:#CA8A04;background-color:#CA8A04}
+.pmi.m-efectivo{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3C/svg%3E")}.pmi.m-tarjeta{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='M2.5 10h19M6.5 15h4'/%3E%3C/svg%3E")}.pmi.m-transferencia{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h14l-3.5-3.5M20 16H6l3.5 3.5'/%3E%3C/svg%3E")}.pmi.m-credito{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v14.5a1 1 0 0 1-1 1H6a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 6 3.5z'/%3E%3Cpath d='M8.5 8.5h6M8.5 12h6M8.5 15.5h3.5'/%3E%3C/svg%3E")}
+.pmi.m-puntos{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z'/%3E%3C/svg%3E")}
+.pmi.m-yape,.pmi.m-plin,.pmi.m-culqi{background:#fff center/86% no-repeat;box-shadow:inset 0 0 0 1px var(--hl2)}
+.pmi.m-yape{background-image:url(img/pagos/yape.png);background-size:cover}.pmi.m-plin{background-image:url(img/pagos/plin.png)}.pmi.m-culqi{background-image:url(img/pagos/culqi.png);background-size:84%}
+@media (max-width:520px){.vdia .vdtot b{font-size:1.9rem}.vdia .vdr b{min-width:0}}
