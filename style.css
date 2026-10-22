@@ -2680,3 +2680,26 @@ body.vit .side .logo{box-shadow:0 10px 20px -12px rgba(139,212,72,.7)}
   .vs.t-aviso .vs-nm{font-size:7.5cqw!important}.vs.t-aviso.lg .vs-nm{font-size:6cqw!important}.vs.t-aviso.xl .vs-nm{font-size:4.8cqw!important}
   .s-patrias>.vs-w{background:linear-gradient(90deg,#D91023 0 9%,#fff 9% 91%,#D91023 91%);padding-left:13cqw;padding-right:13cqw}
 }
+
+/* ===== Pantalla de venta «Súper moderno» (opción 2 elegida por David): plano, bordes finos, sin sombras, total en franja oscura y teclas F en los botones de pago. Solo modo Vitrina. ===== */
+html:not([data-theme=dark]) body.vit[data-tab=venta]{--fvbg:#E4ECE6;--smb:#C9D8CE;--smh:#F2F6F3;--sml:#E3EBE6}
+html[data-theme=dark] body.vit[data-tab=venta]{--smb:rgba(255,255,255,.12);--smh:rgba(255,255,255,.04);--sml:rgba(255,255,255,.07)}
+html body.vit[data-tab=venta] .cart .paper,html body.vit[data-tab=venta] .vit-home,html body.vit[data-tab=venta] .searchbar .sbox,html body.vit[data-tab=venta] .searchbar .tool{border-radius:10px!important;box-shadow:none!important;border:1px solid var(--smb)!important}
+html body.vit[data-tab=venta] .cart .lh{background:var(--smh)!important;color:var(--t3)!important;text-transform:none!important;font:600 12.5px var(--f)!important;letter-spacing:0!important}
+html body.vit[data-tab=venta] .cart .ln{border-bottom:1px solid var(--sml)!important}
+html body.vit[data-tab=venta] .cart .ln .lim,html body.vit[data-tab=venta] .cart .ln .qc .qv{border-radius:6px!important}
+html body.vit[data-tab=venta] .cart .ln.sel{box-shadow:inset 3px 0 0 var(--ac)!important}
+html body.vit[data-tab=venta] .cart .bigtot{background:#0C1913!important;border-radius:8px!important}
+html[data-theme=dark] body.vit[data-tab=venta] .cart .bigtot{background:#050807!important;box-shadow:inset 0 0 0 1px var(--smb)}
+html body.vit[data-tab=venta] .cart .bigtot b{font-weight:700!important;letter-spacing:-.03em}
+html body.vit[data-tab=venta] .paybox .paymini .pm{border-radius:10px!important;box-shadow:none!important;position:relative}
+html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){border:1px solid var(--smb)!important;transform:none}
+html body.vit[data-tab=venta] .brandrow b{font-weight:700;text-transform:none}
+html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding:0!important}
+/* Teclas F en los botones de pago (solo en computadora y con algo en el ticket) */
+@media (hover:hover) and (pointer:fine) and (min-width:960px){
+  html body.vit[data-tab=venta] .paybox .paymini .pm:not(:disabled)::after{position:absolute;top:8px;right:10px;font:700 11px/1 var(--fm);padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.22);color:inherit}
+  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:not(:disabled)::after{content:"F2"}
+  html body.vit[data-tab=venta] .paybox .paymini .pm.yape:not(:disabled)::after{content:"F8"}
+  html body.vit[data-tab=venta] .paybox .paymini .pm.plin:not(:disabled)::after{content:"F10"}
+}
