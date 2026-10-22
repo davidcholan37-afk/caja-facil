@@ -37,7 +37,7 @@ document.addEventListener("change", (e) => { const t = e.target; setTimeout(() =
 function onChange(t) {
   const k = t.dataset.in;
   if (t.dataset.set) return applySetting(t);
-  if (k === "vitfile") { vitLoad(t.files[0]); t.value = ""; return; }
+  if (k === "vitfile") { ui.vrepl = !!t.dataset.repl; vitLoad(t.files[0]); t.value = ""; return; }
   if ((t.id && t.id.slice(0, 3) === "vt-") || t.dataset.vtx) { save(); return; }
   if (t.dataset.perm) { const [r, p] = t.dataset.perm.split(":"), L = DB.roles[r]; if (t.checked) { if (!L.includes(p)) L.push(p); } else DB.roles[r] = L.filter((x) => x !== p); log("Permisos", `${ROLE_LABEL[r]}: ${t.checked ? "puede" : "no puede"} ${PERMS.find((x) => x[0] === p)[1]}`); save(); toast("Permiso guardado"); return; }
   if (t.closest && t.closest("#pe") && t.dataset.f === "unit") { readPE(); paintPE(); return; }

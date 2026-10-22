@@ -75,9 +75,9 @@ function vitHome() {
   const tops = topIds();
   const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
     .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 10);
-  const vc = vitCfg();
+
   const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
-  if (vc.img) return `<div class="vit-home custom"><div class="vimgbox">${vitImgHtml(vc)}</div></div>`;
+  const sl = vitSlidesHtml(); if (sl) return sl;
   return `<div class="vit-home"><div class="vmos" aria-hidden="true">${tiles}</div></div>`;
 }
 function vitResults(list, key) {

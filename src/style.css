@@ -2365,3 +2365,97 @@ html[data-theme=dark] .cd,html[data-theme=dark] .kgb,html[data-theme=dark] .pres
 #modal.modal{background:rgba(17,24,39,.34)}
 html[data-theme=dark] #modal.modal{background:rgba(0,0,0,.58)}
 html:not([data-theme=dark]) .help-launcher{background:rgba(250,250,252,.97)!important}
+
+/* ===== Vitrina: varias que se turnan + diseños con productos (bloque «Vitrinas que se turnan») ===== */
+body.vit .vslides{background:#fff}
+.vslides .vsl{position:absolute;inset:0;opacity:0;transition:opacity 600ms ease;pointer-events:none}
+.vslides .vsl.on{opacity:1;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){.vslides .vsl{transition:none}}
+html.lite .vslides .vsl{transition:none}
+.vdots{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:6px;padding:5px 8px;border-radius:99px;background:rgba(0,0,0,.28);z-index:2}
+.vdots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55);transition:transform 200ms var(--ease-out),background-color 200ms ease}
+.vdots i.on{background:#fff;transform:scale(1.25)}
+/* Afiche: todo se mide con el tamaño de la caja (cqmin), así se ve igual en la venta, en Ajustes y en el chat de Luis */
+.vtp{position:absolute;inset:0;container-type:size;overflow:hidden;background:var(--b1);color:var(--ink);font-family:"Archivo",var(--f);text-align:left}
+.vtp-dec{position:absolute;inset:0;background:radial-gradient(circle at 88% 12%,var(--b2) 0 22cqmin,transparent 22.2cqmin),radial-gradient(circle at 8% 100%,var(--b2) 0 30cqmin,transparent 30.2cqmin);opacity:.9}
+.vtp-in{position:absolute;inset:6cqmin;display:grid;grid-template-rows:minmax(0,1.1fr) auto;gap:3cqmin;align-items:center}
+@container (min-aspect-ratio:6/5){.vtp-in{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}}
+.vtp.noimg .vtp-in{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);justify-items:center;text-align:center}
+.vtp-im{position:relative;align-self:stretch;min-height:0;display:grid;place-items:center}
+.vtp-im .vtp-pim{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 2.5cqmin 3cqmin rgba(0,0,0,.28))}
+.vtp-im.k-foto .vtp-pim{width:100%;height:100%;object-fit:cover;border-radius:4cqmin;border:1.2cqmin solid var(--fr,#fff);filter:drop-shadow(0 2cqmin 3cqmin rgba(0,0,0,.25))}
+.vtp-im .noimg{display:grid;place-items:center;width:60%;aspect-ratio:1;border-radius:4cqmin;background:rgba(255,255,255,.25);font:800 20cqmin "Archivo",var(--f)}
+.vtp-tx{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1.8cqmin;min-width:0}
+.vtp.noimg .vtp-tx{align-items:center}
+.vtp-tag{padding:1.4cqmin 3.2cqmin;border-radius:1.6cqmin;background:var(--tg);color:var(--tgi);font:800 5.2cqmin/1 "Archivo",var(--f);font-stretch:112%;text-transform:uppercase;letter-spacing:.05em;transform:rotate(-3deg);box-shadow:0 .8cqmin 0 rgba(0,0,0,.18)}
+.vtp-nm{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font:800 8.4cqmin/1.02 "Archivo",var(--f);font-stretch:85%;letter-spacing:-.01em;text-wrap:balance}
+.vtp.noimg .vtp-nm{font-size:11cqmin;-webkit-line-clamp:4}
+.vtp-old{font:700 5.2cqmin/1 "Archivo",var(--f);opacity:.75;text-decoration-thickness:.5cqmin}
+.vtp-pr{display:inline-flex;align-items:baseline;gap:.6cqmin;padding:1.6cqmin 3.4cqmin 2cqmin;border-radius:2.4cqmin;background:var(--pb);color:var(--pi);font:850 15cqmin/.92 "Archivo",var(--f);font-stretch:80%;letter-spacing:-.02em;box-shadow:0 1.2cqmin 0 rgba(0,0,0,.2);transform:rotate(-1.5deg)}
+.vtp-pr small{font-size:6cqmin;font-weight:800}
+.vtp-sub{font:400 6cqmin/1.1 "Caveat Brush",cursive;color:var(--sub,inherit)}
+/* Colores: 3 estilos por plantilla */
+.vtp.t-oferta.tn-0{--b1:#D7141A;--b2:#E8343A;--ink:#fff;--tg:#FFD43B;--tgi:#1A1A1A;--pb:#FFD43B;--pi:#1A1A1A}
+.vtp.t-oferta.tn-1{--b1:#FFD43B;--b2:#FFE27A;--ink:#1A1A1A;--tg:#D7141A;--tgi:#fff;--pb:#D7141A;--pi:#fff;--fr:#1A1A1A}
+.vtp.t-oferta.tn-2{--b1:#141414;--b2:#262626;--ink:#fff;--tg:#FF7A1A;--tgi:#1A1A1A;--pb:#FFD43B;--pi:#141414;--fr:#FFD43B}
+.vtp.t-nuevo.tn-0{--b1:#0F4D32;--b2:#1D8A4E;--ink:#fff;--tg:#8BD448;--tgi:#0F4D32;--pb:#fff;--pi:#0F4D32}
+.vtp.t-nuevo.tn-1{--b1:#FFF8E7;--b2:#FBE7B8;--ink:#0F4D32;--tg:#1D8A4E;--tgi:#fff;--pb:#0F4D32;--pi:#fff;--fr:#0F4D32}
+.vtp.t-nuevo.tn-2{--b1:#5B21B6;--b2:#7C3AED;--ink:#fff;--tg:#FFD43B;--tgi:#2E1065;--pb:#fff;--pi:#5B21B6}
+.vtp.t-precio.tn-0{--b1:#F4F7FB;--b2:#E3EAF4;--ink:#0B1220;--tg:#0B3D91;--tgi:#fff;--pb:#FFD43B;--pi:#0B1220;--fr:#0B3D91}
+.vtp.t-precio.tn-1{--b1:#0B3D91;--b2:#1352BA;--ink:#fff;--tg:#FFD43B;--tgi:#0B1220;--pb:#FFD43B;--pi:#0B1220}
+.vtp.t-precio.tn-2{--b1:#F26A0A;--b2:#FF8A33;--ink:#fff;--tg:#fff;--tgi:#C2410C;--pb:#fff;--pi:#C2410C}
+.vtp.t-destacado.tn-0{--b1:#14161A;--b2:#1F232A;--ink:#F5EBD6;--tg:#E8C277;--tgi:#14161A;--pb:#E8C277;--pi:#14161A;--fr:#E8C277}
+.vtp.t-destacado.tn-1{--b1:#F6F1E7;--b2:#EADFC8;--ink:#3B2A14;--tg:#3B2A14;--tgi:#F6F1E7;--pb:#3B2A14;--pi:#F6F1E7;--fr:#3B2A14}
+.vtp.t-destacado.tn-2{--b1:#0F3D2E;--b2:#165A43;--ink:#F1F7F2;--tg:#F1F7F2;--tgi:#0F3D2E;--pb:#E8C277;--pi:#0F3D2E}
+.vtp.t-aviso.tn-0{--b1:#0F4D32;--b2:#145E3E;--ink:#fff;--tg:#8BD448;--tgi:#0F4D32}
+.vtp.t-aviso.tn-1{--b1:#FFF8E7;--b2:#FBE7B8;--ink:#B42318;--tg:#B42318;--tgi:#fff}
+.vtp.t-aviso.tn-2{--b1:#141414;--b2:#262626;--ink:#FFD43B;--tg:#FFD43B;--tgi:#141414}
+.vtp.t-destacado .vtp-nm{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:700;font-stretch:100%}
+/* Ajustes: miniaturas y editor de diseño */
+.vsths{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin:4px 0 12px}
+.vsth{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vsth-p{position:relative;display:block;padding:0;border:0;border-radius:14px;overflow:hidden;background:#fff;box-shadow:inset 0 0 0 1px var(--hl2);cursor:pointer;transition:transform 160ms var(--ease-out)}
+.vsth-p:active{transform:scale(.97)}
+.vsth.sel .vsth-p{box-shadow:0 0 0 3px var(--ac)}
+.vsth.off .vsth-p{opacity:.45}
+.vsth-box{position:relative;display:block;aspect-ratio:16/10}
+.vsth-b{display:flex;flex-direction:column;gap:4px;min-width:0}
+.vsth-n{font:600 12.5px var(--f);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t2)}
+.vsth-k{display:flex;gap:4px;flex-wrap:wrap}
+.vsth-k .ib{min-height:30px;padding:0 9px;border:1px solid var(--hl2);border-radius:9px;background:var(--s1);color:var(--t1);font:600 12px var(--f);cursor:pointer}
+.vsth-k .ib:disabled{opacity:.35;cursor:default}
+.vtnew{gap:8px;align-items:flex-end}
+.vtrot{min-width:150px}
+.vtform{margin-top:14px;padding-top:14px;border-top:1px solid var(--hl)}
+.vtpwrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.vtpwrap{grid-template-columns:1fr}}
+.vtp-prev{position:relative;width:100%;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--hl)}
+.vtpf{display:flex;flex-direction:column;gap:10px;min-width:0}
+.vtpk{flex-wrap:wrap}
+/* Chat de Luis: vista previa del afiche */
+.hl-vprev{position:relative;aspect-ratio:16/10;margin:10px 0 2px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+.hl-vprev img.hl-vimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vtp-nm{font-size:10cqmin}
+.vtp.noimg .vtp-nm{font-size:13cqmin}
+.vtp-pr{font-size:17cqmin}
+.vtp-pr small{font-size:6.5cqmin}
+.vtp-old{font-size:6cqmin}
+.vtp-sub{font-size:7cqmin}
+.vtp-tag{font-size:5.6cqmin}
+/* Caja más alta que ancha (vitrina de la venta): foto arriba con su espacio fijo y textos algo más chicos debajo */
+@container (max-aspect-ratio:6/5){
+  .vtp-in{grid-template-rows:minmax(0,46%) minmax(0,1fr);align-items:start;gap:4cqmin}
+  .vtp.noimg .vtp-in{grid-template-rows:minmax(0,1fr);align-items:center}
+  .vtp-im{height:100%}
+  .vtp-tx{gap:1.6cqmin}
+  .vtp-nm{font-size:8.6cqmin;-webkit-line-clamp:2}
+  .vtp.noimg .vtp-nm{font-size:12cqmin;-webkit-line-clamp:5}
+  .vtp-pr{font-size:14cqmin}
+  .vtp-tag{font-size:5cqmin}
+  .vtp-sub{font-size:6.4cqmin}
+}
+.vtp-im.k-foto{position:relative;align-self:stretch;height:100%;overflow:hidden;border-radius:4cqmin;border:1.2cqmin solid var(--fr,#fff);box-shadow:0 2cqmin 4cqmin rgba(0,0,0,.25)}
+.vtp-im.k-foto .vtp-pim{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;border:0;border-radius:0;filter:none}
+
+/* Celular: las opciones largas de Ajustes bajan a otra línea en vez de salirse de la pantalla. */
+@media (max-width:520px){.card .seg{flex-wrap:wrap}.card .seg>button{flex:1 1 auto}}
