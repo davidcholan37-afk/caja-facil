@@ -2727,3 +2727,21 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
 .sheet.paym .payred.up small{color:var(--warn)}
 /* Productos: resultado elegido con las flechas */
 #plist .it.sel{box-shadow:inset 0 0 0 2px var(--ac);background:var(--ac-t)}
+
+/* ===== Pantallas de caja táctiles de 960–1099 px (NCR 1024×768): todo más grande para el dedo y más contraste para pantallas viejas ===== */
+@media (min-width:960px) and (max-width:1099px){
+  html body.vit[data-tab=venta] .cart .ln{min-height:56px;gap:0 8px;padding-top:6px!important;padding-bottom:6px!important}
+  html body.vit[data-tab=venta] .cart .ln .qc .sb{width:38px;height:40px;font-size:20px;font-weight:700}
+  html body.vit[data-tab=venta] .cart .ln .qc .qv{min-width:46px;height:40px;font-size:16px;font-weight:700}
+  html body.vit[data-tab=venta] .cart .ln .nm b{font-size:15.5px;line-height:1.2;color:var(--t1)}
+  html body.vit[data-tab=venta] .cart .ln .nm small{font-size:12.5px}
+  html body.vit[data-tab=venta] .cart .ln .pu{font-size:13px}
+  html body.vit[data-tab=venta] .cart .ln .amt{font-size:17px;font-weight:750;color:var(--t1)}
+  html body.vit[data-tab=venta] .cart .ln .rm{width:40px;height:40px}
+  html body.vit[data-tab=venta] .cart .ln .rm svg{width:18px;height:18px;stroke-width:2.6}
+  html body.vit[data-tab=venta] .cart .ln.sel{box-shadow:inset 3px 0 0 var(--ac),inset 0 0 0 1.5px color-mix(in srgb,var(--ac) 45%,transparent)}
+  html body.vit[data-tab=venta] .cart .tot{font-size:14px}
+  html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:56px;font-size:16px;font-weight:700}
+  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo{min-height:66px;font-size:21px}
+  html body.vit[data-tab=venta] #q{font-size:17px}
+}

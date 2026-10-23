@@ -8,7 +8,7 @@ VIEWS.venta = function viewSale(v) {
   v.innerHTML = `<div class="pos">
     <section class="left">
       <div class="searchbar">
-        <label class="sbox">${svg("search")}<input id="q" type="search" enterkeyhint="go" placeholder="${DESK() ? "Escanea o escribe un producto" : "Busca o escanea"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
+        <label class="sbox">${svg("search")}<input id="q" type="search" enterkeyhint="go" placeholder="${DESK() ? (innerWidth < 1100 ? "Escanea o busca" : "Escanea o escribe un producto") : "Busca o escanea"}" autocomplete="off" value="${esc(ui.q)}" aria-label="Buscar producto o código"></label>
         <button class="tool cam" data-a="camscan" title="Escanear códigos con la cámara">${svg("scan")}<span>Cámara</span></button>
         <button class="tool xtra ${scaleState.on ? "live" : ""}" data-a="scaletool" id="scaleTool" title="Balanza">${svg("scale")}<span>${scaleState.on ? "Balanza lista" : "Balanza"}</span></button>
         ${tables ? `<button class="tool xtra" data-a="mesas" title="Mesas">${svg("mesa")}<span>Mesas</span></button>` : ""}
