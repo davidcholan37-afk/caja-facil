@@ -67,6 +67,7 @@ function openProduct(id) {
   const base = p ? JSON.parse(JSON.stringify(p)) : { id: "", name: "", price: "", cost: "", stock: "", min: 5, cat: ui.cat && !ui.cat.startsWith("__") ? ui.cat : "", code: "", unit: "u", pres: [], recipe: [], igv: true, img: "", fav: false, color: "", on: true };
   base.mq = base.mayor ? base.mayor.q : ""; base.mp = base.mayor ? base.mayor.p : ""; base.sup = base.sup || ""; base.exp = base.exp || ""; base.op = base.oferta ? base.oferta.p : ""; base.oh = base.oferta ? base.oferta.hasta || "" : "";
   ui.pe = { id: id || "", d: base, stock0: p ? p.stock : null };
+  ui.peTab = "";
   paintPE();
 }
 function readPE() {
@@ -79,21 +80,22 @@ function paintPE() {
   const { id, d } = ui.pe, cats = [...new Set(DB.products.map((x) => x.cat).filter(Boolean))].sort();
   const kg = d.unit === "kg", others = DB.products.filter((x) => x.id !== id).sort((a, b) => cmpEs(a.name, b.name));
   const imgMode = d.img && d.img.startsWith("data:") ? "Tu foto" : d.img && d.img.startsWith("foto:") ? "Foto elegida" : d.img && d.img.startsWith("lib:") ? "Ilustración elegida" : "Automática por nombre";
-  openModal(`<div id="pe"><h2>${id ? "Editar producto" : "Nuevo producto"}</h2>
+  // Ficha «precio arriba» (opción 4 elegida por David, 23 oct 2026): adelante lo principal en grande (precio, costo, nombre,
+  // categoría, se vende, código y stock); lo demás en 4 botones de arriba que abren su parte (ui.peTab, se recuerda al repintar).
+  const tab = ui.peTab || "", hasOfe = !!(d.mq || d.sup || d.exp || d.op), nPres = (d.pres || []).length, nRec = (d.recipe || []).length;
+  const OPI = { foto: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/></svg>', ofe: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>', pres: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V4h8v3"/></svg>', rec: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg>' };
+  const opb = (k, t, badge) => `<button type="button" class="${tab === k ? "on" : ""}" data-a="petab" data-p="${k}" aria-expanded="${tab === k}">${OPI[k]}<span>${t}</span>${badge ? `<i class="opn">${badge}</i>` : ""}</button>`;
+  const opp = (k, t, html) => `<div class="oppanel ${tab === k ? "on" : ""}" data-p="${k}"><div class="ophead"><b>${t}</b><button type="button" class="opx" data-a="petab" data-p="${k}">Cerrar</button></div>${html}</div>`;
+  openModal(`<div id="pe" class="pe4"><h2>${id ? "Editar producto" : "Nuevo producto"}</h2>
+    <div class="opbar">${opb("foto", "Foto y color")}${opb("ofe", "Oferta y más", hasOfe ? "•" : "")}${opb("pres", "Presentaciones", nPres || "")}${opb("rec", "Receta", nRec || "")}</div>
+    ${opp("foto", "Foto y color", `
     <div class="pe-top">
       <div class="pe-img k-${imgKind(d)}" style="--cc:${tintOf(d)}">${pimg(d, "big")}<span class="prc num"><i>S/</i>${num(d.price || 0).toFixed(2)}</span><small>${imgMode}</small></div>
       <div class="pe-imgb"><button class="btn sec sm" data-a="imgpick">Elegir imagen</button><label class="btn sec sm">${svg("cam", "bi")}Tomar foto<input type="file" accept="image/*" capture="environment" data-in="pphoto" hidden></label>${d.img ? `<button class="link" data-a="imgauto">Usar automática</button>` : ""}
         <span class="cl-l">Color de la cartulina del precio</span>
         <div class="colors" role="group" aria-label="Color de la cartulina">${["", ...CARDS].map((c, i) => `<button class="sw ${(d.color || "").toUpperCase() === c ? "on" : ""}" data-a="pcolor" data-c="${c}" style="background:${c || "transparent"}" title="${c ? CARDNAME[i - 1] : "Automático según la categoría"}" aria-label="${c ? CARDNAME[i - 1] : "Automático"}">${c ? "" : "A"}</button>`).join("")}</div></div>
-    </div>
-    <label class="fld"><span>Nombre</span><input class="inp" data-f="name" value="${esc(d.name)}" ${id ? "" : "autofocus"} autocomplete="off" maxlength="60" placeholder="Ej: Tomate italiano"></label>
-    <div class="two"><label class="fld"><span>Se vende</span><select class="inp" data-f="unit" data-a2="repaint"><option value="u" ${!kg ? "selected" : ""}>Por unidad</option><option value="kg" ${kg ? "selected" : ""}>Por kilo (se pesa)</option></select></label>
-      <label class="fld"><span>Categoría</span><input class="inp" data-f="cat" list="catlist" value="${esc(d.cat)}" placeholder="Verduras, Bebidas..."><datalist id="catlist">${cats.map((c) => `<option value="${esc(c)}">`).join("")}</datalist></label></div>
-    <div class="two"><label class="fld"><span>Precio de venta (S/${kg ? " por kilo" : ""})</span><input class="inp num" data-f="price" inputmode="decimal" value="${esc(d.price)}"></label>
-      <label class="fld"><span>Costo (S/${kg ? " por kilo" : ""})</span><input class="inp num" data-f="cost" inputmode="decimal" value="${esc(d.cost)}" placeholder="${(d.recipe || []).length ? "Se calcula de la receta" : "Opcional"}"></label></div>
-    <div class="two"><label class="fld"><span>Código rápido o de barras</span><span class="codein"><input class="inp" data-f="code" value="${esc(d.code)}" placeholder="Ej: ${nextCode()}" autocomplete="off"><button type="button" class="scanb" data-a="camcode" title="Leer el código con la cámara" aria-label="Leer el código con la cámara">${svg("scan")}</button></span></label>
-      <label class="fld"><span>Stock actual${kg ? " (kg)" : ""}</span><input class="inp num" data-f="stock" inputmode="decimal" value="${d.stock == null ? "" : esc(d.stock)}" placeholder="Vacío = sin control"></label></div>
-    <details class="box" ${d.mq || d.sup || d.exp || d.op ? "open" : ""}><summary><b>Más opciones</b><small>Oferta, precio por mayor, proveedor, vencimiento, stock bajo, IGV y favorito</small></summary>
+    </div>`)}
+    ${opp("ofe", "Oferta y más", `
     <div class="two"><label class="fld"><span>Precio de oferta (S/)</span><input class="inp num" data-f="op" inputmode="decimal" value="${esc(d.op)}" placeholder="Ej: 2.50"></label>
       <label class="fld"><span>Oferta hasta (opcional)</span><input class="inp" type="date" data-f="oh" value="${esc(d.oh)}"></label></div>
     <div class="two"><label class="fld"><span>Precio por mayor: desde${kg ? " (kg)" : " (unidades)"}</span><input class="inp num" data-f="mq" inputmode="decimal" value="${esc(d.mq)}" placeholder="Ej: 12"></label>
@@ -101,13 +103,22 @@ function paintPE() {
     <div class="two"><label class="fld"><span>Proveedor</span><select class="inp" data-f="sup"><option value="">Sin proveedor</option>${DB.supp.slice().sort((a, b) => cmpEs(a.name, b.name)).map((s) => `<option value="${s.id}" ${s.id === d.sup ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
       <label class="fld"><span>Fecha de vencimiento</span><input class="inp" type="date" data-f="exp" value="${esc(d.exp)}"></label></div>
     <div class="two"><label class="fld"><span>Avisar si baja de</span><input class="inp num" data-f="min" inputmode="decimal" value="${esc(d.min)}"></label>
-      <div class="checks"><label class="ck"><input type="checkbox" data-f="igv" ${d.igv !== false ? "checked" : ""}> Afecto a IGV</label><label class="ck"><input type="checkbox" data-f="fav" ${d.fav ? "checked" : ""}> Favorito (sale primero)</label><label class="ck"><input type="checkbox" data-f="on" ${d.on !== false ? "checked" : ""}> Mostrar en venta</label></div></div></details>
-    <details class="box" ${(d.pres || []).length ? "open" : ""}><summary><b>Presentaciones</b><small>Ej: paquete x6, caja x12, jaba x30 — cada una con su precio y código</small></summary>
+      <div class="checks"><label class="ck"><input type="checkbox" data-f="igv" ${d.igv !== false ? "checked" : ""}> Afecto a IGV</label><label class="ck"><input type="checkbox" data-f="fav" ${d.fav ? "checked" : ""}> Favorito (sale primero)</label><label class="ck"><input type="checkbox" data-f="on" ${d.on !== false ? "checked" : ""}> Mostrar en venta</label></div></div>`)}
+    ${opp("pres", "Presentaciones", `
       <div class="prows">${(d.pres || []).map((x) => `<div class="prow" data-id="${x.id}"><input class="inp" data-pf="name" value="${esc(x.name)}" placeholder="Paquete x6"><input class="inp num" data-pf="f" inputmode="decimal" value="${esc(x.f || "")}" placeholder="${kg ? "kg" : "Unid."}" title="${kg ? "Kilos" : "Unidades"} que contiene"><input class="inp num" data-pf="price" inputmode="decimal" value="${esc(x.price || "")}" placeholder="Precio"><input class="inp" data-pf="code" value="${esc(x.code || "")}" placeholder="Código"><button class="x" data-a="presdel" data-id="${x.id}" aria-label="Quitar">✕</button></div>`).join("")}</div>
-      <button class="btn sec sm" data-a="presadd">+ Agregar presentación</button></details>
-    <details class="box" ${(d.recipe || []).length ? "open" : ""}><summary><b>Receta o insumos</b><small>Al vender este producto se descuentan sus insumos del stock</small></summary>
+      <button class="btn sec sm" data-a="presadd">+ Agregar presentación</button>`)}
+    ${opp("rec", "Receta o insumos", `
       <div class="prows">${(d.recipe || []).map((x, i) => `<div class="rrow"><select class="inp" data-rf="id">${others.map((o) => `<option value="${o.id}" ${o.id === x.id ? "selected" : ""}>${esc(o.name)}${o.unit === "kg" ? " (kg)" : ""}</option>`).join("")}</select><input class="inp num" data-rf="qty" inputmode="decimal" value="${esc(x.qty || "")}" placeholder="Cantidad"><button class="x" data-a="recdel" data-i="${i}" aria-label="Quitar">✕</button></div>`).join("")}</div>
-      ${others.length ? `<button class="btn sec sm" data-a="recadd">+ Agregar insumo</button>` : `<p class="muted">Primero crea los insumos como productos.</p>`}</details>
+      ${others.length ? `<button class="btn sec sm" data-a="recadd">+ Agregar insumo</button>` : `<p class="muted">Primero crea los insumos como productos.</p>`}`)}
+    <div class="pe-main">
+    <div class="tiles"><label class="fld"><span>Precio de venta${kg ? " (por kilo)" : ""}</span><input class="inp num" data-f="price" inputmode="decimal" value="${esc(d.price === "" || d.price == null || isNaN(+d.price) ? d.price : num(d.price).toFixed(2))}" placeholder="0.00"></label>
+      <label class="fld"><span>Costo${kg ? " (por kilo)" : ""}</span><input class="inp num" data-f="cost" inputmode="decimal" value="${esc(d.cost === "" || d.cost == null || isNaN(+d.cost) ? d.cost : num(d.cost).toFixed(2))}" placeholder="${(d.recipe || []).length ? "De la receta" : "Opcional"}"></label></div>
+    <label class="fld"><span>Nombre</span><input class="inp" data-f="name" value="${esc(d.name)}" ${id ? "" : "autofocus"} autocomplete="off" maxlength="60" placeholder="Ej: Tomate italiano"></label>
+    <div class="two"><label class="fld"><span>Categoría</span><input class="inp" data-f="cat" list="catlist" value="${esc(d.cat)}" placeholder="Verduras, Bebidas..."><datalist id="catlist">${cats.map((c) => `<option value="${esc(c)}">`).join("")}</datalist></label>
+      <div class="fld"><span>Se vende</span><input type="hidden" data-f="unit" value="${kg ? "kg" : "u"}"><div class="useg" role="group" aria-label="Se vende"><button type="button" class="${!kg ? "on" : ""}" data-a="punit" data-v="u" aria-pressed="${!kg}">Por unidad</button><button type="button" class="${kg ? "on" : ""}" data-a="punit" data-v="kg" aria-pressed="${kg}">Por kilo</button></div></div></div>
+    <div class="two"><label class="fld"><span>Código de barras</span><span class="codein"><input class="inp" data-f="code" value="${esc(d.code)}" placeholder="Ej: ${nextCode()}" autocomplete="off"><button type="button" class="scanb" data-a="camcode" title="Leer el código con la cámara" aria-label="Leer el código con la cámara">${svg("scan")}</button></span></label>
+      <label class="fld"><span>Stock (cuántos hay)${kg ? " en kg" : ""}</span><input class="inp num" data-f="stock" inputmode="decimal" value="${d.stock == null ? "" : esc(d.stock)}" placeholder="Vacío = sin control"></label></div>
+    </div>
     <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-enter data-a="psave">Guardar</button></div>
     ${id ? `<div class="btns three"><button class="btn sec sm" data-a="restock" data-id="${id}">Ingreso de mercadería</button><button class="btn sec sm" data-a="kxof" data-id="${id}">Ver movimientos</button><button class="btn red sec sm" data-a="pdel" data-id="${id}">Eliminar</button></div>` : ""}</div>`, "wide");
   ui.mk = "pe";
@@ -354,6 +365,13 @@ function doTransfer() {
 }
 
 act({
+  // Ficha del producto: botones de arriba (abren/cierran su parte sin repintar) y «Por unidad / Por kilo»
+  petab: (el) => {
+    const k = el.dataset.p; ui.peTab = ui.peTab === k ? "" : k;
+    $$("#pe .opbar button").forEach((b) => { const on = b.dataset.p === ui.peTab; b.classList.toggle("on", on); b.setAttribute("aria-expanded", on); });
+    $$("#pe .oppanel").forEach((x) => x.classList.toggle("on", x.dataset.p === ui.peTab));
+  },
+  punit: (el) => { if (!ui.pe) return; readPE(); ui.pe.d.unit = el.dataset.v; paintPE(); },
   ptab: (el) => { if (modalOpen()) closeModal(); ui.ptab = el.dataset.t; if (ui.tab !== "prod") go("prod"); else render(); },
   prodmas: () => openModal(`<h2>Más opciones</h2><div class="fgrid" style="margin:12px 0">${can("precios") ? `<button class="fb" data-a="impopen">Importar</button>` : ""}<button class="fb" data-a="expprod">Exportar</button>${can("stock") ? `<button class="fb" data-a="trfopen">Transferir stock</button>` : ""}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),
   pnew: () => need("precios", () => openProduct("")),

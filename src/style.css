@@ -2887,3 +2887,68 @@ body:not(._):not(._s) .side .logo{width:34px!important;height:34px!important}
 body:not(._):not(._s) .sidefoot .sidehide,body:not(._):not(._s) .sidefoot .themebtn,body:not(._):not(._s) .sidefoot .lockbtn{min-height:34px!important;font-size:11px!important}
 body:not(._):not(._s) .sidefoot .uchip .av{width:28px!important;height:28px!important}
 }
+
+/* ===== Ficha del producto «precio arriba» (opción 4 elegida por David, 23 oct 2026; 40-products paintPE, clase #pe.pe4):
+   letras grandes y oscuras para gente mayor, lo principal adelante y lo demás en 4 botones de arriba. ===== */
+#pe.pe4{--pk:#0E1B15;--pl:#8FA197;--pg:#14532D}
+#pe.pe4 h2{font:750 24px/1.2 var(--f);color:var(--pk);margin:0 0 14px}
+#pe.pe4 .opbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+#pe.pe4 .opbar button{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:8px 6px;border:1.5px solid #C9D3CD;border-radius:12px;background:#F6F8F7;color:var(--pk);font:650 15px/1.15 var(--f);cursor:pointer;transition:transform .14s var(--ease-out,ease-out)}
+#pe.pe4 .opbar button svg{width:22px;height:22px;flex:none;fill:none;stroke:var(--pg);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#pe.pe4 .opbar button.on{background:var(--pg);border-color:var(--pg);color:#fff}
+#pe.pe4 .opbar button.on svg{stroke:#fff}
+#pe.pe4 .opbar .opn{position:absolute;top:6px;right:8px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--pg);color:#fff;font:700 11px/18px var(--f);font-style:normal;text-align:center}
+#pe.pe4 .opbar button.on .opn{background:#fff;color:var(--pg)}
+#pe.pe4 .opbar button:active,#pe.pe4 .useg button:active{transform:scale(.97)}
+#pe.pe4 .oppanel{display:none;border:1.5px solid var(--pg);border-radius:12px;padding:12px 14px 14px;margin-bottom:14px;background:#F7FAF8}
+#pe.pe4 .oppanel.on{display:block}
+#pe.pe4 .ophead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+#pe.pe4 .ophead b{font:700 17px var(--f);color:var(--pk)}
+#pe.pe4 .opx{border:0;background:none;font:650 15px var(--f);color:var(--pg);cursor:pointer;padding:6px 4px}
+#pe.pe4 .oppanel .pe-top{margin:0}
+#pe.pe4 .oppanel .two{margin-bottom:10px}
+#pe.pe4 .pe-main{border-top:1px solid #DDE4E0;padding-top:14px}
+#pe.pe4 .pe-main .fld{margin:0 0 14px}
+#pe.pe4 .pe-main .two{gap:14px;margin:0}
+#pe.pe4 .fld > span{font:700 16px var(--f);color:var(--pk);margin-bottom:6px}
+#pe.pe4 .inp{background:#fff!important;border:2px solid var(--pl)!important;border-radius:10px!important;box-shadow:none!important;color:var(--pk);font:600 21px var(--f);min-height:58px}
+#pe.pe4 .oppanel .inp{font-size:18px;min-height:52px}
+#pe.pe4 .inp::placeholder{color:#6B7C73;font-weight:500;font-size:17px}
+#pe.pe4 .inp:focus{border-color:var(--pg)!important;box-shadow:0 0 0 3px rgba(20,83,45,.18)!important;outline:0}
+#pe.pe4 .pe-main [data-f=name]{font:700 21px var(--f)}
+#pe.pe4 .codein .scanb{width:48px;height:48px;border-radius:10px}
+/* precio y costo arriba, en números grandes */
+#pe.pe4 .tiles{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-bottom:16px}
+#pe.pe4 .tiles .fld{margin:0;border-radius:14px;padding:12px 16px;background:#F1F5F2;cursor:text}
+#pe.pe4 .tiles .fld:first-child{background:#E5F2E9}
+#pe.pe4 .tiles .inp{background:transparent!important;border:0!important;padding:0!important;min-height:0;height:auto!important;font:800 46px/1.1 var(--f)!important;width:100%}
+#pe.pe4 .tiles .inp::placeholder{font:700 38px var(--f);color:#9AAAA1}
+#pe.pe4 .tiles [data-f=price]{color:var(--pg)}
+#pe.pe4 .tiles .fld:focus-within{box-shadow:inset 0 0 0 2.5px var(--pg)}
+/* «Se vende»: dos botones grandes */
+#pe.pe4 .useg{display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:58px}
+#pe.pe4 .useg button{border:2px solid var(--pl);border-radius:10px;background:#fff;font:650 17px var(--f);color:var(--pk);cursor:pointer;transition:transform .14s var(--ease-out,ease-out)}
+#pe.pe4 .useg button.on{background:var(--pg);border-color:var(--pg);color:#fff}
+/* Cancelar y Guardar fijos abajo, grandes */
+#pe.pe4 > .btns.h{position:sticky;bottom:-20px;z-index:3;margin:8px -18px -20px!important;padding:12px 18px 18px!important;background:var(--s1,#fff)!important;border-top:1px solid #DDE4E0;display:flex;gap:12px}
+#pe.pe4 > .btns.h .btn{min-height:58px;border-radius:12px;box-shadow:none!important;font:700 18px var(--f);flex:1}
+#pe.pe4 > .btns.h .btn.sec{background:#fff!important;border:2px solid #C9D3CD!important;color:var(--pk)}
+#pe.pe4 > .btns.h .btn[data-a=psave]{flex:2;background:var(--pg)!important;color:#fff!important}
+#pe.pe4 > .btns.h + .btns{margin-top:34px}
+@media (max-width:600px){#pe.pe4 .opbar{grid-template-columns:1fr 1fr}#pe.pe4 .inp{font-size:19px}#pe.pe4 .useg button{font-size:15px}#pe.pe4 .tiles .inp{font-size:38px!important}}
+/* modo oscuro */
+html[data-theme=dark] #pe.pe4{--pk:#EEF4F0;--pl:#4E6157;--pg:#2FA864}
+html[data-theme=dark] #pe.pe4 .opbar button{background:#1A241F;border-color:#2C3A33}
+html[data-theme=dark] #pe.pe4 .opbar button.on{background:#1F7A49;border-color:#1F7A49}
+html[data-theme=dark] #pe.pe4 .oppanel{background:#141C18}
+html[data-theme=dark] #pe.pe4 .inp,html[data-theme=dark] #pe.pe4 .useg button{background:#101714!important;color:var(--pk)}
+html[data-theme=dark] #pe.pe4 .useg button.on{background:#1F7A49;border-color:#1F7A49;color:#fff}
+html[data-theme=dark] #pe.pe4 .tiles .fld{background:#1A241F}
+html[data-theme=dark] #pe.pe4 .tiles .fld:first-child{background:#173323}
+html[data-theme=dark] #pe.pe4 .tiles [data-f=price]{color:#7FE0A5}
+html[data-theme=dark] #pe.pe4 > .btns.h .btn.sec{background:#101714!important;border-color:#2C3A33!important}
+html[data-theme=dark] #pe.pe4 > .btns.h .btn[data-a=psave]{background:#1F7A49!important}
+html[data-theme=dark] #pe.pe4 .pe-main,html[data-theme=dark] #pe.pe4 > .btns.h{border-color:#2C3A33}
+html[data-theme=dark] #pe.pe4 .tiles .inp{background:transparent!important}
+html[data-theme=dark] #pe.pe4 .useg button.on{background:#1F7A49!important;border-color:#1F7A49!important;color:#fff!important}
+@media (max-width:600px){#pe.pe4 .useg button{font-size:14px;padding:0 4px}}
