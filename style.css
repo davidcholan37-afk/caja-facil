@@ -2827,7 +2827,6 @@ html.fs-on .fullbtn span.fsout{display:inline!important}
   html body.vit[data-tab=venta] .cart .ln .pu{align-self:center!important}
   html body.vit[data-tab=venta] .cart .ln .nm small{background:none!important;padding:0!important;margin-top:2px!important;border-radius:0!important;font:500 12px var(--f)!important;letter-spacing:0;color:var(--t3)!important}
   html body.vit[data-tab=venta] .cart-empty svg{width:34px!important;height:34px!important}
-  html body.vit[data-tab=venta] .cart-empty::after{content:"F2 Efectivo    ·    F8 Yape    ·    F10 Plin    ·    F3 Buscar";white-space:pre;margin-top:10px;font:600 12.5px var(--f);color:var(--t3);letter-spacing:.01em}
 }
 /* Botones de pago sin venta: con sus mismos colores de siempre (David no quiso el gris ni los tonos claros). Siguen sin poder tocarse. */
 html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1D8A4E!important;color:#fff!important;box-shadow:none!important}
@@ -2845,3 +2844,6 @@ html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectiv
 /* Fotos de la vitrina con su color natural (sin filtro: además es más liviano) */
 body.vit .vmos i{filter:none!important}
 html[data-theme=dark] body.vit .vmos i{filter:brightness(.85)!important}
+/* Sin las letras de las teclas (F2, F8, F10) encima de los botones de pago (pedido de David): las teclas siguen funcionando */
+html body.vit[data-tab=venta] .paybox .paymini .pm .kbd{display:none!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm::after{content:none!important}
