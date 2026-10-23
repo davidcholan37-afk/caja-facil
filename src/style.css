@@ -2818,3 +2818,29 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
 html.fs-on .fullbtn .fsin{display:none!important}
 html.fs-on .fullbtn svg.fsout{display:block!important}
 html.fs-on .fullbtn span.fsout{display:inline!important}
+
+/* ===== Detalles de la pantalla de venta (pedido de David, 23 oct 2026). Solo CSS, nada pesado. ===== */
+/* Columnas del ticket alineadas, código como texto suave y ticket vacío con las teclas: solo pantallas grandes (≥1100 px);
+   en la NCR el ticket usa otro orden y no se toca. */
+@media (min-width:1100px){
+  html body.vit[data-tab=venta] .cart .ln .pu{align-self:center!important}
+  html body.vit[data-tab=venta] .cart .ln .nm small{background:none!important;padding:0!important;margin-top:2px!important;border-radius:0!important;font:500 12px var(--f)!important;letter-spacing:0;color:var(--t3)!important}
+  html body.vit[data-tab=venta] .cart-empty svg{width:34px!important;height:34px!important}
+  html body.vit[data-tab=venta] .cart-empty::after{content:"F2 Efectivo    ·    F8 Yape    ·    F10 Plin    ·    F3 Buscar";white-space:pre;margin-top:10px;font:600 12.5px var(--f);color:var(--t3);letter-spacing:.01em}
+}
+/* Botones de pago sin venta: con sus mismos colores de siempre (David no quiso el gris ni los tonos claros). Siguen sin poder tocarse. */
+html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1D8A4E!important;color:#fff!important;box-shadow:none!important}
+html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1F8A4F!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm.yape:disabled{background:#742284!important;color:#fff!important;box-shadow:none!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm.plin:disabled{background:#00B2D6!important;color:#03323C!important;box-shadow:none!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm.culqi:disabled{background:#FF7A1A!important;color:#2A1300!important;box-shadow:none!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#fff!important;color:#1D2633!important;box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 rgba(15,23,42,.1)!important}
+html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#1C222B!important;color:#E6EAF0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -3px 0 rgba(0,0,0,.35)!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm:disabled::before{filter:none!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background-color:#fff!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm.culqi:disabled::before{filter:brightness(0) invert(1)!important}
+html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#1D2633!important}
+html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#E6EAF0!important}
+/* Fotos de la vitrina con su color natural (sin filtro: además es más liviano) */
+body.vit .vmos i{filter:none!important}
+html[data-theme=dark] body.vit .vmos i{filter:brightness(.85)!important}
