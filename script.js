@@ -770,8 +770,9 @@ function totalsOf(t) {
   const lines = linesOf(t);
   const sub = r2(lines.reduce((a, { l, r }) => a + r2(r.price * l.qty), 0));
   const disc = Math.min(Math.max(0, r2(t.disc)), sub);
-  // Redondeo a favor del cliente (Perú: no se puede redondear en contra del comprador): baja a los 10 céntimos.
-  const t0 = r2(sub - disc), red = t.red && t0 > 0 ? r2(t0 - Math.floor(t0 * 10 + 1e-6) / 10) : 0;
+  // Redondeo a los 10 céntimos más cercanos (1.92 → 1.90, 1.95 → 2.00). red > 0 baja el total; red < 0 lo sube
+  // (en Perú, subir solo vale si el cliente acepta: el botón lo avisa).
+  const t0 = r2(sub - disc), red = t.red && t0 > 0 ? r2(t0 - redTo(t0)) : 0;
   const total = r2(t0 - red), ratio = sub ? total / sub : 0;
   const gAmt = r2(lines.reduce((a, { l, r }) => a + (r.igv ? r2(r.price * l.qty) : 0), 0) * ratio);
   const rate = DB.cfg.igvOn ? (+DB.cfg.igv || 0) / 100 : 0;
@@ -779,6 +780,7 @@ function totalsOf(t) {
   return { lines, sub, disc, red, total, gravada, igv, exo: rate ? r2(total - gAmt) : 0, count: lines.length };
 }
 const cartTotals = () => totalsOf(DB.cart);
+const redTo = (n) => Math.round(r2(n * 10)) / 10;
 const ticketTotal = (t) => totalsOf(t).total;
 const unitTxt = (r) => (r.unit === "kg" ? " kg" : "");
 // Cuánto de un producto (en unidades base) hay en el ticket, sin contar una línea.
@@ -1042,7 +1044,7 @@ function paintCart() {
       <div class="tot">
         ${lines.length ? `<div class="trow"><div class="trl">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}${redLink(T, t)}</div>
           <div class="sumx" ${DB.cfg.igvOn || T.disc ? "" : "hidden"}><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
-        <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo −${money(T.red)}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
+        <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
       </div>
     </div>
     <div class="paybox">
@@ -1132,17 +1134,17 @@ function creditBlock() {
 }
 // El mismo redondeo, al pie del ticket en la pantalla de venta.
 function redLink(T, t) {
-  if (t.red && T.red > 0) return `<button class="link xs redl on" data-a="cartred" title="Quitar el redondeo">Redondeo −${money(T.red)} · Quitar</button>`;
-  const cut = r2(T.total - Math.floor(T.total * 10 + 1e-6) / 10);
-  return cut > 0 && T.total >= 0.1 ? `<button class="link xs redl" data-a="cartred" title="Baja ${money(cut)} a favor del cliente">Redondear a ${money(r2(T.total - cut))}</button>` : "";
+  if (t.red && T.red) return `<button class="link xs redl on" data-a="cartred" title="Quitar el redondeo">Redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))} · Quitar</button>`;
+  const to = redTo(T.total), d = r2(to - T.total);
+  return d && T.total >= 0.1 ? `<button class="link xs redl${d > 0 ? " up" : ""}" data-a="cartred" title="${d > 0 ? `Sube ${money(d)}: solo si el cliente acepta` : `Baja ${money(-d)} a favor del cliente`}">Redondear a ${money(to)}</button>` : "";
 }
 // Redondear el total a favor del cliente (hacia abajo, a 10 céntimos). Solo sale si hay céntimos sueltos.
 function redBlock() {
   const t = DB.cart, T = cartTotals();
-  if (t.red && T.red > 0) return `<button class="payred on" data-a="payred"><span>Redondeado a favor del cliente <b class="num">−${money(T.red)}</b></span><small>Quitar</small></button>`;
-  const base = T.total, cut = r2(base - Math.floor(base * 10 + 1e-6) / 10);
-  if (!(cut > 0) || base < 0.1) return "";
-  return `<button class="payred" data-a="payred"><span>Redondear a <b class="num">${money(r2(base - cut))}</b></span><small>−${money(cut)} a favor del cliente</small></button>`;
+  if (t.red && T.red) return `<button class="payred on${T.red < 0 ? " up" : ""}" data-a="payred"><span>Redondeado <b class="num">${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}</b></span><small>Quitar</small></button>`;
+  const base = T.total, to = redTo(base), d = r2(to - base);
+  if (!d || base < 0.1) return "";
+  return `<button class="payred${d > 0 ? " up" : ""}" data-a="payred"><span>Redondear a <b class="num">${money(to)}</b></span><small>${d > 0 ? `+${money(d)} · solo si el cliente acepta` : `−${money(-d)} a favor del cliente`}</small></button>`;
 }
 // Billetes y monedas sugeridos: el monto exacto y los que la gente suele dar (redondeos, 10, 20, 50, 100, 200).
 function cashOpts(due) {
@@ -1277,7 +1279,7 @@ function receiptHtml(s) {
     ${s.cname ? `<div class="l"><span>Cliente</span><span>${esc(s.cname)}</span></div>${s.cdoc ? `<div class="l"><span>${esc(s.cdt || "Doc.")}</span><span>${esc(s.cdoc)}</span></div>` : ""}${s.caddr && s.doc && s.doc.type === "F" ? `<div class="l"><span>Dirección</span><span>${esc(s.caddr)}</span></div>` : ""}` : ""}
     ${s.mesa ? `<div class="l"><span>Mesa</span><span>${s.mesa}</span></div>` : ""}<hr>
     ${s.items.map((i) => `<div class="it2"><span>${fmtQ(i.qty)}${i.unit === "kg" ? " kg" : ""} × ${esc(i.name)}</span><span>${money(i.price * i.qty)}</span>${i.qty !== 1 ? `<small>${money(i.price)}${i.unit === "kg" ? " /kg" : " c/u"}</small>` : ""}</div>`).join("")}<hr>
-    ${s.disc || s.red ? `<div class="l"><span>Subtotal</span><span>${money(s.sub)}</span></div>` : ""}${s.disc ? `<div class="l"><span>Descuento</span><span>- ${money(s.disc)}</span></div>` : ""}${s.red ? `<div class="l"><span>Redondeo</span><span>- ${money(s.red)}</span></div>` : ""}
+    ${s.disc || s.red ? `<div class="l"><span>Subtotal</span><span>${money(s.sub)}</span></div>` : ""}${s.disc ? `<div class="l"><span>Descuento</span><span>- ${money(s.disc)}</span></div>` : ""}${s.red ? `<div class="l"><span>Redondeo</span><span>${s.red > 0 ? "-" : "+"} ${money(Math.abs(s.red))}</span></div>` : ""}
     ${s.doc && s.doc.type !== "NV" && s.igv ? `<div class="l"><span>Op. gravada</span><span>${money(s.gravada)}</span></div>${s.exo ? `<div class="l"><span>Op. exonerada</span><span>${money(s.exo)}</span></div>` : ""}<div class="l"><span>IGV ${DB.cfg.igv}%</span><span>${money(s.igv)}</span></div>` : ""}
     <div class="l t"><span>TOTAL</span><span>${money(s.total)}</span></div><div class="c sm">SON: ${letras(s.total)}</div><hr>
     ${payBlock(s)}
@@ -1291,7 +1293,7 @@ function receiptText(s) {
   let t = `*${DB.biz.name}*\n${DOCS[s.doc ? s.doc.type : "NV"]} ${docNo(s)}\n${fmtDT(s.t)}\n\n`;
   s.items.forEach((i) => { t += `${fmtQ(i.qty)}${i.unit === "kg" ? " kg" : ""} x ${i.name}  ${money(i.price * i.qty)}\n`; });
   if (s.disc) t += `\nDescuento: -${money(s.disc)}`;
-  if (s.red) t += `\nRedondeo: -${money(s.red)}`;
+  if (s.red) t += `\nRedondeo: ${s.red > 0 ? "-" : "+"}${money(Math.abs(s.red))}`;
   t += `\n*TOTAL: ${money(s.total)}* (${methodLabel(s)})`;
   if (s.ptsEarn) t += `\nPuntos ganados: ${s.ptsEarn}`;
   return t + `\n\n${DB.biz.foot || "Gracias por su compra"}`;
@@ -5138,7 +5140,7 @@ const HELP_KB = [
   { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
-  { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "venta", s: ["Debajo del ticket (al lado de «+ Descuento») o al cobrar, si el total tiene céntimos sueltos (por ejemplo S/ 5.42), toca «Redondear a S/ 5.40».", "Siempre baja a los 10 céntimos, a favor del cliente: en Perú no se puede redondear en contra del comprador.", "Si te arrepientes, toca «Quitar». En el comprobante sale como «Redondeo»."] },
+  { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "venta", s: ["Debajo del ticket (al lado de «+ Descuento») o al cobrar, si el total tiene céntimos sueltos (por ejemplo S/ 5.42), toca «Redondear a …»: va a los 10 céntimos más cercanos (S/ 1.92 → S/ 1.90, S/ 1.95 → S/ 2.00).", "Si sube, pregúntale primero al cliente: en Perú solo se puede redondear hacia arriba si el cliente acepta.", "Si te arrepientes, toca «Quitar». En el comprobante sale como «Redondeo»."] },
   { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja", "2x1", "combo", "lista de precios", "pizarra", "estilo", "ideas"], t: "Afiches para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «2x1 en yogur», «lleva 3 paga 2 en atún», «lista de precios de frutas», «oferta de papaya 3.50, mango 5 y plátano 2» o «aviso: hoy cerramos a las 9 pm».", "Elige el estilo con un toque: Clásico, A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad o Día de la Madre. También puedes decirlo: «… estilo pizarra».", "Si la oferta baja el precio, marca «Cobrar … en la caja» y la caja cobra ese precio hasta la fecha del afiche.", "Escribe «¿qué oferta hago?» y te propongo afiches con lo que vence pronto o no se vende.", "En Ajustes › Pantalla de venta ves todas: ocultar, ordenar, editar y cada cuántos segundos cambian. «Dibuja …» hace un dibujo con IA (necesita internet y el extra de IA)."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
 ];

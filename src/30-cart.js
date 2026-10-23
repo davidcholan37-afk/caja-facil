@@ -19,8 +19,9 @@ function totalsOf(t) {
   const lines = linesOf(t);
   const sub = r2(lines.reduce((a, { l, r }) => a + r2(r.price * l.qty), 0));
   const disc = Math.min(Math.max(0, r2(t.disc)), sub);
-  // Redondeo a favor del cliente (Perú: no se puede redondear en contra del comprador): baja a los 10 céntimos.
-  const t0 = r2(sub - disc), red = t.red && t0 > 0 ? r2(t0 - Math.floor(t0 * 10 + 1e-6) / 10) : 0;
+  // Redondeo a los 10 céntimos más cercanos (1.92 → 1.90, 1.95 → 2.00). red > 0 baja el total; red < 0 lo sube
+  // (en Perú, subir solo vale si el cliente acepta: el botón lo avisa).
+  const t0 = r2(sub - disc), red = t.red && t0 > 0 ? r2(t0 - redTo(t0)) : 0;
   const total = r2(t0 - red), ratio = sub ? total / sub : 0;
   const gAmt = r2(lines.reduce((a, { l, r }) => a + (r.igv ? r2(r.price * l.qty) : 0), 0) * ratio);
   const rate = DB.cfg.igvOn ? (+DB.cfg.igv || 0) / 100 : 0;
@@ -28,6 +29,7 @@ function totalsOf(t) {
   return { lines, sub, disc, red, total, gravada, igv, exo: rate ? r2(total - gAmt) : 0, count: lines.length };
 }
 const cartTotals = () => totalsOf(DB.cart);
+const redTo = (n) => Math.round(r2(n * 10)) / 10;
 const ticketTotal = (t) => totalsOf(t).total;
 const unitTxt = (r) => (r.unit === "kg" ? " kg" : "");
 // Cuánto de un producto (en unidades base) hay en el ticket, sin contar una línea.

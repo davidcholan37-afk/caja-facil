@@ -170,7 +170,7 @@ function paintCart() {
       <div class="tot">
         ${lines.length ? `<div class="trow"><div class="trl">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}${redLink(T, t)}</div>
           <div class="sumx" ${DB.cfg.igvOn || T.disc ? "" : "hidden"}><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
-        <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo −${money(T.red)}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
+        <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
       </div>
     </div>
     <div class="paybox">
@@ -260,17 +260,17 @@ function creditBlock() {
 }
 // El mismo redondeo, al pie del ticket en la pantalla de venta.
 function redLink(T, t) {
-  if (t.red && T.red > 0) return `<button class="link xs redl on" data-a="cartred" title="Quitar el redondeo">Redondeo −${money(T.red)} · Quitar</button>`;
-  const cut = r2(T.total - Math.floor(T.total * 10 + 1e-6) / 10);
-  return cut > 0 && T.total >= 0.1 ? `<button class="link xs redl" data-a="cartred" title="Baja ${money(cut)} a favor del cliente">Redondear a ${money(r2(T.total - cut))}</button>` : "";
+  if (t.red && T.red) return `<button class="link xs redl on" data-a="cartred" title="Quitar el redondeo">Redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))} · Quitar</button>`;
+  const to = redTo(T.total), d = r2(to - T.total);
+  return d && T.total >= 0.1 ? `<button class="link xs redl${d > 0 ? " up" : ""}" data-a="cartred" title="${d > 0 ? `Sube ${money(d)}: solo si el cliente acepta` : `Baja ${money(-d)} a favor del cliente`}">Redondear a ${money(to)}</button>` : "";
 }
 // Redondear el total a favor del cliente (hacia abajo, a 10 céntimos). Solo sale si hay céntimos sueltos.
 function redBlock() {
   const t = DB.cart, T = cartTotals();
-  if (t.red && T.red > 0) return `<button class="payred on" data-a="payred"><span>Redondeado a favor del cliente <b class="num">−${money(T.red)}</b></span><small>Quitar</small></button>`;
-  const base = T.total, cut = r2(base - Math.floor(base * 10 + 1e-6) / 10);
-  if (!(cut > 0) || base < 0.1) return "";
-  return `<button class="payred" data-a="payred"><span>Redondear a <b class="num">${money(r2(base - cut))}</b></span><small>−${money(cut)} a favor del cliente</small></button>`;
+  if (t.red && T.red) return `<button class="payred on${T.red < 0 ? " up" : ""}" data-a="payred"><span>Redondeado <b class="num">${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}</b></span><small>Quitar</small></button>`;
+  const base = T.total, to = redTo(base), d = r2(to - base);
+  if (!d || base < 0.1) return "";
+  return `<button class="payred${d > 0 ? " up" : ""}" data-a="payred"><span>Redondear a <b class="num">${money(to)}</b></span><small>${d > 0 ? `+${money(d)} · solo si el cliente acepta` : `−${money(-d)} a favor del cliente`}</small></button>`;
 }
 // Billetes y monedas sugeridos: el monto exacto y los que la gente suele dar (redondeos, 10, 20, 50, 100, 200).
 function cashOpts(due) {
@@ -405,7 +405,7 @@ function receiptHtml(s) {
     ${s.cname ? `<div class="l"><span>Cliente</span><span>${esc(s.cname)}</span></div>${s.cdoc ? `<div class="l"><span>${esc(s.cdt || "Doc.")}</span><span>${esc(s.cdoc)}</span></div>` : ""}${s.caddr && s.doc && s.doc.type === "F" ? `<div class="l"><span>Dirección</span><span>${esc(s.caddr)}</span></div>` : ""}` : ""}
     ${s.mesa ? `<div class="l"><span>Mesa</span><span>${s.mesa}</span></div>` : ""}<hr>
     ${s.items.map((i) => `<div class="it2"><span>${fmtQ(i.qty)}${i.unit === "kg" ? " kg" : ""} × ${esc(i.name)}</span><span>${money(i.price * i.qty)}</span>${i.qty !== 1 ? `<small>${money(i.price)}${i.unit === "kg" ? " /kg" : " c/u"}</small>` : ""}</div>`).join("")}<hr>
-    ${s.disc || s.red ? `<div class="l"><span>Subtotal</span><span>${money(s.sub)}</span></div>` : ""}${s.disc ? `<div class="l"><span>Descuento</span><span>- ${money(s.disc)}</span></div>` : ""}${s.red ? `<div class="l"><span>Redondeo</span><span>- ${money(s.red)}</span></div>` : ""}
+    ${s.disc || s.red ? `<div class="l"><span>Subtotal</span><span>${money(s.sub)}</span></div>` : ""}${s.disc ? `<div class="l"><span>Descuento</span><span>- ${money(s.disc)}</span></div>` : ""}${s.red ? `<div class="l"><span>Redondeo</span><span>${s.red > 0 ? "-" : "+"} ${money(Math.abs(s.red))}</span></div>` : ""}
     ${s.doc && s.doc.type !== "NV" && s.igv ? `<div class="l"><span>Op. gravada</span><span>${money(s.gravada)}</span></div>${s.exo ? `<div class="l"><span>Op. exonerada</span><span>${money(s.exo)}</span></div>` : ""}<div class="l"><span>IGV ${DB.cfg.igv}%</span><span>${money(s.igv)}</span></div>` : ""}
     <div class="l t"><span>TOTAL</span><span>${money(s.total)}</span></div><div class="c sm">SON: ${letras(s.total)}</div><hr>
     ${payBlock(s)}
@@ -419,7 +419,7 @@ function receiptText(s) {
   let t = `*${DB.biz.name}*\n${DOCS[s.doc ? s.doc.type : "NV"]} ${docNo(s)}\n${fmtDT(s.t)}\n\n`;
   s.items.forEach((i) => { t += `${fmtQ(i.qty)}${i.unit === "kg" ? " kg" : ""} x ${i.name}  ${money(i.price * i.qty)}\n`; });
   if (s.disc) t += `\nDescuento: -${money(s.disc)}`;
-  if (s.red) t += `\nRedondeo: -${money(s.red)}`;
+  if (s.red) t += `\nRedondeo: ${s.red > 0 ? "-" : "+"}${money(Math.abs(s.red))}`;
   t += `\n*TOTAL: ${money(s.total)}* (${methodLabel(s)})`;
   if (s.ptsEarn) t += `\nPuntos ganados: ${s.ptsEarn}`;
   return t + `\n\n${DB.biz.foot || "Gracias por su compra"}`;
