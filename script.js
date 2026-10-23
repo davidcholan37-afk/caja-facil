@@ -124,7 +124,7 @@ const SENSITIVE = { limite: "Pasar el límite de crédito", anular: "Anular vent
 /* ---------- modelo de datos ---------- */
 const newTicket = (n) => ({ n, name: "", items: [], disc: 0, client: "", doc: "", mesa: 0, prev: 0 });
 const defCfg = () => ({
-  mute: false, yapeNum: "", plinNum: "", payName: "", igv: 18, igvOn: true, paper: 80, autoPrint: false, tables: 0,
+  mute: false, yapeNum: "", plinNum: "", payName: "", igv: 18, igvOn: true, paper: 80, autoPrint: false, redAuto: true, tables: 0,
   pts: { on: false, per: 1, val: 0.02, min: 100 }, lock: 3, tile: "m", view: "scan", showImg: true, needShift: false, negStock: false,
   scale: { baud: 9600, cmd: "", unit: "auto", fmt: "8N1" }, labels: { on: true, pre: 2, len: 5, kind: "peso" },
   series: { NV: { s: "NV01", n: 0 }, B: { s: "B001", n: 0 }, F: { s: "F001", n: 0 } }, docDef: "NV", lastBackup: 0
@@ -770,9 +770,9 @@ function totalsOf(t) {
   const lines = linesOf(t);
   const sub = r2(lines.reduce((a, { l, r }) => a + r2(r.price * l.qty), 0));
   const disc = Math.min(Math.max(0, r2(t.disc)), sub);
-  // Redondeo a los 10 céntimos más cercanos (1.92 → 1.90, 1.95 → 2.00). red > 0 baja el total; red < 0 lo sube
-  // (en Perú, subir solo vale si el cliente acepta: el botón lo avisa).
-  const t0 = r2(sub - disc), red = t.red && t0 > 0 ? r2(t0 - redTo(t0)) : 0;
+  // Redondeo automático a los 10 céntimos más cercanos (1.92 → 1.90, 1.95 → 2.00), salvo que se apague en Ajustes › Cobros.
+  // red > 0 baja el total; red < 0 lo sube.
+  const t0 = r2(sub - disc), red = DB.cfg.redAuto !== false && t0 > 0 ? r2(t0 - redTo(t0)) : 0;
   const total = r2(t0 - red), ratio = sub ? total / sub : 0;
   const gAmt = r2(lines.reduce((a, { l, r }) => a + (r.igv ? r2(r.price * l.qty) : 0), 0) * ratio);
   const rate = DB.cfg.igvOn ? (+DB.cfg.igv || 0) / 100 : 0;
@@ -1042,7 +1042,7 @@ function paintCart() {
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
         <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Escanea o busca un producto</b></p></div>`}</div>
       <div class="tot">
-        ${lines.length ? `<div class="trow"><div class="trl">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}${redLink(T, t)}</div>
+        ${lines.length ? `<div class="trow"><div class="trl">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}</div>
           <div class="sumx" ${DB.cfg.igvOn || T.disc ? "" : "hidden"}><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
         <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
       </div>
@@ -1132,20 +1132,6 @@ function creditBlock() {
   const debt = balanceOf(c), due = payDue(), after = r2(debt + due), over = c.limit > 0 && after > c.limit;
   return `<div class="credit ${over ? "over" : ""}"><div class="kv"><span>Cliente</span><b>${esc(c.name)}</b></div><div class="kv"><span>Debe ahora</span><b class="num">${money(debt)}</b></div><div class="kv"><span>Debería después</span><b class="num">${money(after)}</b></div>${c.limit > 0 ? `<div class="kv"><span>Límite de crédito</span><b class="num">${money(c.limit)}</b></div>` : ""}${over ? `<p class="warn">Pasa su límite: necesita autorización.</p>` : ""}${c.days ? `<p class="muted">Plazo para pagar: ${c.days} días.</p>` : ""}</div>`;
 }
-// El mismo redondeo, al pie del ticket en la pantalla de venta.
-function redLink(T, t) {
-  if (t.red && T.red) return `<button class="link xs redl on" data-a="cartred" title="Quitar el redondeo">Redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))} · Quitar</button>`;
-  const to = redTo(T.total), d = r2(to - T.total);
-  return d && T.total >= 0.1 ? `<button class="link xs redl${d > 0 ? " up" : ""}" data-a="cartred" title="${d > 0 ? `Sube ${money(d)}: solo si el cliente acepta` : `Baja ${money(-d)} a favor del cliente`}">Redondear a ${money(to)}</button>` : "";
-}
-// Redondear el total a favor del cliente (hacia abajo, a 10 céntimos). Solo sale si hay céntimos sueltos.
-function redBlock() {
-  const t = DB.cart, T = cartTotals();
-  if (t.red && T.red) return `<button class="payred on${T.red < 0 ? " up" : ""}" data-a="payred"><span>Redondeado <b class="num">${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}</b></span><small>Quitar</small></button>`;
-  const base = T.total, to = redTo(base), d = r2(to - base);
-  if (!d || base < 0.1) return "";
-  return `<button class="payred${d > 0 ? " up" : ""}" data-a="payred"><span>Redondear a <b class="num">${money(to)}</b></span><small>${d > 0 ? `+${money(d)} · solo si el cliente acepta` : `−${money(-d)} a favor del cliente`}</small></button>`;
-}
 // Billetes y monedas sugeridos: el monto exacto y los que la gente suele dar (redondeos, 10, 20, 50, 100, 200).
 function cashOpts(due) {
   const c = [Math.ceil(due - 0.001), Math.ceil(due / 5) * 5, Math.ceil(due / 10) * 10, 20, 50, 100, 200].filter((n) => n > due + 0.001);
@@ -1168,7 +1154,7 @@ function paintPay() {
   else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : p.method === "culqi" ? "Cobra con Culqi (enlace, QR o POS). N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
       <button class="btn lg${p.method === "culqi" ? " go culqi" : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" ? "Culqi" : METHODS[p.method].toLowerCase()}</button>`;
   openModal(`<div class="payhead"><div class="paytot"><span>A cobrar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
-    ${redBlock()}${ptsBlock()}
+    ${ptsBlock()}
     <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}" data-k="${KEYL[k]}"><span>${METHODS[k]}</span></button>`).join("")}</div>
     <div class="paybody">${body}</div>
     <div class="payfoot"><button class="link" data-a="close">Volver</button><button class="link" data-a="split">Dividir pago <span class="kbd">F7</span></button></div>`, "paym");
@@ -1413,8 +1399,6 @@ act({
   pay: (el) => { const m = el.dataset.m; if (modalOpen() && ui.pay) { ui.pay.method = m; ui.pay.split = false; paintPay(); } else startPay(m); },
   method: (el) => { ui.pay.method = el.dataset.m; ui.pay.ref = ""; paintPay(); },
   recv: (el) => { ui.pay.recv = String(el.dataset.v); const i = $("#recv"); if (i) { i.value = ui.pay.recv; i.focus(); } updPay(); },
-  cartred: () => { DB.cart.red = !DB.cart.red; saveCart(); paintCart(); },
-  payred: () => { DB.cart.red = !DB.cart.red; saveCart(); if (ui.pay) { ui.pay.parts = []; ui.pay.recv = ""; if (ui.pay.pts) ui.pay.pts = Math.min(ui.pay.pts, cartTotals().total); } paintCart(); paintPay(); },
   usepts: () => { const c = cli(DB.cart.client); if (!c) return; ui.pay.pts = ui.pay.pts ? 0 : Math.min(r2(Math.floor(pointsOf(c)) * DB.cfg.pts.val), cartTotals().total); ui.pay.parts = []; paintPay(); },
   payok: confirmPay,
   split: () => { if (ui.pay && modalOpen() && $("#payok")) { ui.pay.split = !ui.pay.split; ui.pay.parts = []; paintPay(); } else startPay("efectivo", true); },
@@ -5140,7 +5124,7 @@ const HELP_KB = [
   { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
-  { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "venta", s: ["Debajo del ticket (al lado de «+ Descuento») o al cobrar, si el total tiene céntimos sueltos (por ejemplo S/ 5.42), toca «Redondear a …»: va a los 10 céntimos más cercanos (S/ 1.92 → S/ 1.90, S/ 1.95 → S/ 2.00).", "Si sube, pregúntale primero al cliente: en Perú solo se puede redondear hacia arriba si el cliente acepta.", "Si te arrepientes, toca «Quitar». En el comprobante sale como «Redondeo»."] },
+  { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "aj.cobros", s: ["La caja redondea el total sola a los 10 céntimos más cercanos: S/ 1.92 → S/ 1.90 y S/ 1.95 → S/ 2.00.", "En el ticket y en el comprobante sale como «Redondeo».", "Se apaga o se prende en Ajustes › Cobros y puntos › Redondeo."] },
   { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja", "2x1", "combo", "lista de precios", "pizarra", "estilo", "ideas"], t: "Afiches para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «2x1 en yogur», «lleva 3 paga 2 en atún», «lista de precios de frutas», «oferta de papaya 3.50, mango 5 y plátano 2» o «aviso: hoy cerramos a las 9 pm».", "Elige el estilo con un toque: Clásico, A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad o Día de la Madre. También puedes decirlo: «… estilo pizarra».", "Si la oferta baja el precio, marca «Cobrar … en la caja» y la caja cobra ese precio hasta la fecha del afiche.", "Escribe «¿qué oferta hago?» y te propongo afiches con lo que vence pronto o no se vende.", "En Ajustes › Pantalla de venta ves todas: ocultar, ordenar, editar y cada cuántos segundos cambian. «Dibuja …» hace un dibujo con IA (necesita internet y el extra de IA)."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
 ];
@@ -5482,6 +5466,7 @@ VIEWS.aj = function viewSettings(v) {
   else if (t === "cobros") body = `<div class="card"><h2>Yape y Plin</h2><p class="muted" style="margin-bottom:10px">Tu número aparece en la pantalla de cobro para que el cliente pague sin preguntar.</p>
       <div class="two">${fld("Número de Yape", inp("cfg.yapeNum", C.yapeNum, { ph: "987 654 321", max: 15 }))}${fld("Número de Plin", inp("cfg.plinNum", C.plinNum, { ph: "Opcional", max: 15 }))}</div>
       ${fld("Nombre que le aparece al cliente", inp("cfg.payName", C.payName, { ph: "Ej: Minimarket Los Andes", max: 40 }))}</div>
+      <div class="card"><h2>Redondeo</h2>${tog("cfg.redAuto", C.redAuto !== false, "Redondear el total solo", "A los 10 céntimos más cercanos: S/ 1.92 → S/ 1.90 y S/ 1.95 → S/ 2.00. Sale en el comprobante como «Redondeo».")}</div>
       <div class="card"><h2>Programa de puntos</h2>${tog("cfg.pts.on", C.pts.on, "Dar puntos a clientes registrados", "Acumulan al comprar y los canjean como descuento")}
       ${C.pts.on ? `<div class="two">${fld("Puntos por cada S/ 1", inp("cfg.pts.per", C.pts.per, { num: true }))}${fld("Valor de 1 punto (S/)", inp("cfg.pts.val", C.pts.val, { num: true }), `100 puntos = ${money(100 * C.pts.val)}`)}</div>${fld("Puntos mínimos para canjear", inp("cfg.pts.min", C.pts.min, { num: true }))}` : ""}</div>`;
   else if (t === "venta") body = `<div class="card"><h2>Pantalla de venta</h2>

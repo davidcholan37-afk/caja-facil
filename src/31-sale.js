@@ -168,7 +168,7 @@ function paintCart() {
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
         <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Escanea o busca un producto</b></p></div>`}</div>
       <div class="tot">
-        ${lines.length ? `<div class="trow"><div class="trl">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}${redLink(T, t)}</div>
+        ${lines.length ? `<div class="trow"><div class="trl">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}</div>
           <div class="sumx" ${DB.cfg.igvOn || T.disc ? "" : "hidden"}><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
         <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
       </div>
@@ -258,20 +258,6 @@ function creditBlock() {
   const debt = balanceOf(c), due = payDue(), after = r2(debt + due), over = c.limit > 0 && after > c.limit;
   return `<div class="credit ${over ? "over" : ""}"><div class="kv"><span>Cliente</span><b>${esc(c.name)}</b></div><div class="kv"><span>Debe ahora</span><b class="num">${money(debt)}</b></div><div class="kv"><span>Debería después</span><b class="num">${money(after)}</b></div>${c.limit > 0 ? `<div class="kv"><span>Límite de crédito</span><b class="num">${money(c.limit)}</b></div>` : ""}${over ? `<p class="warn">Pasa su límite: necesita autorización.</p>` : ""}${c.days ? `<p class="muted">Plazo para pagar: ${c.days} días.</p>` : ""}</div>`;
 }
-// El mismo redondeo, al pie del ticket en la pantalla de venta.
-function redLink(T, t) {
-  if (t.red && T.red) return `<button class="link xs redl on" data-a="cartred" title="Quitar el redondeo">Redondeo ${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))} · Quitar</button>`;
-  const to = redTo(T.total), d = r2(to - T.total);
-  return d && T.total >= 0.1 ? `<button class="link xs redl${d > 0 ? " up" : ""}" data-a="cartred" title="${d > 0 ? `Sube ${money(d)}: solo si el cliente acepta` : `Baja ${money(-d)} a favor del cliente`}">Redondear a ${money(to)}</button>` : "";
-}
-// Redondear el total a favor del cliente (hacia abajo, a 10 céntimos). Solo sale si hay céntimos sueltos.
-function redBlock() {
-  const t = DB.cart, T = cartTotals();
-  if (t.red && T.red) return `<button class="payred on${T.red < 0 ? " up" : ""}" data-a="payred"><span>Redondeado <b class="num">${T.red > 0 ? "−" : "+"}${money(Math.abs(T.red))}</b></span><small>Quitar</small></button>`;
-  const base = T.total, to = redTo(base), d = r2(to - base);
-  if (!d || base < 0.1) return "";
-  return `<button class="payred${d > 0 ? " up" : ""}" data-a="payred"><span>Redondear a <b class="num">${money(to)}</b></span><small>${d > 0 ? `+${money(d)} · solo si el cliente acepta` : `−${money(-d)} a favor del cliente`}</small></button>`;
-}
 // Billetes y monedas sugeridos: el monto exacto y los que la gente suele dar (redondeos, 10, 20, 50, 100, 200).
 function cashOpts(due) {
   const c = [Math.ceil(due - 0.001), Math.ceil(due / 5) * 5, Math.ceil(due / 10) * 10, 20, 50, 100, 200].filter((n) => n > due + 0.001);
@@ -294,7 +280,7 @@ function paintPay() {
   else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : p.method === "culqi" ? "Cobra con Culqi (enlace, QR o POS). N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
       <button class="btn lg${p.method === "culqi" ? " go culqi" : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" ? "Culqi" : METHODS[p.method].toLowerCase()}</button>`;
   openModal(`<div class="payhead"><div class="paytot"><span>A cobrar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
-    ${redBlock()}${ptsBlock()}
+    ${ptsBlock()}
     <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}" data-k="${KEYL[k]}"><span>${METHODS[k]}</span></button>`).join("")}</div>
     <div class="paybody">${body}</div>
     <div class="payfoot"><button class="link" data-a="close">Volver</button><button class="link" data-a="split">Dividir pago <span class="kbd">F7</span></button></div>`, "paym");
@@ -539,8 +525,6 @@ act({
   pay: (el) => { const m = el.dataset.m; if (modalOpen() && ui.pay) { ui.pay.method = m; ui.pay.split = false; paintPay(); } else startPay(m); },
   method: (el) => { ui.pay.method = el.dataset.m; ui.pay.ref = ""; paintPay(); },
   recv: (el) => { ui.pay.recv = String(el.dataset.v); const i = $("#recv"); if (i) { i.value = ui.pay.recv; i.focus(); } updPay(); },
-  cartred: () => { DB.cart.red = !DB.cart.red; saveCart(); paintCart(); },
-  payred: () => { DB.cart.red = !DB.cart.red; saveCart(); if (ui.pay) { ui.pay.parts = []; ui.pay.recv = ""; if (ui.pay.pts) ui.pay.pts = Math.min(ui.pay.pts, cartTotals().total); } paintCart(); paintPay(); },
   usepts: () => { const c = cli(DB.cart.client); if (!c) return; ui.pay.pts = ui.pay.pts ? 0 : Math.min(r2(Math.floor(pointsOf(c)) * DB.cfg.pts.val), cartTotals().total); ui.pay.parts = []; paintPay(); },
   payok: confirmPay,
   split: () => { if (ui.pay && modalOpen() && $("#payok")) { ui.pay.split = !ui.pay.split; ui.pay.parts = []; paintPay(); } else startPay("efectivo", true); },

@@ -34,6 +34,7 @@ VIEWS.aj = function viewSettings(v) {
   else if (t === "cobros") body = `<div class="card"><h2>Yape y Plin</h2><p class="muted" style="margin-bottom:10px">Tu número aparece en la pantalla de cobro para que el cliente pague sin preguntar.</p>
       <div class="two">${fld("Número de Yape", inp("cfg.yapeNum", C.yapeNum, { ph: "987 654 321", max: 15 }))}${fld("Número de Plin", inp("cfg.plinNum", C.plinNum, { ph: "Opcional", max: 15 }))}</div>
       ${fld("Nombre que le aparece al cliente", inp("cfg.payName", C.payName, { ph: "Ej: Minimarket Los Andes", max: 40 }))}</div>
+      <div class="card"><h2>Redondeo</h2>${tog("cfg.redAuto", C.redAuto !== false, "Redondear el total solo", "A los 10 céntimos más cercanos: S/ 1.92 → S/ 1.90 y S/ 1.95 → S/ 2.00. Sale en el comprobante como «Redondeo».")}</div>
       <div class="card"><h2>Programa de puntos</h2>${tog("cfg.pts.on", C.pts.on, "Dar puntos a clientes registrados", "Acumulan al comprar y los canjean como descuento")}
       ${C.pts.on ? `<div class="two">${fld("Puntos por cada S/ 1", inp("cfg.pts.per", C.pts.per, { num: true }))}${fld("Valor de 1 punto (S/)", inp("cfg.pts.val", C.pts.val, { num: true }), `100 puntos = ${money(100 * C.pts.val)}`)}</div>${fld("Puntos mínimos para canjear", inp("cfg.pts.min", C.pts.min, { num: true }))}` : ""}</div>`;
   else if (t === "venta") body = `<div class="card"><h2>Pantalla de venta</h2>

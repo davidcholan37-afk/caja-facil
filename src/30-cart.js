@@ -19,9 +19,9 @@ function totalsOf(t) {
   const lines = linesOf(t);
   const sub = r2(lines.reduce((a, { l, r }) => a + r2(r.price * l.qty), 0));
   const disc = Math.min(Math.max(0, r2(t.disc)), sub);
-  // Redondeo a los 10 céntimos más cercanos (1.92 → 1.90, 1.95 → 2.00). red > 0 baja el total; red < 0 lo sube
-  // (en Perú, subir solo vale si el cliente acepta: el botón lo avisa).
-  const t0 = r2(sub - disc), red = t.red && t0 > 0 ? r2(t0 - redTo(t0)) : 0;
+  // Redondeo automático a los 10 céntimos más cercanos (1.92 → 1.90, 1.95 → 2.00), salvo que se apague en Ajustes › Cobros.
+  // red > 0 baja el total; red < 0 lo sube.
+  const t0 = r2(sub - disc), red = DB.cfg.redAuto !== false && t0 > 0 ? r2(t0 - redTo(t0)) : 0;
   const total = r2(t0 - red), ratio = sub ? total / sub : 0;
   const gAmt = r2(lines.reduce((a, { l, r }) => a + (r.igv ? r2(r.price * l.qty) : 0), 0) * ratio);
   const rate = DB.cfg.igvOn ? (+DB.cfg.igv || 0) / 100 : 0;
