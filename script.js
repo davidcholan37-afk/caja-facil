@@ -3262,9 +3262,11 @@ async function cloudTiendas() {
   const rows = await sb(`registros?select=tienda,actualizado,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${s.neg}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`);
   return rows;
 }
+// Nombre de una tienda en las listas de la nube: el del negocio (todas suelen llamarse «Tienda principal»).
+const tiendaNom = (t) => t.negocio || t.nombre || t.tienda;
 function openRecover(tiendas) {
   openModal(`<h2>Recuperar una tienda</h2><p class="muted" style="margin-bottom:12px">Trae a este equipo todos los datos de una tienda guardada en la nube: productos, ventas, clientes, caja y proveedores.</p>
-    <div class="list">${tiendas.map((t) => `<button class="it" data-a="cloudrec" data-s="${esc(t.tienda)}"><div class="t"><b>${esc(t.nombre || t.tienda)}</b><small>Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}</small></div></button>`).join("")}</div>
+    <div class="list">${tiendas.map((t) => `<button class="it" data-a="cloudrec" data-s="${esc(t.tienda)}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid ? " · este equipo" : ""}</small></div></button>`).join("")}</div>
     <p class="muted sm" style="margin-top:10px">Usa una tienda en un solo equipo a la vez. Para otra caja, deja esta como tienda nueva.</p>
     <div class="btns h"><button class="btn sec" data-a="cloudview">Solo ver mis tiendas</button><button class="btn sec" data-a="cloudnew">Usar como tienda nueva</button></div>`);
 }
@@ -3295,7 +3297,7 @@ async function cloudPanel() {
       sb(`registros?select=tienda,total:datos->total,pays:datos->pays,anulada:datos->void&negocio_id=eq.${s.neg}&tipo=eq.sales&borrado=eq.false&datos->>date=eq.${k}&limit=5000`)
     ]);
     const by = {};
-    tiendas.forEach((t) => { by[t.tienda] = { name: t.nombre || t.tienda, act: t.actualizado, n: 0, total: 0, m: {} }; });
+    tiendas.forEach((t) => { by[t.tienda] = { name: tiendaNom(t), act: t.actualizado, n: 0, total: 0, m: {} }; });
     ventas.forEach((v) => {
       if (v.anulada) return; const b = by[v.tienda] || (by[v.tienda] = { name: v.tienda, act: "", n: 0, total: 0, m: {} });
       b.n++; b.total = r2(b.total + (+v.total || 0)); (v.pays || []).forEach((p) => { b.m[p.m] = r2((b.m[p.m] || 0) + p.amt); });
