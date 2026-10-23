@@ -2703,3 +2703,15 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
   html body.vit[data-tab=venta] .paybox .paymini .pm.yape:not(:disabled)::after{content:"F8"}
   html body.vit[data-tab=venta] .paybox .paymini .pm.plin:not(:disabled)::after{content:"F10"}
 }
+
+/* ===== Vitrina en pantallas de caja de 960–1099 px (monitores 1024×768, como los NCR): ticket más ancho y botones de pago en dos filas, igual que en pantallas grandes ===== */
+@media (min-width:960px) and (max-width:1099px){
+  body.vit[data-tab=venta] .pos{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)!important;gap:12px!important}
+  html body.vit[data-tab=venta] .paybox .paymini.pay4{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
+  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo{grid-column:1/-1;min-height:64px}
+  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:flex}
+  html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:48px;min-width:0;font-size:14px;padding:0 8px;gap:8px}
+  html body.vit[data-tab=venta] .cart .ln .nm b{font-size:14px;line-height:1.2}
+  html body.vit[data-tab=venta] .paybox .paymini .pm::after{content:none!important}
+  body.vit[data-tab=venta] #grid .vit-home{height:calc(100dvh - 125px)!important;min-height:300px}
+}
