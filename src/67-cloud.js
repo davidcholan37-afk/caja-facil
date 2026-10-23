@@ -102,11 +102,18 @@ function cloudHash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h =
 // Los movimientos de inventario no tienen id: su clave sale de su contenido (no cambian después de creados), se calcula una vez.
 const cloudKeyMemo = new WeakMap();
 const cloudKeyOf = (x) => { if (x.id != null) return String(x.id); if (x.no != null) return "n" + x.no; let k = cloudKeyMemo.get(x); if (!k) { k = "h" + cloudHash(JSON.stringify(x)); cloudKeyMemo.set(x, k); } return k; };
+// Recorre los registros de un tipo con su clave para la nube. Si dos tienen la misma clave (productos con id repetido,
+// movimientos idénticos), el 2.º va como «clave~2»: la nube rechaza TODO un envío que trae dos veces la misma clave
+// (pasó el 22 oct 2026: una caja no pudo subir nada desde las 8:15 pm).
+function cloudEach(t, fn) {
+  const vistos = new Map();
+  (DB[t] || []).forEach((x) => { let id = cloudKeyOf(x); const n = (vistos.get(id) || 0) + 1; vistos.set(id, n); if (n > 1) id += "~" + n; fn(x, id); });
+}
 // Ajustes de la tienda (nombre, comprobantes, usuarios...) van como un solo registro.
 const cloudConfigDoc = () => ({ biz: DB.biz, cfg: DB.cfg, roles: DB.roles, users: DB.users, seq: DB.seq, pseq: DB.pseq, zseq: DB.zseq, v: DB.v });
 function cloudSnapshot() {
   const out = new Map();
-  CLOUD_TYPES.forEach((t) => (DB[t] || []).forEach((x) => { const id = cloudKeyOf(x); out.set(t + "|" + id, { tipo: t, id, datos: x }); }));
+  CLOUD_TYPES.forEach((t) => cloudEach(t, (x, id) => { out.set(t + "|" + id, { tipo: t, id, datos: x }); }));
   out.set("config|tienda", { tipo: "config", id: "tienda", datos: cloudConfigDoc() });
   return out;
 }
@@ -120,8 +127,8 @@ async function cloudPush(force) {
     const s = cloudLoad(), rows = [], hashes = {}, seen = new Set(), full = force || !cloud.dm, dm = cloud.dm || new Set();
     cloud.dm = new Set(); cloud.dmFly = dm; dmSave();
     const put = (tipo, id, datos, k, hv) => { hashes[k] = hv; if (force || s.h[k] !== hv) rows.push({ negocio_id: s.neg, tienda: DB.biz.sid, tipo, id, datos, borrado: false, dispositivo: s.dev }); };
-    CLOUD_TYPES.forEach((t) => (DB[t] || []).forEach((x) => {
-      const id = cloudKeyOf(x), k = t + "|" + id; seen.add(k);
+    CLOUD_TYPES.forEach((t) => cloudEach(t, (x, id) => {
+      const k = t + "|" + id; seen.add(k);
       if (!full && BIG[t] && s.h[k] && !dm.has(mOf(BIG[t](x)))) { hashes[k] = s.h[k]; return; }
       put(t, id, x, k, cloudHashOf(x));
     }));
