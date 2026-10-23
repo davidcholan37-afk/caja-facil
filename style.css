@@ -2746,3 +2746,9 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
   html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo{min-height:66px;font-size:21px}
   html body.vit[data-tab=venta] #q{font-size:17px}
 }
+
+/* ===== Logos de Yape, Plin y Culqi sin cuadro blanco ni sombra (pedido de David) ===== */
+.paybox .pm.yape::before,.paybox .pm.plin::before,.paybox .pm.culqi::before,.sheet.paym .mth.yape::before,.sheet.paym .mth.plin::before,.sheet.paym .mth.culqi::before{background-color:transparent!important;box-shadow:none!important}
+.paybox .pm.plin::before,.sheet.paym .mth.plin::before{background-size:contain!important}
+.paybox .pm.culqi::before,.sheet.paym .mth.culqi::before{background-image:url(img/pagos/culqi-q.png)!important;background-size:contain!important}
+.paybox .pm.culqi::before{filter:brightness(0) invert(1)}
