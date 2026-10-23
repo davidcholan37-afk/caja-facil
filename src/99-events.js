@@ -182,6 +182,7 @@ async function boot() {
   if (serialOk() && DESK()) connectScale(false);
   if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");
+  fsArm();
   cloudBoot();
   libsLater();
   liteBench();

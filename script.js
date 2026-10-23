@@ -641,6 +641,24 @@ function toggleTheme() {
   const m = $('meta[name="theme-color"]'); if (m) m.content = dark ? "#07090D" : "#F3F4F7";
   if (modalOpen()) closeModal();
 }
+// Pantalla completa (botón «Completa» del menú, solo PC). La preferencia va por equipo en localStorage cf-full.
+// El navegador no deja entrar solo al abrir: si estaba activada, entra con el primer clic, toque o tecla (escanear cuenta).
+// Con Keyboard Lock, Esc sigue cerrando ventanas de la caja; para salir de pantalla completa se mantiene Esc o se usa el botón.
+const fsOn = () => !!document.fullscreenElement;
+function fsPref(v) { try { if (v === undefined) return localStorage.getItem("cf-full") === "1"; localStorage.setItem("cf-full", v ? "1" : "0"); } catch (e) {} return false; }
+function fsEnter() {
+  const el = document.documentElement; if (!el.requestFullscreen || fsOn()) return;
+  el.requestFullscreen({ navigationUI: "hide" }).then(() => { try { const k = navigator.keyboard; if (k && k.lock) k.lock(["Escape"]).catch(() => {}); } catch (e) {} }).catch(() => {});
+}
+function fsArm() {
+  if (!fsPref() || fsOn() || !DESK() || !document.documentElement.requestFullscreen) return;
+  const off = () => { removeEventListener("keydown", go, true); removeEventListener("pointerup", go, true); };
+  const go = (e) => { if (e.type === "keydown" && (e.key === "Escape" || e.key === "F11")) return; off(); if (fsPref()) fsEnter(); };
+  addEventListener("keydown", go, true); addEventListener("pointerup", go, true);
+}
+document.addEventListener("fullscreenchange", () => { const on = fsOn(); document.documentElement.classList.toggle("fs-on", on); if (!on) { try { navigator.keyboard && navigator.keyboard.unlock && navigator.keyboard.unlock(); } catch (e) {} } });
+
+act({ fulltoggle: () => { if (fsOn()) { fsPref(false); document.exitFullscreen().catch(() => {}); } else { fsPref(true); fsEnter(); } } });
 act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal, theme: toggleTheme , sidetoggle: () => { const off = document.documentElement.classList.toggle("side-off"); try { localStorage.setItem("cf-side", off ? "0" : "1"); } catch (e) {} (off ? $(".siderail") : $(".sidehide"))?.focus({ preventScroll: true }); } });
 
 /* ===================== 20 · USUARIOS, CLAVES Y PERMISOS ===================== */
@@ -5150,7 +5168,7 @@ const HELP_KB = [
   { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
-  { k: ["pantalla completa", "f11", "barra de windows", "barra de tareas", "maximizar"], t: "Pantalla completa", s: ["En el programa de Windows aprieta F11 para poner o quitar la pantalla completa (sin la barra de Windows).", "En pantallas chicas de caja empieza en pantalla completa solo; el programa recuerda lo que elijas.", "En el navegador (Chrome) también funciona F11."] },
+  { k: ["pantalla completa", "f11", "barra de windows", "barra de tareas", "maximizar"], t: "Pantalla completa", s: ["Toca «Completa» en el menú de la izquierda (abajo, junto a «Ocultar»): la caja ocupa toda la pantalla, sin la barra de Windows.", "Para volver, toca «Normal» o mantén apretada la tecla Esc.", "La caja lo recuerda en ese equipo: al abrirla otra vez entra sola en pantalla completa con el primer clic o el primer producto que escanees."] },
   { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "aj.cobros", s: ["La caja redondea el total sola a los 10 céntimos más cercanos: S/ 1.92 → S/ 1.90 y S/ 1.95 → S/ 2.00.", "En el ticket y en el comprobante sale como «Redondeo».", "Se apaga o se prende en Ajustes › Cobros y puntos › Redondeo."] },
   { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja", "2x1", "combo", "lista de precios", "pizarra", "estilo", "ideas"], t: "Afiches para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «2x1 en yogur», «lleva 3 paga 2 en atún», «lista de precios de frutas», «oferta de papaya 3.50, mango 5 y plátano 2» o «aviso: hoy cerramos a las 9 pm».", "Elige el estilo con un toque: Clásico, A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad o Día de la Madre. También puedes decirlo: «… estilo pizarra».", "Si la oferta baja el precio, marca «Cobrar … en la caja» y la caja cobra ese precio hasta la fecha del afiche.", "Escribe «¿qué oferta hago?» y te propongo afiches con lo que vence pronto o no se vende.", "En Ajustes › Pantalla de venta ves todas: ocultar, ordenar, editar y cada cuántos segundos cambian. «Dibuja …» hace un dibujo con IA (necesita internet y el extra de IA)."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
@@ -5845,6 +5863,7 @@ async function boot() {
   if (serialOk() && DESK()) connectScale(false);
   if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");
+  fsArm();
   cloudBoot();
   libsLater();
   liteBench();

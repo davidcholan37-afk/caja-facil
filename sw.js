@@ -1,5 +1,5 @@
 // Service worker: instalar la app y usarla sin internet (red primero, copia como respaldo).
-const CACHE = "cajafacil-v16";
+const CACHE = "cajafacil-v17";
 const ASSETS = ["./", "index.html", "style.css", "script.js", "img.js", "fotos.js", "escaner.js", "fonts/geist.woff2", "fonts/geistmono.woff2", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "privacidad.html", "terminos.html", "legal.css", "img/pagos/yape.png", "img/pagos/plin.png", "img/pagos/culqi.png", "img/pagos/culqi-q.png"];
 
 // Dentro del programa de Windows (Electron) el almacén de copias hace que Chromium cierre la ventana

@@ -2812,3 +2812,9 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
   /* el nombre ya va en el cartel del toldo: en la vitrina solo queda el estado (En línea / Sin internet / Caja abierta) */
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{display:none!important}
 }
+
+/* ===== Botón «Completa» del menú (pantalla completa, 10-ui fsEnter/fsArm): cambia ícono y texto con html.fs-on ===== */
+.fullbtn .fsout{display:none!important}
+html.fs-on .fullbtn .fsin{display:none!important}
+html.fs-on .fullbtn svg.fsout{display:block!important}
+html.fs-on .fullbtn span.fsout{display:inline!important}

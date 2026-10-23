@@ -291,4 +291,22 @@ function toggleTheme() {
   const m = $('meta[name="theme-color"]'); if (m) m.content = dark ? "#07090D" : "#F3F4F7";
   if (modalOpen()) closeModal();
 }
+// Pantalla completa (botón «Completa» del menú, solo PC). La preferencia va por equipo en localStorage cf-full.
+// El navegador no deja entrar solo al abrir: si estaba activada, entra con el primer clic, toque o tecla (escanear cuenta).
+// Con Keyboard Lock, Esc sigue cerrando ventanas de la caja; para salir de pantalla completa se mantiene Esc o se usa el botón.
+const fsOn = () => !!document.fullscreenElement;
+function fsPref(v) { try { if (v === undefined) return localStorage.getItem("cf-full") === "1"; localStorage.setItem("cf-full", v ? "1" : "0"); } catch (e) {} return false; }
+function fsEnter() {
+  const el = document.documentElement; if (!el.requestFullscreen || fsOn()) return;
+  el.requestFullscreen({ navigationUI: "hide" }).then(() => { try { const k = navigator.keyboard; if (k && k.lock) k.lock(["Escape"]).catch(() => {}); } catch (e) {} }).catch(() => {});
+}
+function fsArm() {
+  if (!fsPref() || fsOn() || !DESK() || !document.documentElement.requestFullscreen) return;
+  const off = () => { removeEventListener("keydown", go, true); removeEventListener("pointerup", go, true); };
+  const go = (e) => { if (e.type === "keydown" && (e.key === "Escape" || e.key === "F11")) return; off(); if (fsPref()) fsEnter(); };
+  addEventListener("keydown", go, true); addEventListener("pointerup", go, true);
+}
+document.addEventListener("fullscreenchange", () => { const on = fsOn(); document.documentElement.classList.toggle("fs-on", on); if (!on) { try { navigator.keyboard && navigator.keyboard.unlock && navigator.keyboard.unlock(); } catch (e) {} } });
+
+act({ fulltoggle: () => { if (fsOn()) { fsPref(false); document.exitFullscreen().catch(() => {}); } else { fsPref(true); fsEnter(); } } });
 act({ tab: (el) => { if (modalOpen()) closeModal(); go(el.dataset.t); }, more: moreMenu, close: closeModal, theme: toggleTheme , sidetoggle: () => { const off = document.documentElement.classList.toggle("side-off"); try { localStorage.setItem("cf-side", off ? "0" : "1"); } catch (e) {} (off ? $(".siderail") : $(".sidehide"))?.focus({ preventScroll: true }); } });
