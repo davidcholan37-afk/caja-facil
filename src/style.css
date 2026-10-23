@@ -2722,3 +2722,5 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
 .sheet.paym .payred.on small{color:var(--ac-ink);font-weight:600}
 .sheet.paym .payred:active{transform:scale(.97)}
 .sheet.paym .payred:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.trl{display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;min-width:0}
+.trl .redl.on{font-weight:700}

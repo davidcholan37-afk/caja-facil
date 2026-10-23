@@ -1040,7 +1040,7 @@ function paintCart() {
         <span class="amt num">${money(r2(r.price * l.qty))}</span>
         <button class="rm" data-a="rmline" data-k="${k}" aria-label="Quitar ${esc(r.name)}">${svg("close")}</button></div>`; }).join("") : `<div class="cart-empty">${svg("scan")}<p><b>Escanea o busca un producto</b></p></div>`}</div>
       <div class="tot">
-        ${lines.length ? `<div class="trow">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}
+        ${lines.length ? `<div class="trow"><div class="trl">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}${redLink(T, t)}</div>
           <div class="sumx" ${DB.cfg.igvOn || T.disc ? "" : "hidden"}><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
         <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo −${money(T.red)}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
       </div>
@@ -1129,6 +1129,12 @@ function creditBlock() {
   if (!c) return `<div class="credit none"><p>Para vender al crédito elige a quién.</p><button class="btn sec" data-a="pickcli" data-back="pay">Elegir cliente</button></div>`;
   const debt = balanceOf(c), due = payDue(), after = r2(debt + due), over = c.limit > 0 && after > c.limit;
   return `<div class="credit ${over ? "over" : ""}"><div class="kv"><span>Cliente</span><b>${esc(c.name)}</b></div><div class="kv"><span>Debe ahora</span><b class="num">${money(debt)}</b></div><div class="kv"><span>Debería después</span><b class="num">${money(after)}</b></div>${c.limit > 0 ? `<div class="kv"><span>Límite de crédito</span><b class="num">${money(c.limit)}</b></div>` : ""}${over ? `<p class="warn">Pasa su límite: necesita autorización.</p>` : ""}${c.days ? `<p class="muted">Plazo para pagar: ${c.days} días.</p>` : ""}</div>`;
+}
+// El mismo redondeo, al pie del ticket en la pantalla de venta.
+function redLink(T, t) {
+  if (t.red && T.red > 0) return `<button class="link xs redl on" data-a="cartred" title="Quitar el redondeo">Redondeo −${money(T.red)} · Quitar</button>`;
+  const cut = r2(T.total - Math.floor(T.total * 10 + 1e-6) / 10);
+  return cut > 0 && T.total >= 0.1 ? `<button class="link xs redl" data-a="cartred" title="Baja ${money(cut)} a favor del cliente">Redondear a ${money(r2(T.total - cut))}</button>` : "";
 }
 // Redondear el total a favor del cliente (hacia abajo, a 10 céntimos). Solo sale si hay céntimos sueltos.
 function redBlock() {
@@ -1405,6 +1411,7 @@ act({
   pay: (el) => { const m = el.dataset.m; if (modalOpen() && ui.pay) { ui.pay.method = m; ui.pay.split = false; paintPay(); } else startPay(m); },
   method: (el) => { ui.pay.method = el.dataset.m; ui.pay.ref = ""; paintPay(); },
   recv: (el) => { ui.pay.recv = String(el.dataset.v); const i = $("#recv"); if (i) { i.value = ui.pay.recv; i.focus(); } updPay(); },
+  cartred: () => { DB.cart.red = !DB.cart.red; saveCart(); paintCart(); },
   payred: () => { DB.cart.red = !DB.cart.red; saveCart(); if (ui.pay) { ui.pay.parts = []; ui.pay.recv = ""; if (ui.pay.pts) ui.pay.pts = Math.min(ui.pay.pts, cartTotals().total); } paintCart(); paintPay(); },
   usepts: () => { const c = cli(DB.cart.client); if (!c) return; ui.pay.pts = ui.pay.pts ? 0 : Math.min(r2(Math.floor(pointsOf(c)) * DB.cfg.pts.val), cartTotals().total); ui.pay.parts = []; paintPay(); },
   payok: confirmPay,
@@ -5131,7 +5138,7 @@ const HELP_KB = [
   { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
-  { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "venta", s: ["Al cobrar, si el total tiene céntimos sueltos (por ejemplo S/ 5.42), toca «Redondear a S/ 5.40».", "Siempre baja a los 10 céntimos, a favor del cliente: en Perú no se puede redondear en contra del comprador.", "Si te arrepientes, toca «Quitar». En el comprobante sale como «Redondeo»."] },
+  { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "venta", s: ["Debajo del ticket (al lado de «+ Descuento») o al cobrar, si el total tiene céntimos sueltos (por ejemplo S/ 5.42), toca «Redondear a S/ 5.40».", "Siempre baja a los 10 céntimos, a favor del cliente: en Perú no se puede redondear en contra del comprador.", "Si te arrepientes, toca «Quitar». En el comprobante sale como «Redondeo»."] },
   { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja", "2x1", "combo", "lista de precios", "pizarra", "estilo", "ideas"], t: "Afiches para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «2x1 en yogur», «lleva 3 paga 2 en atún», «lista de precios de frutas», «oferta de papaya 3.50, mango 5 y plátano 2» o «aviso: hoy cerramos a las 9 pm».", "Elige el estilo con un toque: Clásico, A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad o Día de la Madre. También puedes decirlo: «… estilo pizarra».", "Si la oferta baja el precio, marca «Cobrar … en la caja» y la caja cobra ese precio hasta la fecha del afiche.", "Escribe «¿qué oferta hago?» y te propongo afiches con lo que vence pronto o no se vende.", "En Ajustes › Pantalla de venta ves todas: ocultar, ordenar, editar y cada cuántos segundos cambian. «Dibuja …» hace un dibujo con IA (necesita internet y el extra de IA)."] },
   { k: ["soporte", "contacto", "ayuda humana", "hablar con alguien"], t: "Hablar con una persona", go: "aj.nube", s: ["En Ajustes › Nube puedes darle permiso a soporte por 24 horas o 7 días.", "También puedes escribir por WhatsApp al 904 623 137."] }
 ];
