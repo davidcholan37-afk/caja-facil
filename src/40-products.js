@@ -31,11 +31,21 @@ VIEWS.prod = function viewProducts(v) {
   if (ui.ptab === "low") return paintLow();
   if (ui.ptab === "exp") return paintExp();
   if (ui.ptab === "idle") return paintIdle();
-  $("#pbody").innerHTML = `<div class="sumrow"><div class="sum"><b>${DB.products.length}</b><span>Productos</span></div><button class="sum lowbtn ${low.length ? "warn" : ""}" data-a="ptab" data-t="low"><b>${low.length}</b><span>Stock bajo · ver</span></button>${can("costos") ? `<div class="sum"><b class="num">${money(val)}</b><span>Inventario al costo</span></div>` : `<div class="sum"><b>${[...new Set(DB.products.map((p) => p.cat).filter(Boolean))].length}</b><span>Categorías</span></div>`}</div>
+  $("#pbody").innerHTML = `<div class="sumrow">${prodSum(low, val)}</div>
     <input class="inp" id="pq" type="search" placeholder="Buscar por nombre, categoría o código (↑ ↓ y Enter)" style="margin-bottom:12px" value="${esc(ui.pq)}">
     <div class="list" id="plist"></div>`;
   paintPList();
 };
+function prodSum(low, val) {
+  low = low || lowItems(); if (val == null) val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0));
+  return `<div class="sum"><b>${DB.products.length}</b><span>Productos</span></div><button class="sum lowbtn ${low.length ? "warn" : ""}" data-a="ptab" data-t="low"><b>${low.length}</b><span>Stock bajo · ver</span></button>${can("costos") ? `<div class="sum"><b class="num">${money(val)}</b><span>Inventario al costo</span></div>` : `<div class="sum"><b>${[...new Set(DB.products.map((p) => p.cat).filter(Boolean))].length}</b><span>Categorías</span></div>`}`;
+}
+// Una fila de la lista de Productos (también se usa para cambiar solo esa fila al guardar).
+function pRow(p) {
+  const kgp = p.unit === "kg", tag = (p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "") + (p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= 7 ? ` <span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span>` : "");
+  const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
+  return `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}${p.fav ? " ★" : ""}</b><small>${esc(extra)}</small> ${tag}</div><div class="v num">${money(p.price)}${kgp ? " /kg" : ""}<small>${p.stock == null ? "Sin control" : fmtQ(p.stock) + (kgp ? " kg" : " und.")}</small></div></button>`;
+}
 function paintPList() {
   const el = $("#plist"); if (!el) return;
   if (!DB.products.length) { el.innerHTML = `<div class="empty"><h2>Inventario vacío</h2><p>Agrega tu primer producto, impórtalos desde Excel o carga ejemplos para probar.</p><button class="btn sec" data-a="sample">Cargar ejemplos</button></div>`; return; }
@@ -44,11 +54,7 @@ function paintPList() {
   const cod = raw.trim(), exact = (p) => !!cod && (p.code === cod || (p.bar || []).includes(cod) || (p.pres || []).some((x) => x.code === cod));
   const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
     .sort((a, b) => (exact(b) - exact(a)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || cmpEs(a.name, b.name));
-  el.innerHTML = list.slice(0, 120).map((p) => {
-    const kgp = p.unit === "kg", tag = (p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "") + (p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= 7 ? ` <span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span>` : "");
-    const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
-    return `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}${p.fav ? " ★" : ""}</b><small>${esc(extra)}</small> ${tag}</div><div class="v num">${money(p.price)}${kgp ? " /kg" : ""}<small>${p.stock == null ? "Sin control" : fmtQ(p.stock) + (kgp ? " kg" : " und.")}</small></div></button>`;
-  }).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
+  el.innerHTML = list.slice(0, 120).map(pRow).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
   // Con algo escrito, el primero queda marcado: Enter lo abre; ↑ ↓ se mueven.
   ui.psel = q ? 0 : -1; pselMark();
 }
@@ -152,7 +158,12 @@ function saveProduct() {
       if (stock !== null) { p.stock = 0; stockAdd(p, stock, "inicial", "Producto nuevo"); p.stock = stock; }
       log("Producto creado", p.name);
     }
-    ui.pe = null; save(); closeModal(); toast("Producto guardado"); render();
+    ui.pe = null; save(); closeModal(); toast("Producto guardado");
+    const row = id && ui.tab === "prod" && $(`#plist .it[data-id="${id}"]`), sum = $("#pbody .sumrow");
+    if (row) {
+      row.outerHTML = pRow(p); if (sum) sum.innerHTML = prodSum(); pselMark();
+      const q = $("#pq"); if (q && DESK()) { q.focus(); if (q.value) q.select(); }
+    } else render();
   };
   const p0 = id ? prod(id) : null;
   if (p0 && stock !== p0.stock && !can("stock")) return need("stock", apply, "Cambiar el stock de " + name);
