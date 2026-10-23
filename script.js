@@ -2262,7 +2262,7 @@ VIEWS.prod = function viewProducts(v) {
   if (ui.ptab === "exp") return paintExp();
   if (ui.ptab === "idle") return paintIdle();
   $("#pbody").innerHTML = `<div class="sumrow"><div class="sum"><b>${DB.products.length}</b><span>Productos</span></div><button class="sum lowbtn ${low.length ? "warn" : ""}" data-a="ptab" data-t="low"><b>${low.length}</b><span>Stock bajo · ver</span></button>${can("costos") ? `<div class="sum"><b class="num">${money(val)}</b><span>Inventario al costo</span></div>` : `<div class="sum"><b>${[...new Set(DB.products.map((p) => p.cat).filter(Boolean))].length}</b><span>Categorías</span></div>`}</div>
-    <input class="inp" id="pq" type="search" placeholder="Buscar por nombre, categoría o código" style="margin-bottom:12px" value="${esc(ui.pq)}">
+    <input class="inp" id="pq" type="search" placeholder="Buscar por nombre, categoría o código (↑ ↓ y Enter)" style="margin-bottom:12px" value="${esc(ui.pq)}">
     <div class="list" id="plist"></div>`;
   paintPList();
 };
@@ -2270,14 +2270,19 @@ function paintPList() {
   const el = $("#plist"); if (!el) return;
   if (!DB.products.length) { el.innerHTML = `<div class="empty"><h2>Inventario vacío</h2><p>Agrega tu primer producto, impórtalos desde Excel o carga ejemplos para probar.</p><button class="btn sec" data-a="sample">Cargar ejemplos</button></div>`; return; }
   const q = norm(ui.pq), raw = ui.pq || "";
-  const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(raw) || (p.pres || []).some((x) => (x.code || "").includes(raw)))
-    .sort((a, b) => (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || cmpEs(a.name, b.name));
+  // También por códigos de barras aprendidos (p.bar); el código exacto (lo que manda el lector) sale primero.
+  const cod = raw.trim(), exact = (p) => !!cod && (p.code === cod || (p.bar || []).includes(cod) || (p.pres || []).some((x) => x.code === cod));
+  const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
+    .sort((a, b) => (exact(b) - exact(a)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || cmpEs(a.name, b.name));
   el.innerHTML = list.slice(0, 120).map((p) => {
     const kgp = p.unit === "kg", tag = (p.stock == null ? "" : p.stock <= 0 ? `<span class="tag out">Agotado</span>` : p.stock <= (p.min || 0) ? `<span class="tag low">Stock bajo</span>` : "") + (p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= 7 ? ` <span class="tag ${daysTo(p.exp) < 0 ? "out" : "low"}">${expTxt(p)}</span>` : "");
     const extra = [p.cat || "Sin categoría", p.code ? "Cód. " + p.code : "", p.on === false ? "Oculto en venta" : ""].filter(Boolean).join(" · ");
     return `<button class="it" data-a="pedit" data-id="${p.id}"><span class="iti" style="--tint:${tintOf(p)}">${pimg(p, "lim")}</span><div class="t"><b>${esc(p.name)}${p.fav ? " ★" : ""}</b><small>${esc(extra)}</small> ${tag}</div><div class="v num">${money(p.price)}${kgp ? " /kg" : ""}<small>${p.stock == null ? "Sin control" : fmtQ(p.stock) + (kgp ? " kg" : " und.")}</small></div></button>`;
   }).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
+  // Con algo escrito, el primero queda marcado: Enter lo abre; ↑ ↓ se mueven.
+  ui.psel = q ? 0 : -1; pselMark();
 }
+function pselMark() { const it = document.querySelectorAll("#plist .it"); it.forEach((b, i) => b.classList.toggle("sel", i === ui.psel)); if (it[ui.psel] && ui.psel > 0) it[ui.psel].scrollIntoView({ block: "nearest" }); }
 
 /* ---------- ficha del producto ---------- */
 function openProduct(id) {
@@ -5752,6 +5757,17 @@ document.addEventListener("keydown", (e) => {
     }
     // Si el lector de códigos escribe sin que el buscador tenga el foco, se lo damos.
     if (!field && e.key.length === 1 && /[\w]/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) { const q = $("#q"); if (q) q.focus(); }
+  }
+  // Productos: ↑ ↓ por la lista del buscador y Enter abre la ficha (también con el lector de códigos).
+  if (!open && ui.tab === "prod" && (e.target.id === "pq" || e.target.closest("#plist")) && ["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
+    const it = [...document.querySelectorAll("#plist .it")];
+    if (it.length && (e.target.id === "pq" || e.key !== "Enter")) {
+      e.preventDefault();
+      if (e.key === "Enter") { (it[ui.psel] || it[0]).click(); return; }
+      ui.psel = Math.min(it.length - 1, Math.max(0, (ui.psel == null ? -1 : ui.psel) + (e.key === "ArrowDown" ? 1 : -1))); pselMark();
+      if (e.target.id !== "pq") it[ui.psel].focus();
+      return;
+    }
   }
   if (e.key === "Enter") {
     const id = e.target.id;

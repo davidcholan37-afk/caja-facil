@@ -2725,3 +2725,5 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
 .trl{display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;min-width:0}
 .trl .redl.on{font-weight:700}
 .sheet.paym .payred.up small{color:var(--warn)}
+/* Productos: resultado elegido con las flechas */
+#plist .it.sel{box-shadow:inset 0 0 0 2px var(--ac);background:var(--ac-t)}

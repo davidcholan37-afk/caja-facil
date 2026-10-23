@@ -117,6 +117,17 @@ document.addEventListener("keydown", (e) => {
     // Si el lector de códigos escribe sin que el buscador tenga el foco, se lo damos.
     if (!field && e.key.length === 1 && /[\w]/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) { const q = $("#q"); if (q) q.focus(); }
   }
+  // Productos: ↑ ↓ por la lista del buscador y Enter abre la ficha (también con el lector de códigos).
+  if (!open && ui.tab === "prod" && (e.target.id === "pq" || e.target.closest("#plist")) && ["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
+    const it = [...document.querySelectorAll("#plist .it")];
+    if (it.length && (e.target.id === "pq" || e.key !== "Enter")) {
+      e.preventDefault();
+      if (e.key === "Enter") { (it[ui.psel] || it[0]).click(); return; }
+      ui.psel = Math.min(it.length - 1, Math.max(0, (ui.psel == null ? -1 : ui.psel) + (e.key === "ArrowDown" ? 1 : -1))); pselMark();
+      if (e.target.id !== "pq") it[ui.psel].focus();
+      return;
+    }
+  }
   if (e.key === "Enter") {
     const id = e.target.id;
     if (id === "q" && !open) {
