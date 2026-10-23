@@ -714,7 +714,7 @@ p.pts{margin:-4px 0 10px;font-size:.86rem}
 /* ---------- computadora ---------- */
 @media (min-width:960px){
   #app{display:grid;grid-template-columns:88px 1fr}
-  .side{display:flex;flex-direction:column;align-items:center;position:sticky;top:0;height:100dvh;padding:16px 8px 14px;}
+  .side{display:flex;flex-direction:column;align-items:center;position:sticky;top:var(--tld,0px);height:calc(100dvh - var(--tld,0px));padding:16px 8px 14px;}
   .brand{display:flex;flex-direction:column;align-items:center;gap:6px}
   .brand .bt{display:none}
   #sideNav{display:flex;flex-direction:column;width:100%}
@@ -753,7 +753,7 @@ p.pts{margin:-4px 0 10px;font-size:.86rem}
   
   
   body[data-tab="venta"] .pbox{aspect-ratio:1/.76}
-  .cart{position:sticky;top:16px;inset:auto;z-index:1;display:flex;height:calc(100dvh - 76px);padding:0;}
+  .cart{position:sticky;top:calc(16px + var(--tld,0px));inset:auto;z-index:1;display:flex;height:calc(100dvh - 76px - var(--tld,0px));padding:0;}
   .cart-x,.cartbar{display:none!important}
   .lh,.ln{gap:0 8px}
   .lh{display:grid;position:sticky;top:0;z-index:1}
@@ -887,8 +887,8 @@ p.pts{margin:-4px 0 10px;font-size:.86rem}
 @media (min-width:960px){
   
   
-  body[data-tab="venta"] .cart{order:-1;height:calc(100dvh - 24px);top:12px}
-  body[data-tab="venta"] .pos>section{height:calc(100dvh - 24px)}
+  body[data-tab="venta"] .cart{order:-1;height:calc(100dvh - 24px - var(--tld,0px));top:calc(12px + var(--tld,0px))}
+  body[data-tab="venta"] .pos>section{height:calc(100dvh - 24px - var(--tld,0px))}
   /* pantalla LED */
   body[data-tab="venta"] .searchbar{margin-bottom:8px}
   
@@ -2053,10 +2053,10 @@ body.vit .fkeys{display:none}
 
 @media (max-width:1099px){}
 @media (min-width:1100px){body.vit .vq{right:132px}}
-@media (max-width:1099px){body:has(#cartbar:not([hidden])).vit .vit-home{height:calc(100dvh - 236px)}}
+@media (max-width:1099px){body:has(#cartbar:not([hidden])).vit .vit-home{height:calc(100dvh - 236px - var(--tld,0px))}}
 
 /* ===== Vitrina · K2 (fotos en el ticket) + pagos con vida + menú lateral ===== */
-body.vit .vit-home{height:calc(100dvh - 132px)}
+body.vit .vit-home{height:calc(100dvh - 132px - var(--tld,0px))}
 body.vit .vq{bottom:16px}
 @media (min-width:1100px){
 body.vit[data-tab=venta] .cart .ln{min-height:64px!important}
@@ -2329,7 +2329,7 @@ html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(
   /* Menú escondido: queda una franja fina para volver a abrirlo */
   html.side-off #app{grid-template-columns:22px 1fr}
   html.side-off .side{display:none}
-  html.side-off .siderail{display:flex;position:sticky;top:0;height:100dvh;width:22px;align-items:center;justify-content:center;padding:0;border:0;background:var(--fv,#0F4D32);color:#BFD8C9;cursor:pointer}
+  html.side-off .siderail{display:flex;position:sticky;top:var(--tld,0px);height:calc(100dvh - var(--tld,0px));width:22px;align-items:center;justify-content:center;padding:0;border:0;background:var(--fv,#0F4D32);color:#BFD8C9;cursor:pointer}
   html.side-off .siderail svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform 160ms var(--ease-out)}
   @media (hover:hover) and (pointer:fine){html.side-off .siderail:hover{color:#fff;background:#14603F}html.side-off .siderail:hover svg{transform:translateX(2px)}}
   html.side-off .siderail:focus-visible{outline:3px solid var(--fvl,#8BD448);outline-offset:-3px}
@@ -2713,7 +2713,7 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
   html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:48px;min-width:0;font-size:14px;padding:0 8px;gap:8px}
   html body.vit[data-tab=venta] .cart .ln .nm b{font-size:14px;line-height:1.2}
   html body.vit[data-tab=venta] .paybox .paymini .pm::after{content:none!important}
-  body.vit[data-tab=venta] #grid .vit-home{height:calc(100dvh - 125px)!important;min-height:300px}
+  body.vit[data-tab=venta] #grid .vit-home{height:calc(100dvh - 125px - var(--tld,0px))!important;min-height:300px}
 }
 
 /* ===== Redondeo a favor del cliente (en el cobro) ===== */
@@ -2768,7 +2768,7 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{min-width:0;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto!important}
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow i,html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow span{flex:none;white-space:nowrap}
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) #grid{margin:0!important}
-  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) #grid .vit-home{height:100dvh!important;min-height:0!important;border-radius:0!important;border:0!important;box-shadow:none!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) #grid .vit-home{height:calc(100dvh - var(--tld,0px))!important;min-height:0!important;border-radius:0!important;border:0!important;box-shadow:none!important}
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .vmos{gap:3px!important;padding:0!important;background:#0F1A14!important}
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .vmos i{border-radius:0!important}
   /* afiches: van entre el buscador y la etiqueta del nombre, sobre fondo oscuro, para no taparles nada */
@@ -2779,4 +2779,31 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow span{display:none}
   html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow{max-width:calc(100% - 140px)}
   @media (max-width:1099px){html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow{padding:8px 12px!important;gap:10px!important;left:12px;bottom:12px}html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{font-size:16px!important}}
+}
+
+/* ===== Toldo de bodega arriba de toda la pantalla (pedido de David, 23 oct 2026; solo PC ≥960 px).
+   Es solo adorno: no recibe clics y el contenido baja --tld para que no tape nada.
+   Barra oscura arriba (el fierro), rayas de lona verde/crema con pliegues suaves y faldón de ondas con su sombra. ===== */
+@media (min-width:960px){
+  body{--tld:28px;--tldg:var(--fv2,#1D8A4E);--tldw:#F7F3E8;--tldr:var(--fv,#0F4D32)}
+  html[data-theme=dark] body{--tldg:#1F7A49;--tldw:#D9D4C6;--tldr:#06140D}
+  #app{padding-top:var(--tld)}
+  body::after{content:"";position:fixed;top:0;left:0;right:0;height:var(--tld);z-index:50;pointer-events:none;
+    background:
+      /* fierro con brillo */
+      linear-gradient(180deg,rgba(255,255,255,.22) 0,rgba(255,255,255,0) 2px,rgba(0,0,0,.25) 4px) 0 0/100% 5px no-repeat,
+      linear-gradient(var(--tldr),var(--tldr)) 0 0/100% 5px no-repeat,
+      /* sombra bajo el fierro y pliegues de la lona */
+      linear-gradient(180deg,rgba(0,0,0,.20),rgba(0,0,0,0) 7px) 0 5px/100% 14px no-repeat,
+      repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0,rgba(255,255,255,0) 14px,rgba(0,0,0,.08) 40px) 0 5px/100% 14px no-repeat,
+      /* costura entre la lona y el faldón */
+      linear-gradient(rgba(0,0,0,.14),rgba(0,0,0,.14)) 0 19px/100% 1px no-repeat,
+      /* faldón de ondas */
+      radial-gradient(ellipse 20px 9px at 20px 0,rgba(0,0,0,0) 55%,rgba(0,0,0,.12) 92%,rgba(0,0,0,0) 96%) 0 19px/80px 9px repeat-x,
+      radial-gradient(ellipse 20px 9px at 60px 0,rgba(0,0,0,0) 55%,rgba(0,0,0,.08) 92%,rgba(0,0,0,0) 96%) 0 19px/80px 9px repeat-x,
+      radial-gradient(ellipse 20px 9px at 20px 0,var(--tldg) 95%,transparent 100%) 0 19px/80px 9px repeat-x,
+      radial-gradient(ellipse 20px 9px at 60px 0,var(--tldw) 95%,transparent 100%) 0 19px/80px 9px repeat-x,
+      /* rayas */
+      repeating-linear-gradient(90deg,var(--tldg) 0 40px,var(--tldw) 40px 80px) 0 5px/100% 14px no-repeat;
+    filter:drop-shadow(0 3px 3px rgba(0,0,0,.16))}
 }
