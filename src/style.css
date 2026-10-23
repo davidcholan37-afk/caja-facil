@@ -2780,29 +2780,35 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
   @media (max-width:1099px){html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow{padding:8px 12px!important;gap:10px!important;left:12px;bottom:12px}html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{font-size:16px!important}}
 }
 
-/* ===== Toldo de bodega arriba de toda la pantalla (pedido de David, 23 oct 2026; solo PC ≥960 px).
+/* ===== Toldo de bodega arriba de toda la pantalla (pedido de David, 23 oct 2026; versión 3 «con cartel»; solo PC ≥960 px).
    Es solo adorno: no recibe clics y el contenido baja --tld para que no tape nada.
-   Barra oscura arriba (el fierro), rayas de lona verde/crema con pliegues suaves y faldón de ondas con su sombra. ===== */
+   Fierro oscuro, lona con tejido fino y pliegues, faldón de ondas con su sombra y, al centro, un cartel con el nombre
+   de la tienda (body[data-tienda], lo pone render() en 10-ui). ===== */
 @media (min-width:960px){
-  body{--tld:28px;--tldg:var(--fv2,#1D8A4E);--tldw:#F7F3E8;--tldr:var(--fv,#0F4D32)}
+  body{--tld:32px;--tldg:var(--fv2,#1D8A4E);--tldw:#F7F3E8;--tldr:#0A3524}
   html[data-theme=dark] body{--tldg:#1F7A49;--tldw:#D9D4C6;--tldr:#06140D}
   #app{padding-top:var(--tld)}
   body::after{content:"";position:fixed;top:0;left:0;right:0;height:var(--tld);z-index:50;pointer-events:none;
     background:
-      /* fierro con brillo */
-      linear-gradient(180deg,rgba(255,255,255,.22) 0,rgba(255,255,255,0) 2px,rgba(0,0,0,.25) 4px) 0 0/100% 5px no-repeat,
+      linear-gradient(180deg,rgba(255,255,255,.28) 0,rgba(255,255,255,0) 2px,rgba(0,0,0,.30) 5px) 0 0/100% 5px no-repeat,
       linear-gradient(var(--tldr),var(--tldr)) 0 0/100% 5px no-repeat,
-      /* sombra bajo el fierro y pliegues de la lona */
-      linear-gradient(180deg,rgba(0,0,0,.20),rgba(0,0,0,0) 7px) 0 5px/100% 14px no-repeat,
-      repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0,rgba(255,255,255,0) 14px,rgba(0,0,0,.08) 40px) 0 5px/100% 14px no-repeat,
-      /* costura entre la lona y el faldón */
-      linear-gradient(rgba(0,0,0,.14),rgba(0,0,0,.14)) 0 19px/100% 1px no-repeat,
-      /* faldón de ondas */
-      radial-gradient(ellipse 20px 9px at 20px 0,rgba(0,0,0,0) 55%,rgba(0,0,0,.12) 92%,rgba(0,0,0,0) 96%) 0 19px/80px 9px repeat-x,
-      radial-gradient(ellipse 20px 9px at 60px 0,rgba(0,0,0,0) 55%,rgba(0,0,0,.08) 92%,rgba(0,0,0,0) 96%) 0 19px/80px 9px repeat-x,
-      radial-gradient(ellipse 20px 9px at 20px 0,var(--tldg) 95%,transparent 100%) 0 19px/80px 9px repeat-x,
-      radial-gradient(ellipse 20px 9px at 60px 0,var(--tldw) 95%,transparent 100%) 0 19px/80px 9px repeat-x,
-      /* rayas */
-      repeating-linear-gradient(90deg,var(--tldg) 0 40px,var(--tldw) 40px 80px) 0 5px/100% 14px no-repeat;
-    filter:drop-shadow(0 3px 3px rgba(0,0,0,.16))}
+      repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 1px,transparent 1px 3px) 0 5px/100% 17px no-repeat,
+      repeating-linear-gradient(-45deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px) 0 5px/100% 17px no-repeat,
+      linear-gradient(180deg,rgba(0,0,0,.26),rgba(0,0,0,0) 45%,rgba(255,255,255,.10) 85%,rgba(0,0,0,.06)) 0 5px/100% 17px no-repeat,
+      repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0,rgba(255,255,255,0) 15px,rgba(0,0,0,.10) 44px) 0 5px/100% 17px no-repeat,
+      linear-gradient(rgba(0,0,0,.18),rgba(0,0,0,.18)) 0 22px/100% 1px no-repeat,
+      radial-gradient(ellipse 22px 10px at 22px 0,rgba(255,255,255,.16) 0,rgba(255,255,255,0) 45%,rgba(0,0,0,.14) 88%,rgba(0,0,0,0) 95%) 0 22px/88px 10px repeat-x,
+      radial-gradient(ellipse 22px 10px at 66px 0,rgba(255,255,255,.16) 0,rgba(255,255,255,0) 45%,rgba(0,0,0,.14) 88%,rgba(0,0,0,0) 95%) 0 22px/88px 10px repeat-x,
+      radial-gradient(ellipse 22px 10px at 22px 0,var(--tldg) 95%,transparent 100%) 0 22px/88px 10px repeat-x,
+      radial-gradient(ellipse 22px 10px at 66px 0,var(--tldw) 95%,transparent 100%) 0 22px/88px 10px repeat-x,
+      repeating-linear-gradient(90deg,var(--tldg) 0 44px,var(--tldw) 44px 88px) 0 5px/100% 17px no-repeat;
+    filter:drop-shadow(0 4px 4px rgba(0,0,0,.18))}
+  body[data-tienda]::before{content:attr(data-tienda);position:fixed;top:3px;left:50%;transform:translateX(-50%);z-index:51;pointer-events:none;
+    max-width:min(60vw,560px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;
+    padding:3px 18px 4px;border-radius:0 0 10px 10px;background:linear-gradient(#FFFDF6,#F1EAD6);color:#0F4D32;
+    font:800 13px/1.2 "Archivo",var(--f);letter-spacing:.06em;text-transform:uppercase;
+    box-shadow:0 0 0 1.5px var(--tldr),0 4px 8px rgba(0,0,0,.25)}
+  html[data-theme=dark] body[data-tienda]::before{background:linear-gradient(#E9E3D2,#D6CDB6);color:#0B2A1D}
+  /* el nombre ya va en el cartel del toldo: en la vitrina solo queda el estado (En línea / Sin internet / Caja abierta) */
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{display:none!important}
 }

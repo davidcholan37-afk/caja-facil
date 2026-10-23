@@ -274,6 +274,7 @@ function render() {
   if (!tabOk(ui.tab)) ui.tab = "venta";
   paintNav();
   document.body.dataset.tab = ui.tab;
+  document.body.dataset.tienda = (DB.biz && DB.biz.name) || "Caja Fácil"; // cartel del toldo (CSS body::before)
   VIEWS[ui.tab]($("#view"));
 }
 function moreMenu() {
