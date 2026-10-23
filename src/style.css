@@ -2751,3 +2751,31 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
 .paybox .pm.plin::before,.sheet.paym .mth.plin::before{background-size:contain!important}
 .paybox .pm.culqi::before,.sheet.paym .mth.culqi::before{background-image:url(img/pagos/culqi-q.png)!important;background-size:contain!important}
 .paybox .pm.culqi::before{filter:brightness(0) invert(1)}
+
+/* ===== Vitrina a sangre (opción 4 elegida por David, 23 oct 2026; solo PC ≥960 px y solo con la vitrina en pantalla):
+   las fotos/afiches llegan hasta el borde de la pantalla, el buscador flota encima (en el mismo sitio de siempre, así no salta
+   al escribir) y el nombre de la tienda va en una etiqueta oscura abajo. Al buscar (.vres) todo vuelve a la vista normal. ===== */
+@media (min-width:960px){
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home){position:relative;margin:-12px -14px -12px 0!important;gap:0!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .searchbar{position:absolute!important;top:12px;left:0;right:14px;z-index:3;margin:0!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .sbox,html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .searchbar .tool{border-color:transparent!important;box-shadow:0 10px 30px -8px rgba(0,0,0,.42)!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow{position:absolute!important;left:16px;bottom:16px;z-index:3;min-height:0!important;margin:0!important;padding:10px 16px!important;border-radius:12px;background:rgba(10,24,17,.86)!important;gap:14px!important;max-width:calc(100% - 170px)}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{color:#fff!important;font-size:20px!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow span,html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow i{color:#CFE3D6!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow i.net.off{color:#FFB4A8!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow{overflow:hidden;flex-wrap:nowrap!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{min-width:0;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow i,html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow span{flex:none;white-space:nowrap}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) #grid{margin:0!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) #grid .vit-home{height:100dvh!important;min-height:0!important;border-radius:0!important;border:0!important;box-shadow:none!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .vmos{gap:3px!important;padding:0!important;background:#0F1A14!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .vmos i{border-radius:0!important}
+  /* afiches: van entre el buscador y la etiqueta del nombre, sobre fondo oscuro, para no taparles nada */
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) #grid .vit-home.vslides{background:#0F1A14!important}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .vslides .vsl{inset:80px 0 80px}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .vslides .vdots{left:auto;right:140px;bottom:26px;transform:none}
+  /* el usuario ya se ve en el menú: en la etiqueta solo van el nombre de la tienda y el estado */
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow span{display:none}
+  html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow{max-width:calc(100% - 140px)}
+  @media (max-width:1099px){html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow{padding:8px 12px!important;gap:10px!important;left:12px;bottom:12px}html body.vit[data-tab=venta] section.left:has(> #grid > .vit-home) .brandrow b{font-size:16px!important}}
+}
