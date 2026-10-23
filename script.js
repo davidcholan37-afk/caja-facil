@@ -5763,6 +5763,17 @@ document.addEventListener("keydown", (e) => {
     // Si el lector de códigos escribe sin que el buscador tenga el foco, se lo damos.
     if (!field && e.key.length === 1 && /[\w]/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) { const q = $("#q"); if (q) q.focus(); }
   }
+  // Ficha del producto: ← → pasan al campo anterior/siguiente (precio, costo, stock…) cuando el número está todo
+  // marcado o el cursor ya está en el borde; el campo al que llegas queda marcado para escribir encima.
+  if (open && (e.key === "ArrowRight" || e.key === "ArrowLeft") && !e.shiftKey && e.target.closest && e.target.closest("#pe") && e.target.tagName === "INPUT" && !/checkbox|radio|date|file|color/.test(e.target.type)) {
+    const t = e.target, len = (t.value || "").length; let a = 0, b = 0; try { a = t.selectionStart; b = t.selectionEnd; } catch (er) {}
+    const all = len > 0 && a === 0 && b === len, edge = e.key === "ArrowRight" ? a === len && b === len : a === 0 && b === 0;
+    if (all || edge) {
+      const f = [...document.querySelectorAll("#pe input, #pe select")].filter((x) => !/checkbox|radio|file|color|hidden/.test(x.type) && !x.disabled && x.offsetParent !== null);
+      const n = f[f.indexOf(t) + (e.key === "ArrowRight" ? 1 : -1)];
+      if (n) { e.preventDefault(); n.focus(); try { if (n.select && n.tagName === "INPUT" && n.type !== "date") n.select(); } catch (er) {} return; }
+    }
+  }
   // Productos: ↑ ↓ por la lista del buscador y Enter abre la ficha (también con el lector de códigos).
   if (!open && ui.tab === "prod" && (e.target.id === "pq" || e.target.closest("#plist")) && ["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
     const it = [...document.querySelectorAll("#plist .it")];
