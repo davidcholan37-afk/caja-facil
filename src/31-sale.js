@@ -170,7 +170,7 @@ function paintCart() {
       <div class="tot">
         ${lines.length ? `<div class="trow">${ui.showDisc || t.disc ? `<label class="disc"><span>Descuento S/</span><input class="inp num" id="disc" data-in="disc" inputmode="decimal" placeholder="0.00" value="${t.disc ? t.disc : ""}"></label>` : `<button class="link xs" data-a="showdisc">+ Descuento</button>`}
           <div class="sumx" ${DB.cfg.igvOn || T.disc ? "" : "hidden"}><span>Subtotal <b class="num">${money(T.sub)}</b></span>${DB.cfg.igvOn ? `<span>IGV ${DB.cfg.igv}% <b class="num">${money(T.igv)}</b></span>` : ""}</div></div>` : ""}
-        <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
+        <div class="bigtot"><span>Total<small>${nItems(T.count)}${T.disc ? ` · descuento ${money(T.disc)}` : ""}${T.red ? ` · redondeo −${money(T.red)}` : ""}</small></span><b class="num" id="cartTotal">${money(T.total)}</b></div>
       </div>
     </div>
     <div class="paybox">
@@ -258,6 +258,14 @@ function creditBlock() {
   const debt = balanceOf(c), due = payDue(), after = r2(debt + due), over = c.limit > 0 && after > c.limit;
   return `<div class="credit ${over ? "over" : ""}"><div class="kv"><span>Cliente</span><b>${esc(c.name)}</b></div><div class="kv"><span>Debe ahora</span><b class="num">${money(debt)}</b></div><div class="kv"><span>Debería después</span><b class="num">${money(after)}</b></div>${c.limit > 0 ? `<div class="kv"><span>Límite de crédito</span><b class="num">${money(c.limit)}</b></div>` : ""}${over ? `<p class="warn">Pasa su límite: necesita autorización.</p>` : ""}${c.days ? `<p class="muted">Plazo para pagar: ${c.days} días.</p>` : ""}</div>`;
 }
+// Redondear el total a favor del cliente (hacia abajo, a 10 céntimos). Solo sale si hay céntimos sueltos.
+function redBlock() {
+  const t = DB.cart, T = cartTotals();
+  if (t.red && T.red > 0) return `<button class="payred on" data-a="payred"><span>Redondeado a favor del cliente <b class="num">−${money(T.red)}</b></span><small>Quitar</small></button>`;
+  const base = T.total, cut = r2(base - Math.floor(base * 10 + 1e-6) / 10);
+  if (!(cut > 0) || base < 0.1) return "";
+  return `<button class="payred" data-a="payred"><span>Redondear a <b class="num">${money(r2(base - cut))}</b></span><small>−${money(cut)} a favor del cliente</small></button>`;
+}
 // Billetes y monedas sugeridos: el monto exacto y los que la gente suele dar (redondeos, 10, 20, 50, 100, 200).
 function cashOpts(due) {
   const c = [Math.ceil(due - 0.001), Math.ceil(due / 5) * 5, Math.ceil(due / 10) * 10, 20, 50, 100, 200].filter((n) => n > due + 0.001);
@@ -280,7 +288,7 @@ function paintPay() {
   else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : p.method === "culqi" ? "Cobra con Culqi (enlace, QR o POS). N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
       <button class="btn lg${p.method === "culqi" ? " go culqi" : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" ? "Culqi" : METHODS[p.method].toLowerCase()}</button>`;
   openModal(`<div class="payhead"><div class="paytot"><span>A cobrar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
-    ${ptsBlock()}
+    ${redBlock()}${ptsBlock()}
     <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}" data-k="${KEYL[k]}"><span>${METHODS[k]}</span></button>`).join("")}</div>
     <div class="paybody">${body}</div>
     <div class="payfoot"><button class="link" data-a="close">Volver</button><button class="link" data-a="split">Dividir pago <span class="kbd">F7</span></button></div>`, "paym");
@@ -359,7 +367,7 @@ function finalizeSale(pays, cashGiven, extra = {}) {
   const s = {
     id: ++DB.seq, doc: { type, s: ser.s, n: ser.n }, t: Date.now(), date: dkey(), user: u ? u.id : "", uname: u ? u.name : "", shift: sh ? sh.id : "",
     client: c ? c.id : "", cname: c ? c.name : "", cdt: c ? c.dt : "", cdoc: c ? c.doc : "", caddr: c ? c.addr || "" : "",
-    items, sub: T.sub, disc: T.disc, total: T.total, gravada: T.gravada, igv: T.igv, exo: T.exo, pays,
+    items, sub: T.sub, disc: T.disc, red: T.red || 0, total: T.total, gravada: T.gravada, igv: T.igv, exo: T.exo, pays,
     recv: hasCash ? cashGiven : 0, change: hasCash ? r2(cashGiven - cashApplied) : 0, ref: extra.ref || "", mesa: t.mesa || 0, prev: t.prev || 0, returns: []
   };
   if (DB.cfg.pts.on && c) {
@@ -391,7 +399,7 @@ function receiptHtml(s) {
     ${s.cname ? `<div class="l"><span>Cliente</span><span>${esc(s.cname)}</span></div>${s.cdoc ? `<div class="l"><span>${esc(s.cdt || "Doc.")}</span><span>${esc(s.cdoc)}</span></div>` : ""}${s.caddr && s.doc && s.doc.type === "F" ? `<div class="l"><span>Dirección</span><span>${esc(s.caddr)}</span></div>` : ""}` : ""}
     ${s.mesa ? `<div class="l"><span>Mesa</span><span>${s.mesa}</span></div>` : ""}<hr>
     ${s.items.map((i) => `<div class="it2"><span>${fmtQ(i.qty)}${i.unit === "kg" ? " kg" : ""} × ${esc(i.name)}</span><span>${money(i.price * i.qty)}</span>${i.qty !== 1 ? `<small>${money(i.price)}${i.unit === "kg" ? " /kg" : " c/u"}</small>` : ""}</div>`).join("")}<hr>
-    ${s.disc ? `<div class="l"><span>Subtotal</span><span>${money(s.sub)}</span></div><div class="l"><span>Descuento</span><span>- ${money(s.disc)}</span></div>` : ""}
+    ${s.disc || s.red ? `<div class="l"><span>Subtotal</span><span>${money(s.sub)}</span></div>` : ""}${s.disc ? `<div class="l"><span>Descuento</span><span>- ${money(s.disc)}</span></div>` : ""}${s.red ? `<div class="l"><span>Redondeo</span><span>- ${money(s.red)}</span></div>` : ""}
     ${s.doc && s.doc.type !== "NV" && s.igv ? `<div class="l"><span>Op. gravada</span><span>${money(s.gravada)}</span></div>${s.exo ? `<div class="l"><span>Op. exonerada</span><span>${money(s.exo)}</span></div>` : ""}<div class="l"><span>IGV ${DB.cfg.igv}%</span><span>${money(s.igv)}</span></div>` : ""}
     <div class="l t"><span>TOTAL</span><span>${money(s.total)}</span></div><div class="c sm">SON: ${letras(s.total)}</div><hr>
     ${payBlock(s)}
@@ -405,6 +413,7 @@ function receiptText(s) {
   let t = `*${DB.biz.name}*\n${DOCS[s.doc ? s.doc.type : "NV"]} ${docNo(s)}\n${fmtDT(s.t)}\n\n`;
   s.items.forEach((i) => { t += `${fmtQ(i.qty)}${i.unit === "kg" ? " kg" : ""} x ${i.name}  ${money(i.price * i.qty)}\n`; });
   if (s.disc) t += `\nDescuento: -${money(s.disc)}`;
+  if (s.red) t += `\nRedondeo: -${money(s.red)}`;
   t += `\n*TOTAL: ${money(s.total)}* (${methodLabel(s)})`;
   if (s.ptsEarn) t += `\nPuntos ganados: ${s.ptsEarn}`;
   return t + `\n\n${DB.biz.foot || "Gracias por su compra"}`;
@@ -524,6 +533,7 @@ act({
   pay: (el) => { const m = el.dataset.m; if (modalOpen() && ui.pay) { ui.pay.method = m; ui.pay.split = false; paintPay(); } else startPay(m); },
   method: (el) => { ui.pay.method = el.dataset.m; ui.pay.ref = ""; paintPay(); },
   recv: (el) => { ui.pay.recv = String(el.dataset.v); const i = $("#recv"); if (i) { i.value = ui.pay.recv; i.focus(); } updPay(); },
+  payred: () => { DB.cart.red = !DB.cart.red; saveCart(); if (ui.pay) { ui.pay.parts = []; ui.pay.recv = ""; if (ui.pay.pts) ui.pay.pts = Math.min(ui.pay.pts, cartTotals().total); } paintCart(); paintPay(); },
   usepts: () => { const c = cli(DB.cart.client); if (!c) return; ui.pay.pts = ui.pay.pts ? 0 : Math.min(r2(Math.floor(pointsOf(c)) * DB.cfg.pts.val), cartTotals().total); ui.pay.parts = []; paintPay(); },
   payok: confirmPay,
   split: () => { if (ui.pay && modalOpen() && $("#payok")) { ui.pay.split = !ui.pay.split; ui.pay.parts = []; paintPay(); } else startPay("efectivo", true); },

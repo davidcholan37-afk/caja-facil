@@ -19,11 +19,13 @@ function totalsOf(t) {
   const lines = linesOf(t);
   const sub = r2(lines.reduce((a, { l, r }) => a + r2(r.price * l.qty), 0));
   const disc = Math.min(Math.max(0, r2(t.disc)), sub);
-  const total = r2(sub - disc), ratio = sub ? total / sub : 0;
+  // Redondeo a favor del cliente (Perú: no se puede redondear en contra del comprador): baja a los 10 céntimos.
+  const t0 = r2(sub - disc), red = t.red && t0 > 0 ? r2(t0 - Math.floor(t0 * 10 + 1e-6) / 10) : 0;
+  const total = r2(t0 - red), ratio = sub ? total / sub : 0;
   const gAmt = r2(lines.reduce((a, { l, r }) => a + (r.igv ? r2(r.price * l.qty) : 0), 0) * ratio);
   const rate = DB.cfg.igvOn ? (+DB.cfg.igv || 0) / 100 : 0;
   const gravada = rate ? r2(gAmt / (1 + rate)) : 0, igv = rate ? r2(gAmt - gravada) : 0;
-  return { lines, sub, disc, total, gravada, igv, exo: rate ? r2(total - gAmt) : 0, count: lines.length };
+  return { lines, sub, disc, red, total, gravada, igv, exo: rate ? r2(total - gAmt) : 0, count: lines.length };
 }
 const cartTotals = () => totalsOf(DB.cart);
 const ticketTotal = (t) => totalsOf(t).total;
