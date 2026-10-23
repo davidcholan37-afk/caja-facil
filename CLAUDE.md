@@ -119,6 +119,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 ## Programa de Windows
 - `desktop/` (Electron): ventana que abre la caja publicada (se actualiza sola). El .exe lo fabrica GitHub Actions (`.github/workflows/escritorio.yml`) y lo publica en Releases como `CajaFacil-Setup.exe`. Para una versión nueva del programa sube `version` en `desktop/package.json`.
 - **Versión nueva al abrir** (`verNueva` en 68-install, 1,5 s después de arrancar): pide la página con `cache: "reload"`; si la huella de `script.js` cambió, recarga una vez (no si hay ventana abierta o algo escrito; reintenta cada 15 s). Necesario porque el programa no usa service worker y GitHub deja la página guardada 10 min. `sessionStorage` `cf-ver` evita recargar dos veces.
+- **Pantalla completa** (versión 1.0.9 del programa): en pantallas ≤1280×800 (NCR 1024×768) empieza en pantalla completa (sin barra de título ni de Windows, gana ~70 px); F11 la pone/quita (`before-input-event` en `desktop/main.js`, la caja no usa F11) y se recuerda en `userData/pantalla.json`. En `HELP_KB` («Pantalla completa»).
 - Google no deja entrar dentro del programa: abre el navegador en `#login-escritorio` y vuelve con `cajafacil://auth#...` (ver `src/67-cloud.js`).
 
 ## Página de ventas

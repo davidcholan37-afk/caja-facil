@@ -4,6 +4,7 @@
 // normal y vuelve aquí con el enlace cajafacil://auth#... (ver «#login-escritorio» en src/67-cloud.js).
 const { app, BrowserWindow, Menu, shell, dialog, session } = require("electron");
 const path = require("path");
+const fs = require("fs");
 
 const APP_URL = "https://davidcholan37-afk.github.io/caja-facil/";
 const AUTH_URL = "https://ohdpfdzledddmhanscln.supabase.co/auth/v1/authorize";
@@ -46,6 +47,16 @@ function openLink(link) {
   win.loadURL(APP_URL + link.slice(i));
 }
 
+// Pantalla completa (sin barra de título ni barra de Windows): en pantallas chicas de caja (NCR 1024×768) empieza así.
+// F11 la pone o la quita y el programa recuerda la elección en este equipo.
+const PREF = () => path.join(app.getPath("userData"), "pantalla.json");
+function leerPref() { try { return JSON.parse(fs.readFileSync(PREF(), "utf8")); } catch (e) { return {}; } }
+function guardarPref(o) { try { fs.writeFileSync(PREF(), JSON.stringify(o)); } catch (e) {} }
+function empiezaCompleta() {
+  const p = leerPref(); if (typeof p.completa === "boolean") return p.completa;
+  try { const { screen } = require("electron"); const s = screen.getPrimaryDisplay().size; return s.width <= 1280 || s.height <= 800; } catch (e) { return false; }
+}
+
 function inApp(url) { return url.startsWith(APP_URL) || url === APP_URL.slice(0, -1); }
 
 function createWindow(temporal) {
@@ -59,7 +70,10 @@ function createWindow(temporal) {
   // Se marca el navegador interno para que la caja sepa que corre como programa de Windows.
   win.webContents.setUserAgent(ascii(win.webContents.getUserAgent()) + " CajaFacilEscritorio/" + app.getVersion());
   let visible = false;
-  const mostrar = () => { if (visible || win.isDestroyed()) return; visible = true; win.maximize(); win.show(); };
+  const mostrar = () => { if (visible || win.isDestroyed()) return; visible = true; win.maximize(); if (empiezaCompleta()) win.setFullScreen(true); win.show(); };
+  win.webContents.on("before-input-event", (e, input) => {
+    if (input.type === "keyDown" && input.key === "F11") { e.preventDefault(); const c = !win.isFullScreen(); win.setFullScreen(c); guardarPref({ completa: c }); }
+  });
   win.once("ready-to-show", mostrar);
   setTimeout(mostrar, 6000); // si la página tarda, la ventana aparece igual
 
