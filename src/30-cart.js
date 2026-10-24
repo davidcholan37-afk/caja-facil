@@ -77,6 +77,10 @@ function freshTicketAfterSale() {
   if (libre >= 0) DB.cur = libre;
   else { DB.tickets.push(newTicket(++DB.tseq)); DB.cur = DB.tickets.length - 1; }
 }
+function tkStep(d) {
+  const n = DB.tickets.length; if (n < 2) return;
+  DB.cur = (DB.cur + d + n) % n; ui.sel = null; ui.done = null; saveCart(); paintSale(); focusQ();
+}
 function newTicketNow(extra = {}) {
   DB.tickets.push(Object.assign(newTicket(++DB.tseq), extra)); DB.cur = DB.tickets.length - 1; ui.sel = null; saveCart();
 }

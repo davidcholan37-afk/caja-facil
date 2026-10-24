@@ -111,6 +111,12 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "F6") { e.preventDefault(); if (!open && ui.tab === "venta") editLine(ui.sel); return; }
   if ((e.key === "F3" || (e.key === "/" && !field)) && !open && ui.tab === "venta") { e.preventDefault(); A.focusq(); return; }
   if (!open && ui.tab === "venta") {
+    // ← → pasan de un ticket a otro (En espera) sin el mouse; ↑ ↓ también, si el ticket actual está vacío
+    // (con productos ↑ ↓ siguen eligiendo la línea). Solo con el buscador vacío, para no mover el cursor del texto.
+    const lr = e.key === "ArrowLeft" || e.key === "ArrowRight", ud = e.key === "ArrowDown" || e.key === "ArrowUp";
+    if ((lr || (ud && !DB.cart.items.length)) && DB.tickets.length > 1 && (!field || (inQ && !e.target.value)) && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault(); tkStep(e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1); return;
+    }
     if ((e.key === "ArrowDown" || e.key === "ArrowUp") && vit() && ui.q.trim() && ui.vlist && ui.vlist.length > 1) { e.preventDefault(); ui.vsel = Math.min(ui.vlist.length - 1, Math.max(0, (ui.vsel || 0) + (e.key === "ArrowDown" ? 1 : -1))); paintGrid(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); moveSel(e.key === "ArrowDown" ? 1 : -1); return; }
     if (!field || (inQ && !e.target.value)) {

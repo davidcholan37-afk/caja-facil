@@ -135,7 +135,7 @@ function qtyMarks(el, inCart, sm) {
 }
 function paintTickets() {
   const el = $("#tks"); if (!el) return;
-  el.innerHTML = DB.tickets.map((t, i) => `<button class="tk ${i === DB.cur ? "on" : ""} ${t.mesa ? "mesa" : ""}" data-a="tk" data-i="${i}">${esc(ticketLabel(t))}<small class="num">${t.items.length ? money(ticketTotal(t)) : "vacío"}</small></button>`).join("");
+  el.innerHTML = DB.tickets.map((t, i) => `<button class="tk ${i === DB.cur ? "on" : ""} ${t.mesa ? "mesa" : ""}" data-a="tk" data-i="${i}" title="Pasa de un ticket a otro con las flechas ← →">${esc(ticketLabel(t))}<small class="num">${t.items.length ? money(ticketTotal(t)) : "vacío"}</small></button>`).join("");
 }
 const nItems = (n) => `${n} ${n === 1 ? "producto" : "productos"}`;
 function paintCart() {
