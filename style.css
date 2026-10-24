@@ -1910,48 +1910,48 @@ html:not([data-theme=dark]) .cart .tot b,html:not([data-theme=dark]) .cart .tota
 
 /* ===== Vitrina (prueba): ticket de tabla + Efectivo grande + mosaico de fotos. Solo con body.vit (Ajustes › Pantalla de venta). ===== */
 @media (min-width:1100px){
-  body.vit[data-tab=venta] .pos{grid-template-columns:minmax(580px,1.3fr) minmax(0,1fr)!important;gap:14px!important}
-  body.vit[data-tab=venta] .cart .paper{display:flex;flex-direction:column;}
-  body.vit[data-tab=venta] .cart .lh{display:grid!important;grid-template-columns:76px minmax(0,1fr) 84px 100px 28px;column-gap:8px;padding:9px 12px;position:sticky;top:0;z-index:2;font:700 11.5px var(--f);text-transform:uppercase;align-items:center}
-  body.vit[data-tab=venta] .cart .lh span:nth-child(3),body.vit[data-tab=venta] .cart .lh span:nth-child(4){text-align:right}
-  body.vit[data-tab=venta] .cart .ln{display:grid!important;grid-template-columns:76px minmax(0,1fr) 84px 100px 28px!important;grid-template-areas:"q nm pu amt rm"!important;column-gap:8px;align-items:center;padding:7px 12px!important;border-radius:0!important;margin:0!important;box-shadow:none}
-  body.vit[data-tab=venta] .cart .ln .qc{grid-area:q!important;display:flex;align-items:center;justify-content:center;gap:0}
-  body.vit[data-tab=venta] .cart .ln .qc .sb{display:none!important}
-  body.vit[data-tab=venta] .cart .ln.sel .qc .sb{display:grid!important;width:22px;height:30px;place-items:center;background:none!important;font:700 17px var(--f)}
-  body.vit[data-tab=venta] .cart .ln .qc .qv{display:grid;place-items:center;font:800 15px var(--f);font-variant-numeric:tabular-nums;}
-  body.vit[data-tab=venta] .cart .ln .nm{grid-area:nm!important;min-width:0}
+  body:is(.vit,.vtk)[data-tab=venta] .pos{grid-template-columns:minmax(580px,1.3fr) minmax(0,1fr)!important;gap:14px!important}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .paper{display:flex;flex-direction:column;}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .lh{display:grid!important;grid-template-columns:76px minmax(0,1fr) 84px 100px 28px;column-gap:8px;padding:9px 12px;position:sticky;top:0;z-index:2;font:700 11.5px var(--f);text-transform:uppercase;align-items:center}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .lh span:nth-child(3),body:is(.vit,.vtk)[data-tab=venta] .cart .lh span:nth-child(4){text-align:right}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln{display:grid!important;grid-template-columns:76px minmax(0,1fr) 84px 100px 28px!important;grid-template-areas:"q nm pu amt rm"!important;column-gap:8px;align-items:center;padding:7px 12px!important;border-radius:0!important;margin:0!important;box-shadow:none}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc{grid-area:q!important;display:flex;align-items:center;justify-content:center;gap:0}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .sb{display:none!important}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln.sel .qc .sb{display:grid!important;width:22px;height:30px;place-items:center;background:none!important;font:700 17px var(--f)}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{display:grid;place-items:center;font:800 15px var(--f);font-variant-numeric:tabular-nums;}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm{grid-area:nm!important;min-width:0}
   
-  body.vit[data-tab=venta] .cart .ln .nm b{font:600 14.5px/1.2 var(--f);white-space:normal}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b{font:600 14.5px/1.2 var(--f);white-space:normal}
   
-  body.vit[data-tab=venta] .cart .ln .pu{grid-area:pu!important;justify-self:end;padding:0!important;margin:0!important;border:0!important;background:none;min-height:0;font:500 13px var(--f);font-variant-numeric:tabular-nums;opacity:.75}
-  body.vit[data-tab=venta] .cart .ln .amt{grid-area:amt!important;font:800 16px var(--f);font-variant-numeric:tabular-nums;text-align:right}
-  body.vit[data-tab=venta] .cart .ln .rm{grid-area:rm!important;display:grid}
-  body.vit[data-tab=venta] .cart .tot *{font-family:var(--f)}
-  body.vit[data-tab=venta] .cart .bigtot b{font-variant-numeric:tabular-nums}
-  body.vit[data-tab=venta] .cart .lh span:nth-child(3){display:block!important}
-  body.vit[data-tab=venta] .cart .lh{margin:0!important;}
-  body.vit[data-tab=venta] .cart .lines{padding:0!important;border-top:0}
-  body.vit[data-tab=venta] .cart .ln:last-child{margin-bottom:6px!important}
-  body.vit[data-tab=venta] .cart .paper{background:#fff;}
-  body.vit[data-tab=venta] .cart .rhead{background:#fff;border:0}
-  body.vit[data-tab=venta] .cart .lh{font-weight:600;letter-spacing:.03em}
-  body.vit[data-tab=venta] .cart .ln{color:#1D1D1F;background:transparent!important;}
-  body.vit[data-tab=venta] .cart .ln .qc .qv{border:0;border-radius:999px;}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .pu{grid-area:pu!important;justify-self:end;padding:0!important;margin:0!important;border:0!important;background:none;min-height:0;font:500 13px var(--f);font-variant-numeric:tabular-nums;opacity:.75}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .amt{grid-area:amt!important;font:800 16px var(--f);font-variant-numeric:tabular-nums;text-align:right}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .rm{grid-area:rm!important;display:grid}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .tot *{font-family:var(--f)}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot b{font-variant-numeric:tabular-nums}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .lh span:nth-child(3){display:block!important}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .lh{margin:0!important;}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .lines{padding:0!important;border-top:0}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln:last-child{margin-bottom:6px!important}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .paper{background:#fff;}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .rhead{background:#fff;border:0}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .lh{font-weight:600;letter-spacing:.03em}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln{color:#1D1D1F;background:transparent!important;}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{border:0;border-radius:999px;}
   
-  body.vit[data-tab=venta] .cart .ln .nm b{font-weight:600;letter-spacing:-.01em}
-  body.vit[data-tab=venta] .cart .ln .amt{color:#1D1D1F}
-  body.vit[data-tab=venta] .cart .ln .rm{color:#C7C7CC}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b{font-weight:600;letter-spacing:-.01em}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .amt{color:#1D1D1F}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .ln .rm{color:#C7C7CC}
   
-  body.vit[data-tab=venta] .cart .tot{background:#fff;color:#1D1D1F;border-top:1px solid rgba(15,23,42,.08);padding-top:10px}
-  body.vit[data-tab=venta] .cart .tot *{color:#1D1D1F!important}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .tot{background:#fff;color:#1D1D1F;border-top:1px solid rgba(15,23,42,.08);padding-top:10px}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .tot *{color:#1D1D1F!important}
   
-  body.vit[data-tab=venta] .cart .tot small,body.vit[data-tab=venta] .cart .tot .sumx{color:#6E6E73!important}
-  body.vit[data-tab=venta] .cart .bigtot b{font-weight:700;letter-spacing:-.045em;}
-  body.vit[data-tab=venta] .paymini .pm{border-radius:16px;font-weight:650;}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .tot small,body:is(.vit,.vtk)[data-tab=venta] .cart .tot .sumx{color:#6E6E73!important}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot b{font-weight:700;letter-spacing:-.045em;}
+  body:is(.vit,.vtk)[data-tab=venta] .paymini .pm{border-radius:16px;font-weight:650;}
   
-  body.vit[data-tab=venta] .cart .paymini.pay4{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8px}
-  body.vit[data-tab=venta] .paymini .pm.efectivo{grid-column:1/-1;}
-  body.vit[data-tab=venta] .paymini .pm:not(.efectivo){min-height:46px;font-size:14.5px;border-radius:14px}
+  body:is(.vit,.vtk)[data-tab=venta] .cart .paymini.pay4{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8px}
+  body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.efectivo{grid-column:1/-1;}
+  body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:not(.efectivo){min-height:46px;font-size:14.5px;border-radius:14px}
 }
 body.vit #grid{display:block;overflow:visible;padding:0}
 body.vit .vit-home{position:relative;min-height:340px;overflow:hidden;background:#dfe6ef;box-shadow:0 18px 40px -26px rgba(15,23,42,.5)}
@@ -2003,20 +2003,20 @@ html[data-theme=dark] body.vit .vmos i{filter:saturate(1.05) brightness(.78)}
 
 html[data-theme=dark] body.vit .vbig{background:linear-gradient(160deg,#1B2430,#141B25)}
 @media (min-width:1100px){
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .paper{background:#151B23;border-color:rgba(255,255,255,.08);box-shadow:0 18px 40px -24px rgba(0,0,0,.7)}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .rhead{background:#151B23}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .rhead *{color:#E8EDF4}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .paper{background:#151B23;border-color:rgba(255,255,255,.08);box-shadow:0 18px 40px -24px rgba(0,0,0,.7)}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .rhead{background:#151B23}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .rhead *{color:#E8EDF4}
   
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .lh{background:rgba(24,31,41,.94);color:#8C97A6;border-color:rgba(255,255,255,.08)}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .ln{border-color:rgba(255,255,255,.07)!important;color:#E8EDF4}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .ln .qc .qv{background:#222B37;}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .ln .nm b,html[data-theme=dark] body.vit[data-tab=venta] .cart .ln .amt{color:#F2F5FA}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .ln .rm{color:#5C6675}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .tot{background:#151B23;border-color:rgba(255,255,255,.08)}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .tot *{color:#F2F5FA!important}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .lh{background:rgba(24,31,41,.94);color:#8C97A6;border-color:rgba(255,255,255,.08)}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .ln{border-color:rgba(255,255,255,.07)!important;color:#E8EDF4}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{background:#222B37;}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b,html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .ln .amt{color:#F2F5FA}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .ln .rm{color:#5C6675}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .tot{background:#151B23;border-color:rgba(255,255,255,.08)}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .tot *{color:#F2F5FA!important}
   
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .tot small,html[data-theme=dark] body.vit[data-tab=venta] .cart .tot .sumx{color:#8C97A6!important}
-  html[data-theme=dark] body.vit[data-tab=venta] .cart .bigtot b{color:#fff!important}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .tot small,html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .tot .sumx{color:#8C97A6!important}
+  html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot b{color:#fff!important}
 }
 @media (max-width:600px){}
 
@@ -2059,33 +2059,33 @@ body.vit .fkeys{display:none}
 body.vit .vit-home{height:calc(100dvh - 132px - var(--tld,0px))}
 body.vit .vq{bottom:16px}
 @media (min-width:1100px){
-body.vit[data-tab=venta] .cart .ln{min-height:64px!important}
-body.vit[data-tab=venta] .cart .ln .nm{display:flex!important;align-items:center;gap:11px}
-body.vit[data-tab=venta] .cart .ln .nm .lim{display:block!important;width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;background:#EEF2F6;box-shadow:0 0 0 1px rgba(15,23,42,.08)}
-body.vit[data-tab=venta] .cart .ln .nm small{display:inline-block!important;align-self:flex-start;margin-top:3px;padding:1px 7px;border-radius:6px;background:#EEF2F6;font:600 10.5px ui-monospace,Menlo,monospace!important;opacity:1!important;color:#5A6776}
-body.vit[data-tab=venta] .cart .ln .nm b{font-size:14px!important}
-body.vit[data-tab=venta] .cart .ln .qc .qv{font-weight:800;min-width:42px;height:32px!important}
-body.vit[data-tab=venta] .cart .ln .amt{font-size:17px!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln{min-height:64px!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm{display:flex!important;align-items:center;gap:11px}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm .lim{display:block!important;width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;background:#EEF2F6;box-shadow:0 0 0 1px rgba(15,23,42,.08)}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm small{display:inline-block!important;align-self:flex-start;margin-top:3px;padding:1px 7px;border-radius:6px;background:#EEF2F6;font:600 10.5px ui-monospace,Menlo,monospace!important;opacity:1!important;color:#5A6776}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b{font-size:14px!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{font-weight:800;min-width:42px;height:32px!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .amt{font-size:17px!important}
 
 
 }
 /* Pagos */
 body.vit[data-tab=venta] .paymini{gap:8px}
-body.vit[data-tab=venta] .paymini .pm{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;border:0;color:#fff;font:700 15px var(--f);letter-spacing:-.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 10px 20px -12px var(--pc,#000);transition:transform .16s var(--ease-out),filter .16s}
-body.vit[data-tab=venta] .paymini .pm:hover{filter:brightness(1.06)}
-body.vit[data-tab=venta] .paymini .pm:active{transform:scale(.97)}
-body.vit[data-tab=venta] .paymini .pm.efectivo{--pc:#16A34A;background:linear-gradient(135deg,#1DB954,#12873F)!important;min-height:72px;font-size:22px;border-radius:20px;justify-content:flex-start;padding:0 20px}
-body.vit[data-tab=venta] .paymini .pm.efectivo::before{content:"";width:34px;height:34px;flex:none;background:#fff;opacity:.95;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat}
-body.vit[data-tab=venta] .paymini .pm.efectivo .kbd{margin-left:auto;background:rgba(255,255,255,.22);color:#fff;border-radius:8px;padding:3px 9px;font:700 12px var(--f)}
-body.vit[data-tab=venta] .paymini .pm.yape,body.vit[data-tab=venta] .paymini .pm.plin,body.vit[data-tab=venta] .paymini .pm.culqi{min-height:54px;border-radius:16px;font-size:14.5px}
-body.vit[data-tab=venta] .paymini .pm.yape{--pc:#742284;background:linear-gradient(135deg,#8A2BA0,#5E1B6E)!important}
-body.vit[data-tab=venta] .paymini .pm.plin{--pc:#00B8D9;background:linear-gradient(135deg,#17D0EE,#00A3C4)!important;color:#05323B}
-body.vit[data-tab=venta] .paymini .pm.culqi{--pc:#FF7A1A;background:linear-gradient(135deg,#FF9440,#F26A0A)!important;color:#2A1300}
-body.vit[data-tab=venta] .paymini .pm.yape::before,body.vit[data-tab=venta] .paymini .pm.plin::before,body.vit[data-tab=venta] .paymini .pm.culqi::before{width:26px;height:26px;border-radius:50%;background:#fff;display:grid;place-items:center;font:800 14px var(--f);flex:none;box-shadow:0 2px 6px rgba(0,0,0,.18)}
-body.vit[data-tab=venta] .paymini .pm.yape::before{content:"Y";color:#742284}
-body.vit[data-tab=venta] .paymini .pm.plin::before{content:"P";color:#00A3C4}
-body.vit[data-tab=venta] .paymini .pm.culqi::before{content:"C";color:#F26A0A}
-body.vit[data-tab=venta] .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){min-height:54px;border-radius:16px;background:#fff!important;color:#1D1D1F;border:1.5px solid rgba(15,23,42,.12);box-shadow:none}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;border:0;color:#fff;font:700 15px var(--f);letter-spacing:-.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 10px 20px -12px var(--pc,#000);transition:transform .16s var(--ease-out),filter .16s}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:hover{filter:brightness(1.06)}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:active{transform:scale(.97)}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.efectivo{--pc:#16A34A;background:linear-gradient(135deg,#1DB954,#12873F)!important;min-height:72px;font-size:22px;border-radius:20px;justify-content:flex-start;padding:0 20px}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.efectivo::before{content:"";width:34px;height:34px;flex:none;background:#fff;opacity:.95;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.efectivo .kbd{margin-left:auto;background:rgba(255,255,255,.22);color:#fff;border-radius:8px;padding:3px 9px;font:700 12px var(--f)}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi{min-height:54px;border-radius:16px;font-size:14.5px}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape{--pc:#742284;background:linear-gradient(135deg,#8A2BA0,#5E1B6E)!important}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin{--pc:#00B8D9;background:linear-gradient(135deg,#17D0EE,#00A3C4)!important;color:#05323B}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi{--pc:#FF7A1A;background:linear-gradient(135deg,#FF9440,#F26A0A)!important;color:#2A1300}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape::before,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin::before,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi::before{width:26px;height:26px;border-radius:50%;background:#fff;display:grid;place-items:center;font:800 14px var(--f);flex:none;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape::before{content:"Y";color:#742284}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin::before{content:"P";color:#00A3C4}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi::before{content:"C";color:#F26A0A}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){min-height:54px;border-radius:16px;background:#fff!important;color:#1D1D1F;border:1.5px solid rgba(15,23,42,.12);box-shadow:none}
 /* Menú lateral */
 body.vit .side{background:linear-gradient(180deg,#fff,#F3F6FA)!important;border-right:1px solid rgba(15,23,42,.08)}
 body.vit #sideNav .tab{color:#5A6776;font-weight:600}
@@ -2121,40 +2121,40 @@ body.vit .brandrow{order:-1!important;min-height:24px}
 
 /* ===== Vitrina · botones de pago v2: colores sólidos tipo tecla, Efectivo con el monto, apagados en gris (no desteñidos). ===== */
 .paymini .pm .pmx{display:none}
-body.vit[data-tab=venta] .paybox .paymini .pm{--pc:#16A34A;--pk:rgba(0,0,0,.22);opacity:1!important;filter:none;border:0!important;font:700 15px var(--f);letter-spacing:-.01em;text-shadow:none;cursor:pointer;
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm{--pc:#16A34A;--pk:rgba(0,0,0,.22);opacity:1!important;filter:none;border:0!important;font:700 15px var(--f);letter-spacing:-.01em;text-shadow:none;cursor:pointer;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -3px 0 var(--pk),0 1px 2px rgba(15,23,42,.12)!important;transition:transform 160ms var(--ease-out),background-color 150ms ease,color 150ms ease}
-body.vit[data-tab=venta] .paybox .paymini .pm:active:not(:disabled){transform:scale(.97);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 var(--pk)!important}
-body.vit[data-tab=venta] .paybox .paymini .pm:focus-visible{outline:3px solid var(--ac,#0A66FF);outline-offset:2px}
-@media (hover:hover) and (pointer:fine){body.vit[data-tab=venta] .paybox .paymini .pm:hover:not(:disabled){filter:brightness(1.05)}}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:active:not(:disabled){transform:scale(.97);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 var(--pk)!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:focus-visible{outline:3px solid var(--ac,#0A66FF);outline-offset:2px}
+@media (hover:hover) and (pointer:fine){body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:hover:not(:disabled){filter:brightness(1.05)}}
 /* Efectivo: la tecla principal */
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo{background:#15A048!important;color:#fff;min-height:76px;border-radius:20px;padding:0 14px 0 20px;justify-content:flex-start;gap:12px;font-size:22px}
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo::before{width:32px;height:32px;background:#fff}
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:flex;align-items:center;gap:12px;margin-left:auto;font:800 26px var(--f);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo .kbd{order:3;margin-left:0;background:rgba(0,0,0,.18);color:#fff;border-radius:8px;padding:4px 9px;font:700 12px var(--f);box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo .pmx small{font:600 14px var(--f);letter-spacing:0;opacity:.9}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo{background:#15A048!important;color:#fff;min-height:76px;border-radius:20px;padding:0 14px 0 20px;justify-content:flex-start;gap:12px;font-size:22px}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo::before{width:32px;height:32px;background:#fff}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:flex;align-items:center;gap:12px;margin-left:auto;font:800 26px var(--f);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo .kbd{order:3;margin-left:0;background:rgba(0,0,0,.18);color:#fff;border-radius:8px;padding:4px 9px;font:700 12px var(--f);box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo .pmx small{font:600 14px var(--f);letter-spacing:0;opacity:.9}
 /* Billeteras: color de marca sólido + ícono cuadrado tipo app */
-body.vit[data-tab=venta] .paybox .paymini .pm.yape{background:#742284!important;color:#fff}
-body.vit[data-tab=venta] .paybox .paymini .pm.plin{background:#00B2D6!important;color:#03323C;--pk:rgba(0,60,75,.28)}
-body.vit[data-tab=venta] .paybox .paymini .pm.culqi{background:#FF7A1A!important;color:#2A1300;--pk:rgba(90,30,0,.28)}
-body.vit[data-tab=venta] .paybox .paymini .pm.yape,body.vit[data-tab=venta] .paybox .paymini .pm.plin,body.vit[data-tab=venta] .paybox .paymini .pm.culqi{min-height:56px;gap:10px;font-size:15.5px}
-body.vit[data-tab=venta] .paybox .paymini .pm.yape::before,body.vit[data-tab=venta] .paybox .paymini .pm.plin::before,body.vit[data-tab=venta] .paybox .paymini .pm.culqi::before{width:26px;height:26px;border-radius:8px;font:900 14px var(--f);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape{background:#742284!important;color:#fff}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin{background:#00B2D6!important;color:#03323C;--pk:rgba(0,60,75,.28)}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi{background:#FF7A1A!important;color:#2A1300;--pk:rgba(90,30,0,.28)}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi{min-height:56px;gap:10px;font-size:15.5px}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape::before,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin::before,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi::before{width:26px;height:26px;border-radius:8px;font:900 14px var(--f);box-shadow:0 1px 0 rgba(0,0,0,.18)}
 /* Más */
-body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):not(:disabled){background:#fff!important;color:#1D2633;min-height:56px;--pk:rgba(15,23,42,.10);box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 var(--pk)!important}
-body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi)::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x;mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):not(:disabled){background:#fff!important;color:#1D2633;min-height:56px;--pk:rgba(15,23,42,.10);box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 var(--pk)!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi)::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x;mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x}
 /* Ticket vacío: teclas en gris claro, legibles, sin parecer rotas */
-body.vit[data-tab=venta] .paybox .paymini .pm:disabled,body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#E3E8EF!important;color:#7A8698!important;cursor:not-allowed;box-shadow:inset 0 0 0 1px rgba(15,23,42,.06),inset 0 -3px 0 rgba(15,23,42,.06)!important}
-body.vit[data-tab=venta] .paybox .paymini .pm:disabled::before{background:#fff;color:#9AA5B5!important;filter:grayscale(1)}
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background:#9AA5B5}
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .kbd{background:rgba(15,23,42,.07);color:#7A8698;box-shadow:none}
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .pmx{font:600 15px var(--f);letter-spacing:0}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#E3E8EF!important;color:#7A8698!important;cursor:not-allowed;box-shadow:inset 0 0 0 1px rgba(15,23,42,.06),inset 0 -3px 0 rgba(15,23,42,.06)!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled::before{background:#fff;color:#9AA5B5!important;filter:grayscale(1)}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background:#9AA5B5}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .kbd{background:rgba(15,23,42,.07);color:#7A8698;box-shadow:none}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .pmx{font:600 15px var(--f);letter-spacing:0}
 /* Oscuro */
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):not(:disabled){background:#1C222B!important;color:#E6EAF0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.10),inset 0 -3px 0 rgba(0,0,0,.35)!important}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:disabled,html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#1A1F27!important;color:#5F6B7C!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)!important}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:disabled::before{background:#2A313C;color:#5F6B7C!important}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background:#4A5566}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .kbd{background:rgba(255,255,255,.06);color:#5F6B7C}
-body.vit[data-tab=venta] .paybox .paymini .pm{white-space:nowrap}
-@media (max-width:1099px){body.vit[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:none}}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):not(:disabled){background:#1C222B!important;color:#E6EAF0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.10),inset 0 -3px 0 rgba(0,0,0,.35)!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#1A1F27!important;color:#5F6B7C!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled::before{background:#2A313C;color:#5F6B7C!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background:#4A5566}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .kbd{background:rgba(255,255,255,.06);color:#5F6B7C}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm{white-space:nowrap}
+@media (max-width:1099px){body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:none}}
 
 /* ===== Tema «Fresco verde» (opción 3 elegida por David; colores en todos los modos, formas de ticket solo en Vitrina): verde profundo, menta, tarjetas redondeadas. Claro y oscuro. ===== */
 body{--fv:#0F4D32;--fv2:#1D8A4E;--fvl:#8BD448;--fvbg:#EEF4EF;--fvt:#E2F2E6;--fvline:#D5E3DA;--fvmut:#4F7462}
@@ -2168,21 +2168,21 @@ body:not(._) #sideNav .tab.on{color:#fff!important}
 body:not(._) #sideNav .tab.on .ic{background:var(--fvl)!important;color:#0F4D32!important;box-shadow:0 8px 16px -10px rgba(139,212,72,.9)!important}
 @media (hover:hover) and (pointer:fine){body:not(._) #sideNav .tab:not(.on):hover .ic{background:rgba(255,255,255,.08)}}
 /* Ticket */
-body.vit[data-tab=venta] .cart .paper{border-radius:24px!important;border:0!important;box-shadow:0 18px 40px -28px rgba(15,77,50,.5)!important}
-body.vit[data-tab=venta] .cart .rhead .seg button.on{background:var(--fv2)!important;color:#fff!important}
-body.vit[data-tab=venta] .cart .lh{background:var(--fvt)!important;color:var(--fvmut)!important;border-bottom:0!important;backdrop-filter:none!important}
-body.vit[data-tab=venta] .cart .ln{border-bottom:1px dashed var(--fvline)!important}
-body.vit[data-tab=venta] .cart .ln .qc .qv{background:var(--fvt)!important;color:var(--fv2)!important}
-html:not([data-theme=dark]) body.vit[data-tab=venta] .cart .ln .qc .qv{color:#0F4D32!important}
-body.vit[data-tab=venta] .cart .ln .qc .sb{color:var(--fv2)!important}
-body.vit[data-tab=venta] .cart .ln.sel{background:var(--fvt)!important;box-shadow:inset 4px 0 0 var(--fv2)!important}
-body.vit[data-tab=venta] .cart .ln .lim{border-radius:12px!important}
-body.vit[data-tab=venta] .cart .tot{padding:10px 14px 14px!important}
-body.vit[data-tab=venta] .cart .tot .link{color:var(--fv2)!important}
-body.vit[data-tab=venta] .cart .bigtot{background:#0F4D32;border-radius:18px;padding:10px 20px!important;margin-top:6px}
-html[data-theme=dark] body.vit[data-tab=venta] .cart .bigtot{background:#14402A}
-body.vit[data-tab=venta] .cart .bigtot span,body.vit[data-tab=venta] .cart .bigtot span *{color:#BFD8C9!important}
-body.vit[data-tab=venta] .cart .bigtot b{color:#fff!important;font-size:3.2rem!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .paper{border-radius:24px!important;border:0!important;box-shadow:0 18px 40px -28px rgba(15,77,50,.5)!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .rhead .seg button.on{background:var(--fv2)!important;color:#fff!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .lh{background:var(--fvt)!important;color:var(--fvmut)!important;border-bottom:0!important;backdrop-filter:none!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln{border-bottom:1px dashed var(--fvline)!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{background:var(--fvt)!important;color:var(--fv2)!important}
+html:not([data-theme=dark]) body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{color:#0F4D32!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .sb{color:var(--fv2)!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln.sel{background:var(--fvt)!important;box-shadow:inset 4px 0 0 var(--fv2)!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .ln .lim{border-radius:12px!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .tot{padding:10px 14px 14px!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .tot .link{color:var(--fv2)!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:#0F4D32;border-radius:18px;padding:10px 20px!important;margin-top:6px}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:#14402A}
+body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot span,body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot span *{color:#BFD8C9!important}
+body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot b{color:#fff!important;font-size:3.2rem!important}
 /* Búsqueda y vitrina */
 body.vit[data-tab=venta] .searchbar .sbox{border-radius:18px!important;border:1.5px solid #9FC7AE!important;box-shadow:0 6px 18px -14px rgba(15,77,50,.6)!important}
 html[data-theme=dark] body.vit[data-tab=venta] .searchbar .sbox{border-color:#2C4A39!important}
@@ -2194,12 +2194,12 @@ body.vit .vmos{gap:6px;padding:6px;background:#fff}
 html[data-theme=dark] body.vit .vmos{background:#151C18}
 body.vit .vmos i{border-radius:14px}
 /* Pagos: Efectivo en el verde del tema */
-body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:not(:disabled){background:var(--fv2)!important}
-body.vit[data-tab=venta] .paybox .paymini .pm{border-radius:18px}
-html[data-theme=dark] body.vit[data-tab=venta] .cart .paper,html[data-theme=dark] body.vit[data-tab=venta] .cart .rhead,html[data-theme=dark] body.vit[data-tab=venta] .cart .tot{background:#141B17!important}
-html[data-theme=dark] body.vit[data-tab=venta] .cart .rhead .seg button.on{background:var(--fv2)!important;color:#fff!important}
-html[data-theme=dark] body.vit[data-tab=venta] .cart .tot .link{color:#7FD39E!important}
-html[data-theme=dark] body.vit[data-tab=venta] .cart .ln .qc .qv{color:#9BE0B4!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:not(:disabled){background:var(--fv2)!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm{border-radius:18px}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .paper,html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .rhead,html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .tot{background:#141B17!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .rhead .seg button.on{background:var(--fv2)!important;color:#fff!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .tot .link{color:#7FD39E!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{color:#9BE0B4!important}
 html[data-theme=dark] body.vit[data-tab=venta] .searchbar .sbox,html[data-theme=dark] body.vit[data-tab=venta] .searchbar .tool{background:#141B17!important}
 /* Fresco verde: el color de acento de toda la caja pasa a verde */
 body{--ac:#1D8A4E;--ac2:#2FA864;--ac-t:rgba(29,138,78,.10);--ac-ink:#0F6B3B;--grad:linear-gradient(180deg,var(--ac2),var(--ac))}
@@ -2360,7 +2360,7 @@ html[data-theme=dark] body:not(._) .side,html[data-theme=dark] body:not(._).vit 
 #plist > .it,#vlist > .it,.list > .it{content-visibility:auto;contain-intrinsic-size:auto 66px}
 /* Sin vidrio borroso en lo que siempre está a la vista (etiquetas de cada ficha, menú, fondo de las ventanas, avisos):
    en tarjetas de video débiles cada desenfoque se recalcula al mover o abrir algo. Se ve casi igual con fondos sólidos. */
-.cd,.kgb,.presb,.side,.cb-open,.tabs,#toast,.help-launcher,.keypad button,#modal.modal,.datebar,.chip,.tool,body.vit[data-tab=venta] .cart .lh{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.cd,.kgb,.presb,.side,.cb-open,.tabs,#toast,.help-launcher,.keypad button,#modal.modal,.datebar,.chip,.tool,body:is(.vit,.vtk)[data-tab=venta] .cart .lh{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .cd,.kgb,.presb{background:rgba(255,255,255,.94)}
 html[data-theme=dark] .cd,html[data-theme=dark] .kgb,html[data-theme=dark] .presb{background:rgba(24,34,29,.94)}
 #modal.modal{background:rgba(17,24,39,.34)}
@@ -2467,8 +2467,8 @@ html[data-theme=dark] body{--bg:#070B09;--s1:#121A16;--s2:#0D1310;--s3:#1A241F;-
 /* «Escanea un producto» y lo último que pasaste: menta en vez de celeste */
 html:not([data-theme=dark]) .lastp{background:#E6F3EA}
 /* Botones de pago sin ticket (Vitrina): gris verdoso */
-body.vit[data-tab=venta] .paybox .paymini .pm:disabled,body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#E1E9E4!important;color:#6F8177!important}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:disabled{background:#1A241F!important;color:#7F9087!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#E1E9E4!important;color:#6F8177!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled{background:#1A241F!important;color:#7F9087!important}
 body.vit .side .logo{box-shadow:0 10px 20px -12px rgba(139,212,72,.7)}
 
 /* ===== Caja › Ventas del día: total grande, barra por medio de pago y logos ===== */
@@ -2684,35 +2684,35 @@ body.vit .side .logo{box-shadow:0 10px 20px -12px rgba(139,212,72,.7)}
 /* ===== Pantalla de venta «Súper moderno» (opción 2 elegida por David): plano, bordes finos, sin sombras, total en franja oscura y teclas F en los botones de pago. Solo modo Vitrina. ===== */
 html:not([data-theme=dark]) body.vit[data-tab=venta]{--fvbg:#E4ECE6;--smb:#C9D8CE;--smh:#F2F6F3;--sml:#E3EBE6}
 html[data-theme=dark] body.vit[data-tab=venta]{--smb:rgba(255,255,255,.12);--smh:rgba(255,255,255,.04);--sml:rgba(255,255,255,.07)}
-html body.vit[data-tab=venta] .cart .paper,html body.vit[data-tab=venta] .vit-home,html body.vit[data-tab=venta] .searchbar .sbox,html body.vit[data-tab=venta] .searchbar .tool{border-radius:10px!important;box-shadow:none!important;border:1px solid var(--smb)!important}
-html body.vit[data-tab=venta] .cart .lh{background:var(--smh)!important;color:var(--t3)!important;text-transform:none!important;font:600 12.5px var(--f)!important;letter-spacing:0!important}
-html body.vit[data-tab=venta] .cart .ln{border-bottom:1px solid var(--sml)!important}
-html body.vit[data-tab=venta] .cart .ln .lim,html body.vit[data-tab=venta] .cart .ln .qc .qv{border-radius:6px!important}
-html body.vit[data-tab=venta] .cart .ln.sel{box-shadow:inset 3px 0 0 var(--ac)!important}
-html body.vit[data-tab=venta] .cart .bigtot{background:#0C1913!important;border-radius:8px!important}
-html[data-theme=dark] body.vit[data-tab=venta] .cart .bigtot{background:#050807!important;box-shadow:inset 0 0 0 1px var(--smb)}
-html body.vit[data-tab=venta] .cart .bigtot b{font-weight:700!important;letter-spacing:-.03em}
-html body.vit[data-tab=venta] .paybox .paymini .pm{border-radius:10px!important;box-shadow:none!important;position:relative}
-html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){border:1px solid var(--smb)!important;transform:none}
+html body:is(.vit,.vtk)[data-tab=venta] .cart .paper,html body.vit[data-tab=venta] .vit-home,html body.vit[data-tab=venta] .searchbar .sbox,html body.vit[data-tab=venta] .searchbar .tool{border-radius:10px!important;box-shadow:none!important;border:1px solid var(--smb)!important}
+html body:is(.vit,.vtk)[data-tab=venta] .cart .lh{background:var(--smh)!important;color:var(--t3)!important;text-transform:none!important;font:600 12.5px var(--f)!important;letter-spacing:0!important}
+html body:is(.vit,.vtk)[data-tab=venta] .cart .ln{border-bottom:1px solid var(--sml)!important}
+html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .lim,html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{border-radius:6px!important}
+html body:is(.vit,.vtk)[data-tab=venta] .cart .ln.sel{box-shadow:inset 3px 0 0 var(--ac)!important}
+html body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:#0C1913!important;border-radius:8px!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:#050807!important;box-shadow:inset 0 0 0 1px var(--smb)}
+html body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot b{font-weight:700!important;letter-spacing:-.03em}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm{border-radius:10px!important;box-shadow:none!important;position:relative}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){border:1px solid var(--smb)!important;transform:none}
 html body.vit[data-tab=venta] .brandrow b{font-weight:700;text-transform:none}
 html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding:0!important}
 /* Teclas F en los botones de pago (solo en computadora y con algo en el ticket) */
 @media (hover:hover) and (pointer:fine) and (min-width:960px){
-  html body.vit[data-tab=venta] .paybox .paymini .pm:not(:disabled)::after{position:absolute;top:8px;right:10px;font:700 11px/1 var(--fm);padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.22);color:inherit}
-  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:not(:disabled)::after{content:"F2"}
-  html body.vit[data-tab=venta] .paybox .paymini .pm.yape:not(:disabled)::after{content:"F8"}
-  html body.vit[data-tab=venta] .paybox .paymini .pm.plin:not(:disabled)::after{content:"F10"}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(:disabled)::after{position:absolute;top:8px;right:10px;font:700 11px/1 var(--fm);padding:3px 5px;border-radius:4px;background:rgba(255,255,255,.22);color:inherit}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:not(:disabled)::after{content:"F2"}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape:not(:disabled)::after{content:"F8"}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin:not(:disabled)::after{content:"F10"}
 }
 
 /* ===== Vitrina en pantallas de caja de 960–1099 px (monitores 1024×768, como los NCR): ticket más ancho y botones de pago en dos filas, igual que en pantallas grandes ===== */
 @media (min-width:960px) and (max-width:1099px){
   body.vit[data-tab=venta] .pos{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)!important;gap:12px!important}
-  html body.vit[data-tab=venta] .paybox .paymini.pay4{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
-  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo{grid-column:1/-1;min-height:64px}
-  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:flex}
-  html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:48px;min-width:0;font-size:14px;padding:0 8px;gap:8px}
-  html body.vit[data-tab=venta] .cart .ln .nm b{font-size:14px;line-height:1.2}
-  html body.vit[data-tab=venta] .paybox .paymini .pm::after{content:none!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini.pay4{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo{grid-column:1/-1;min-height:64px}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo .pmx{display:flex}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:48px;min-width:0;font-size:14px;padding:0 8px;gap:8px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b{font-size:14px;line-height:1.2}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm::after{content:none!important}
   body.vit[data-tab=venta] #grid .vit-home{height:calc(100dvh - 125px - var(--tld,0px))!important;min-height:300px}
 }
 
@@ -2731,19 +2731,19 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
 
 /* ===== Pantallas de caja táctiles de 960–1099 px (NCR 1024×768): todo más grande para el dedo y más contraste para pantallas viejas ===== */
 @media (min-width:960px) and (max-width:1099px){
-  html body.vit[data-tab=venta] .cart .ln{min-height:56px;gap:0 8px;padding-top:6px!important;padding-bottom:6px!important}
-  html body.vit[data-tab=venta] .cart .ln .qc .sb{width:38px;height:40px;font-size:20px;font-weight:700}
-  html body.vit[data-tab=venta] .cart .ln .qc .qv{min-width:46px;height:40px;font-size:16px;font-weight:700}
-  html body.vit[data-tab=venta] .cart .ln .nm b{font-size:15.5px;line-height:1.2;color:var(--t1)}
-  html body.vit[data-tab=venta] .cart .ln .nm small{font-size:12.5px}
-  html body.vit[data-tab=venta] .cart .ln .pu{font-size:13px}
-  html body.vit[data-tab=venta] .cart .ln .amt{font-size:17px;font-weight:750;color:var(--t1)}
-  html body.vit[data-tab=venta] .cart .ln .rm{width:40px;height:40px}
-  html body.vit[data-tab=venta] .cart .ln .rm svg{width:18px;height:18px;stroke-width:2.6}
-  html body.vit[data-tab=venta] .cart .ln.sel{box-shadow:inset 3px 0 0 var(--ac),inset 0 0 0 1.5px color-mix(in srgb,var(--ac) 45%,transparent)}
-  html body.vit[data-tab=venta] .cart .tot{font-size:14px}
-  html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:56px;font-size:16px;font-weight:700}
-  html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo{min-height:66px;font-size:21px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln{min-height:56px;gap:0 8px;padding-top:6px!important;padding-bottom:6px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .sb{width:38px;height:40px;font-size:20px;font-weight:700}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{min-width:46px;height:40px;font-size:16px;font-weight:700}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b{font-size:15.5px;line-height:1.2;color:var(--t1)}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm small{font-size:12.5px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .pu{font-size:13px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .amt{font-size:17px;font-weight:750;color:var(--t1)}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .rm{width:40px;height:40px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .rm svg{width:18px;height:18px;stroke-width:2.6}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln.sel{box-shadow:inset 3px 0 0 var(--ac),inset 0 0 0 1.5px color-mix(in srgb,var(--ac) 45%,transparent)}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .tot{font-size:14px}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:56px;font-size:16px;font-weight:700}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo{min-height:66px;font-size:21px}
   html body.vit[data-tab=venta] #q{font-size:17px}
 }
 
@@ -2824,29 +2824,29 @@ html.fs-on .fullbtn span.fsout{display:inline!important}
 /* Columnas del ticket alineadas, código como texto suave y ticket vacío con las teclas: solo pantallas grandes (≥1100 px);
    en la NCR el ticket usa otro orden y no se toca. */
 @media (min-width:1100px){
-  html body.vit[data-tab=venta] .cart .ln .pu{align-self:center!important}
-  html body.vit[data-tab=venta] .cart .ln .nm small{background:none!important;padding:0!important;margin-top:2px!important;border-radius:0!important;font:500 12px var(--f)!important;letter-spacing:0;color:var(--t3)!important}
-  html body.vit[data-tab=venta] .cart-empty svg{width:34px!important;height:34px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .pu{align-self:center!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm small{background:none!important;padding:0!important;margin-top:2px!important;border-radius:0!important;font:500 12px var(--f)!important;letter-spacing:0;color:var(--t3)!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart-empty svg{width:34px!important;height:34px!important}
 }
 /* Botones de pago sin venta: con sus mismos colores de siempre (David no quiso el gris ni los tonos claros). Siguen sin poder tocarse. */
-html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1D8A4E!important;color:#fff!important;box-shadow:none!important}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1F8A4F!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm.yape:disabled{background:#742284!important;color:#fff!important;box-shadow:none!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm.plin:disabled{background:#00B2D6!important;color:#03323C!important;box-shadow:none!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm.culqi:disabled{background:#FF7A1A!important;color:#2A1300!important;box-shadow:none!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#fff!important;color:#1D2633!important;box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 rgba(15,23,42,.1)!important}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#1C222B!important;color:#E6EAF0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -3px 0 rgba(0,0,0,.35)!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm:disabled::before{filter:none!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background-color:#fff!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm.culqi:disabled::before{filter:brightness(0) invert(1)!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#1D2633!important}
-html[data-theme=dark] body.vit[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#E6EAF0!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1D8A4E!important;color:#fff!important;box-shadow:none!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1F8A4F!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape:disabled{background:#742284!important;color:#fff!important;box-shadow:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin:disabled{background:#00B2D6!important;color:#03323C!important;box-shadow:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi:disabled{background:#FF7A1A!important;color:#2A1300!important;box-shadow:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#fff!important;color:#1D2633!important;box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 rgba(15,23,42,.1)!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#1C222B!important;color:#E6EAF0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -3px 0 rgba(0,0,0,.35)!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled::before{filter:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background-color:#fff!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi:disabled::before{filter:brightness(0) invert(1)!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#1D2633!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#E6EAF0!important}
 /* Fotos de la vitrina con su color natural (sin filtro: además es más liviano) */
 body.vit .vmos i{filter:none!important}
 html[data-theme=dark] body.vit .vmos i{filter:brightness(.85)!important}
 /* Sin las letras de las teclas (F2, F8, F10) encima de los botones de pago (pedido de David): las teclas siguen funcionando */
-html body.vit[data-tab=venta] .paybox .paymini .pm .kbd{display:none!important}
-html body.vit[data-tab=venta] .paybox .paymini .pm::after{content:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm .kbd{display:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm::after{content:none!important}
 
 /* ===== Menú de la izquierda más legible (opción B elegida por David, 23 oct 2026; solo PC ≥960 px):
    letras más grandes y casi blancas, íconos un poco más grandes, espacios que se achican en pantallas bajas

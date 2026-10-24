@@ -104,6 +104,7 @@ function paintGrid() {
   }
   const sm = scanMode(); document.body.classList.toggle("scanmode", sm); el.classList.toggle("scanlist", sm);
   document.body.classList.toggle("vit", sm && vit());
+  document.body.classList.add("vtk"); // el ticket y los botones de pago se ven como en Vitrina en todos los modos (pedido de David)
   if (sm && vit() && !ui.q.trim() && !ui.cat) { { const h = vitHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; ui.vlist = []; return; }
   if (sm && !ui.q.trim() && !ui.cat) { { const h = scanHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; return; }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
