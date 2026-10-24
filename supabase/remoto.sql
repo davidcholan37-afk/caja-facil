@@ -25,3 +25,8 @@ create policy "enviar cambios" on public.cambios for insert
 -- Solo la caja del negocio marca «aplicado».
 create policy "marcar aplicado" on public.cambios for update
   using (privado.es_miembro(negocio_id)) with check (privado.es_miembro(negocio_id));
+
+-- Permisos (migración remoto_cambios_permisos): la tabla nueva nació sin permisos para «authenticated»
+-- y la caja recibía 403. Las reglas de arriba (RLS) siguen decidiendo qué filas ve cada uno.
+revoke all on public.cambios from anon, authenticated;
+grant select, insert, update on public.cambios to authenticated;
