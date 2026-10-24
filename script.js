@@ -848,18 +848,15 @@ function dropCurrentTicket() {
   else { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; }
   ui.sel = null;
 }
-// Después de cobrar (o guardar una preventa) el ticket cobrado se quita y la caja queda en un ticket vacío.
-// Los «En espera» con productos siguen esperando (antes el que esperaba pasaba a ser el actual sin aviso y se le
-// sumaban productos o se cobraba sin querer). Los tickets vacíos no se acumulan: queda uno solo.
+// Después de cobrar (o guardar una preventa) el ticket cobrado se borra y la caja pasa al ticket que estaba
+// «En espera» (pedido de David). Los tickets vacíos no se acumulan; si no queda ninguno, vuelve a «Ticket 1».
+// La pantalla «¡Vendido!» con el vuelto se sigue viendo hasta tocar «Seguir…»/Enter o escanear (ui.doneTk en paintCart).
 function freshTicketAfterSale() {
-  DB.tickets.splice(DB.cur, 1); ui.sel = null;
-  const vacio = (t) => !t.items.length && !t.mesa && !t.prev && !t.name;
-  let libre = -1;
-  DB.tickets = DB.tickets.filter((t) => { if (!vacio(t)) return true; if (libre >= 0) return false; libre = 1; return true; });
-  libre = DB.tickets.findIndex(vacio);
-  if (!DB.tickets.length || (DB.tickets.length === 1 && libre === 0)) { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; return; }
-  if (libre >= 0) DB.cur = libre;
-  else { DB.tickets.push(newTicket(++DB.tseq)); DB.cur = DB.tickets.length - 1; }
+  const at = DB.cur;
+  DB.tickets.splice(at, 1); ui.sel = null;
+  DB.tickets = DB.tickets.filter((t) => t.items.length || t.mesa || t.prev || t.name);
+  if (!DB.tickets.length) { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; return; }
+  DB.cur = Math.max(0, Math.min(at - 1, DB.tickets.length - 1));
 }
 function tkStep(d) {
   const n = DB.tickets.length; if (n < 2) return;
@@ -1065,9 +1062,10 @@ const nItems = (n) => `${n} ${n === 1 ? "producto" : "productos"}`;
 function paintCart() {
   const el = $("#cart"); if (!el) return;
   const t = DB.cart, T = cartTotals(), lines = T.lines, cobra = can("cobrar"), c = cli(t.client), doc = t.doc || DB.cfg.docDef || "NV";
-  if (lines.length) ui.done = null;
+  // Tras cobrar, si la caja pasó a un ticket en espera, «¡Vendido!» se sigue viendo hasta que se escanea algo o se sigue.
+  if (lines.length && !(ui.doneTk === t && t.items.length === ui.doneN)) ui.done = null;
   const bar = $("#cartbar");
-  if (!lines.length && ui.done && saleById(ui.done)) { el.innerHTML = doneHtml(saleById(ui.done)); if (bar) bar.hidden = true; return; }
+  if (ui.done && saleById(ui.done)) { el.innerHTML = doneHtml(saleById(ui.done)); if (bar) bar.hidden = true; return; }
   ui.done = null;
   if (!lines.length) document.body.classList.remove("cart-open");
   if (!lines.some((x) => lineKey(x.l.id, x.l.pres) === ui.sel)) ui.sel = lines.length ? lineKey(lines[lines.length - 1].l.id, lines[lines.length - 1].l.pres) : null;
@@ -1121,7 +1119,7 @@ function doneHtml(s) {
     <div class="dacts"><button class="btn sec" data-a="print" data-id="${s.id}">${svg("print", "bi")}Imprimir</button><button class="btn sec" data-a="wa" data-id="${s.id}">${svg("wa", "bi")}WhatsApp${c && c.phone ? "" : ""}</button></div>
     <button class="link" data-a="seercpt" data-id="${s.id}">Ver comprobante</button>
   </div>
-  <div class="paybox"><button class="cobrar next" data-a="newsale">Nueva venta<span class="kbd">Enter</span></button><p class="phint">O escanea el siguiente producto y seguimos.</p></div></div>`;
+  <div class="paybox"><button class="cobrar next" data-a="newsale">${DB.cart.items.length ? "Seguir con " + esc(ticketLabel(DB.cart)) : "Nueva venta"}<span class="kbd">Enter</span></button><p class="phint">${DB.cart.items.length ? `${esc(ticketLabel(DB.cart))} estaba en espera (${money(ticketTotal(DB.cart))}).` : "O escanea el siguiente producto y seguimos."}</p></div></div>`;
 }
 
 /* ---------- cliente y comprobante del ticket ---------- */
@@ -1261,7 +1259,7 @@ function confirmPay() {
   const ref = p.ref || "";
   const go2 = () => {
     const s = finalizeSale(pays, given, { ref });
-    beep(true); closeModal(); ui.done = s.id; ui.q = ""; const qi = $("#q"); if (qi) qi.value = "";
+    beep(true); closeModal(); ui.done = s.id; ui.doneTk = DB.cart; ui.doneN = DB.cart.items.length; ui.q = ""; const qi = $("#q"); if (qi) qi.value = "";
     if (!DESK()) document.body.classList.add("cart-open");
     paintSale(); paintNav();
     if (DB.cfg.autoPrint) printHtml(receiptHtml(s));
@@ -1463,7 +1461,7 @@ act({
   partdel: (el) => { ui.pay.parts.splice(+el.dataset.i, 1); paintPay(); },
   gosettings: () => { closeModal(); ui.atab = "cobros"; go("aj"); },
   focusq: () => { const q = $("#q"); if (q) { q.focus(); q.select(); } },
-  newsale: () => { if (modalOpen()) closeModal(); ui.done = null; ui.q = ""; document.body.classList.remove("cart-open"); render(); },
+  newsale: () => { if (modalOpen()) closeModal(); ui.done = null; ui.doneTk = null; ui.q = ""; document.body.classList.remove("cart-open"); render(); },
   payother: () => { if (ui.pay) { ui.pay.other = true; paintPay(); } },
   cashgo: (el) => { if (!ui.pay) return; ui.pay.recv = String(el.dataset.v); confirmPay(); },
   showdisc: () => { if (!can("descuento")) return need("descuento", () => { ui.showDisc = true; paintCart(); const d = $("#disc"); if (d) d.focus(); }, "Descuento"); ui.showDisc = true; paintCart(); const d = $("#disc"); if (d) d.focus(); },
