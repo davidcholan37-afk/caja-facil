@@ -144,7 +144,7 @@ function receivePack(o) {
   }
   toast("No reconozco ese archivo");
 }
-function restoreDB(o) { DB = normalize(o); ui.user = DB.users[0].id; saveAll(); log("Respaldo restaurado", ""); toast("Respaldo restaurado"); if (needLogin()) loginScreen(); else go("venta"); }
+function restoreDB(o) { if (REM) return remNo(); DB = normalize(o); ui.user = DB.users[0].id; saveAll(); log("Respaldo restaurado", ""); toast("Respaldo restaurado"); if (needLogin()) loginScreen(); else go("venta"); }
 function dbCheck() {
   const fixes = [];
   const seen = new Map();

@@ -196,6 +196,9 @@ function wire(db) {
   return db;
 }
 let DB = normalize(null);
+// «Manejar otra caja» (66-remoto): mientras dura, aquí no se guarda nada y Vender/Caja no se muestran.
+let REM = null;
+const REM_TABS_NO = { venta: 1, caja: 1 };
 // Ordenar por nombre en español (localeCompare con "es": V8 lo hace rápido; un Intl.Collator propio resultó más lento).
 const cmpEs = (a, b) => String(a).localeCompare(String(b), "es");
 
@@ -225,6 +228,7 @@ function monthJSON(m) { const o = {}; Object.keys(BIG).forEach((k) => { o[k] = D
 function allMonths() { const s = new Set(); Object.keys(BIG).forEach((k) => DB[k].forEach((x) => s.add(mOf(BIG[k](x))))); s.add(mOf()); return [...s].sort(); }
 function lsSave(str) { try { localStorage.setItem(LSKEY, str); return true; } catch (e) { toast("No se pudo guardar: el almacenamiento está lleno. Descarga un respaldo."); return false; } }
 function flush(hiding) {
+  if (REM) { dirtyCore = false; dirtyCart = false; dirtyM.clear(); return; } // otra caja: sus cambios viajan a la nube, no a este equipo
   if (dirtyCore || dirtyM.size || dirtyCart) {
     if (!idb) { dirtyCore = false; dirtyCart = false; dirtyM.clear(); lsSave(JSON.stringify(DB)); return; }
     // Recorrer toda la historia para saber qué meses hay solo cuando hace falta (al cargar, al borrar o con un mes nuevo).
@@ -602,9 +606,9 @@ const svg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidde
 /* ---------- navegación ---------- */
 const TABS = [["venta", "Vender", null], ["ventas", "Ventas", null], ["prod", "Productos", null], ["cli", "Clientes", null], ["prov", "Proveedores", "caja"], ["caja", "Caja", "caja"], ["rep", "Reportes", "reportes"], ["aj", "Ajustes", "ajustes"]];
 const TAB_GRUPO = { prod: 1, caja: 1 }; // en el menú de la izquierda: línea antes de cada grupo
-const tabOk = (t) => { const x = TABS.find((y) => y[0] === t); return x && (!x[2] || can(x[2])); };
+const tabOk = (t) => { const x = TABS.find((y) => y[0] === t); return x && (!x[2] || can(x[2])) && !(REM && REM_TABS_NO[t]); };
 function paintNav() {
-  const u = me(), tabs = TABS.filter((t) => !t[2] || can(t[2]));
+  const u = me(), tabs = TABS.filter((t) => tabOk(t[0]));
   const btn = ([id, label]) => `<button class="tab ${ui.tab === id ? "on" : ""} ${TAB_GRUPO[id] ? "g" : ""}" data-a="tab" data-t="${id}" ${ui.tab === id ? 'aria-current="page"' : ""}><span class="ic">${svg(id)}</span><span>${label}</span></button>`;
   $("#sideNav").innerHTML = tabs.map(btn).join("");
   const mob = ["venta", "ventas", "caja", "prod"].filter((t) => tabs.some((x) => x[0] === t)).map((t) => tabs.find((x) => x[0] === t));
@@ -616,12 +620,12 @@ function paintNav() {
   document.title = (DB.biz.name ? DB.biz.name + " · " : "") + "Caja Fácil";
 }
 function go(tab) {
-  if (!tabOk(tab)) { toast("Tu usuario no tiene acceso a esa sección"); tab = "venta"; }
+  if (!tabOk(tab)) { if (REM) return remNo(); toast("Tu usuario no tiene acceso a esa sección"); tab = "venta"; }
   ui.tab = tab; document.body.classList.remove("cart-open"); render(); window.scrollTo(0, 0);
 }
 const VIEWS = {};
 function render() {
-  if (!tabOk(ui.tab)) ui.tab = "venta";
+  if (!tabOk(ui.tab)) ui.tab = REM ? "prod" : "venta";
   paintNav();
   document.body.dataset.tab = ui.tab;
   document.body.dataset.tienda = (DB.biz && DB.biz.name) || "Caja Fácil"; // cartel del toldo (CSS body::before)
@@ -668,7 +672,7 @@ function me() { return usr(ui.user) || null; }
 const userCan = (u, perm) => !!u && (u.role === "admin" || (DB.roles[u.role] || []).includes(perm));
 function can(perm) { return userCan(me(), perm); }
 const activeUsers = () => DB.users.filter((u) => u.on);
-const needLogin = () => { const on = activeUsers(); return on.length > 1 || on.some((u) => u.pin); };
+const needLogin = () => { if (REM) return false; const on = activeUsers(); return on.length > 1 || on.some((u) => u.pin); };
 
 /* ---------- pantalla de ingreso y teclado de clave ---------- */
 let pinBuf = "", pinCb = null, lastAct = Date.now();
@@ -2641,6 +2645,7 @@ act({
     const r = ui.rs, p = r && prod(r.id); if (!p) return;
     const q = r3(parseQty($("#rsq").value)); if (!(q > 0)) return toast("Escribe cuánto llegó");
     const c = num($("#rsc").value), note = $("#rsn").value.trim(), pay = $("#rspay") && $("#rspay").checked;
+    if (pay && REM) return toast("Pagar desde la caja se hace en la caja de la tienda. Quita esa marca para anotar solo el ingreso.");
     if (c > 0) { if (p.stock > 0 && p.cost > 0) p.cost = r2((p.stock * p.cost + q * c) / (p.stock + q)); else p.cost = r2(c); }
     if (p.stock == null) p.stock = 0;
     stockAdd(p, q, "ingreso", note || "Ingreso");
@@ -3138,6 +3143,266 @@ act({
   }
 });
 
+/* ===================== 66 · MANEJAR OTRA CAJA (cambios a distancia) ===================== */
+// Desde otro equipo (la laptop del dueño o del proveedor con permiso de soporte) se abre la tienda de una caja
+// tal como está en la nube y se usa la caja de siempre: productos, clientes, proveedores, usuarios, ajustes y vitrina.
+// Lo que cambia se manda a la tabla «cambios»; la caja de la tienda la revisa cada minuto y los aplica sola.
+// Los datos propios de este equipo no se tocan (mientras dura, no se guarda nada aquí) y las ventas,
+// la caja y los cobros solo se hacen en la caja de la tienda.
+const REM_KEY = "cf-remoto"; // sessionStorage: { neg, sid, name } de la caja que se está manejando
+const REM_T = ["products", "clients", "supp", "sm", "users"]; // registros que viajan por su clave (como en la nube)
+const REM_CFG_NO = { lastBackup: 1, avisoDia: 1, series: 1 }; // ajustes que cambian solos o llevan el correlativo
+// Acciones que mueven dinero o datos de toda la tienda: solo en la caja de la tienda.
+const REM_NO = { void: 1, ret: 1, retok: 1, dispatch: 1, prevgo: 1, prevvoid: 1, abono: 1, abok: 1, pspay: 1, sample: 1, reset: 1, archive: 1, dbcheck: 1, cloudrecover: 1, cloudrec: 1, cloudnew: 1, cloudout: 1, cloudpush: 1, cloudview: 1, sopon: 1, sopoff: 1, lock: 1, codecanje: 1, remgo: 1, remcli: 1, rempick: 1 };
+const remState = { busy: false, err: "", sent: [], timer: 0, watch: 0, pull: false };
+const remNo = () => toast("Eso se hace en la caja de la tienda. Desde aquí cambias productos, clientes, proveedores, usuarios y ajustes.");
+
+/* ---------- lo que se compara: foto de cómo estaba la última vez que se envió ---------- */
+function remCfgDoc() {
+  const o = {};
+  Object.keys(DB.biz).forEach((k) => { if (k !== "sid") o["biz." + k] = DB.biz[k]; });
+  Object.keys(DB.cfg).forEach((k) => {
+    if (k === "series") Object.keys(DB.cfg.series || {}).forEach((d) => { o["cfg.series." + d + ".s"] = (DB.cfg.series[d] || {}).s; });
+    else if (!REM_CFG_NO[k]) o["cfg." + k] = DB.cfg[k];
+  });
+  o.roles = DB.roles;
+  return o;
+}
+function remSnap() {
+  const base = {}, cfg = new Map(), cd = remCfgDoc();
+  REM_T.forEach((t) => { const m = new Map(); cloudEach(t, (x, k) => m.set(k, JSON.stringify(x))); base[t] = m; });
+  Object.keys(cd).forEach((p) => cfg.set(p, JSON.stringify(cd[p])));
+  return { base, cfg, kxRef: DB.kx[DB.kx.length - 1] || null, logRef: DB.log[DB.log.length - 1] || null };
+}
+// Lo agregado al final de una lista desde la foto (kardex y bitácora solo crecen).
+function remSince(arr, ref) { const i = ref ? arr.lastIndexOf(ref) : -1; return ref && i < 0 ? [] : arr.slice(i + 1); }
+
+// Qué cambió: registros nuevos, borrados o con campos distintos (solo esos campos, para no pisar lo que la caja
+// cambió mientras tanto). El stock viaja como «sumar/restar» (kardex), porque la caja sigue vendiendo.
+function remDiff() {
+  const r = [], kx = remSince(DB.kx, REM.kxRef), lg = remSince(DB.log, REM.logRef), c = {}, cu = [], sum = {};
+  kx.forEach((e) => { sum[e.p] = r3((sum[e.p] || 0) + (+e.q || 0)); });
+  const kxOut = kx.map((e) => ({ p: e.p, ty: e.ty, q: e.q, r: e.r || "" }));
+  REM_T.forEach((t) => {
+    const base = REM.base[t], seen = new Set();
+    cloudEach(t, (x, k) => {
+      seen.add(k); const j = JSON.stringify(x), b = base.get(k);
+      if (b === j) return;
+      if (b === undefined) { const v = JSON.parse(j); if (t === "products" && v.stock != null) v.stock = r3(v.stock - (sum[v.id] || 0)); r.push({ t, k, op: "add", v }); return; }
+      const o = JSON.parse(b), f = {}, un = [];
+      new Set([...Object.keys(o), ...Object.keys(x)]).forEach((q) => {
+        if (t === "products" && q === "stock") return;
+        if (JSON.stringify(o[q]) !== JSON.stringify(x[q])) { if (x[q] === undefined) un.push(q); else f[q] = x[q]; }
+      });
+      if (t === "products") {
+        const a = o.stock, z = x.stock;
+        if (z == null && a != null) f.stock = null;
+        else if (z != null && a == null) f.stock = r3(z - (sum[x.id] || 0));
+        else if (z != null) { const rest = r3(z - a - (sum[x.id] || 0)); if (rest) kxOut.push({ p: x.id, ty: "ajuste", q: rest, r: "Cambio desde otro equipo" }); }
+      }
+      if (Object.keys(f).length || un.length) r.push({ t, k, op: "set", f, un });
+    });
+    base.forEach((_, k) => { if (!seen.has(k)) r.push({ t, k, op: "del" }); });
+  });
+  const cd = remCfgDoc();
+  Object.keys(cd).forEach((p) => { if (REM.cfg.get(p) !== JSON.stringify(cd[p])) c[p] = cd[p] === undefined ? null : cd[p]; });
+  REM.cfg.forEach((_, p) => { if (!(p in cd)) cu.push(p); });
+  return { r, kx: kxOut, log: lg.map((e) => ({ a: e.a, x: e.x, u: e.u })), c, cu, n: r.length + kxOut.length + Object.keys(c).length + cu.length };
+}
+const REM_NOM = { products: ["producto", "productos"], clients: ["cliente", "clientes"], supp: ["proveedor", "proveedores"], sm: ["deuda de proveedor", "deudas de proveedor"], users: ["usuario", "usuarios"] };
+function remResumen(d) {
+  const by = {}, partes = [];
+  d.r.forEach((x) => { (by[x.t] = by[x.t] || new Set()).add(x.k); });
+  const stock = new Set(d.kx.map((e) => e.p).filter((p) => !(by.products && by.products.has(p))));
+  REM_T.forEach((t) => { const n = by[t] ? by[t].size : 0; if (n) partes.push(`${n} ${REM_NOM[t][n === 1 ? 0 : 1]}`); });
+  if (stock.size) partes.push(`stock de ${stock.size} ${stock.size === 1 ? "producto" : "productos"}`);
+  const cfg = Object.keys(d.c).concat(d.cu);
+  if (cfg.some((p) => p === "cfg.vits" || p === "cfg.vitRot")) partes.push("vitrina");
+  if (cfg.some((p) => p !== "cfg.vits" && p !== "cfg.vitRot")) partes.push("ajustes");
+  const precio = d.log.find((e) => e.a === "Cambio de precio");
+  return (partes.join(", ") || "cambios") + (precio && d.log.length === 1 ? ` (${precio.x})` : "");
+}
+
+/* ---------- aplicar un paquete de cambios (en la caja de la tienda, o al abrir la laptop si aún no llegó) ---------- */
+function remSetPath(path, v) {
+  const ks = path.split("."); let o = DB;
+  for (let i = 0; i < ks.length - 1; i++) { if (!o[ks[i]] || typeof o[ks[i]] !== "object") o[ks[i]] = {}; o = o[ks[i]]; }
+  const k = ks[ks.length - 1]; if (v === undefined) delete o[k]; else o[k] = v;
+}
+function remApply(d, quiet, meta) {
+  if (!d) return;
+  const idx = {}, mapOf = (t) => idx[t] || (idx[t] = (() => { const m = new Map(); cloudEach(t, (x, k) => m.set(k, x)); return m; })());
+  (d.r || []).forEach((c) => {
+    const arr = DB[c.t]; if (!Array.isArray(arr) || !REM_NOM[c.t]) return;
+    const m = mapOf(c.t), x = m.get(c.k);
+    if (c.op === "del") { if (x) { const i = arr.indexOf(x); if (i >= 0) arr.splice(i, 1); m.delete(c.k); } }
+    else if (c.op === "add") { if (x) Object.assign(x, c.v); else { const v = Object.assign({}, c.v); arr.push(v); m.set(c.k, v); } }
+    else if (c.op === "set" && x) { Object.assign(x, c.f || {}); (c.un || []).forEach((q) => { delete x[q]; }); }
+  });
+  (d.kx || []).forEach((e) => { const p = prod(e.p); if (p && p.stock != null) stockAdd(p, +e.q || 0, e.ty || "ajuste", (e.r ? e.r + " · " : "") + "desde otro equipo"); });
+  Object.keys(d.c || {}).forEach((p) => remSetPath(p, d.c[p]));
+  (d.cu || []).forEach((p) => remSetPath(p, undefined));
+  if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; if (a) { a.on = true; a.role = "admin"; } }
+  if (quiet) return;
+  const quien = (meta && meta.autor) || "otro equipo";
+  (d.log || []).forEach((e) => DB.log.push({ t: Date.now(), d: dkey(), u: (e.u || "Dueño") + " (a distancia)", a: e.a, x: e.x }));
+  log("Cambios desde otro equipo", `${(meta && meta.resumen) || ""} · ${quien}`);
+}
+
+/* ---------- en la laptop: abrir, enviar y salir ---------- */
+async function remLoad() {
+  let o = null; try { o = JSON.parse(sessionStorage.getItem(REM_KEY) || "null"); } catch (e) {}
+  if (!o || !o.neg || !o.sid) return false;
+  try {
+    const rows = []; let from = 0;
+    for (;;) {
+      const part = await sb(`registros?select=tipo,id,datos&negocio_id=eq.${o.neg}&tienda=eq.${encodeURIComponent(o.sid)}&borrado=eq.false&order=tipo.asc,id.asc&limit=1000&offset=${from}`);
+      rows.push(...part); if (part.length < 1000) break; from += 1000;
+    }
+    const cfg = rows.find((r) => r.tipo === "config"); if (!cfg) throw new Error("sin tienda");
+    const d = Object.assign({}, cfg.datos); CLOUD_TYPES.forEach((t) => { d[t] = []; });
+    rows.forEach((r) => { if (r.tipo !== "config" && d[r.tipo]) d[r.tipo].push(r.datos); });
+    const pend = await sb(`cambios?select=id,datos,resumen,creado&negocio_id=eq.${o.neg}&tienda=eq.${encodeURIComponent(o.sid)}&aplicado=is.null&order=id.asc`);
+    DB = normalize(d); DB.biz.sid = o.sid; DB.tickets = [newTicket(1)]; DB.cur = 0;
+    REM = { neg: o.neg, sid: o.sid, name: o.name || DB.biz.name };
+    pend.forEach((c) => remApply(c.datos, true));
+    remState.sent = pend.map((c) => ({ id: c.id, res: c.resumen, t: Date.parse(c.creado), ok: false }));
+    Object.assign(REM, remSnap());
+    const a = DB.users.find((u) => u.on && u.role === "admin") || DB.users[0]; ui.user = a.id; ui.tab = "prod";
+    return true;
+  } catch (e) {
+    try { sessionStorage.removeItem(REM_KEY); } catch (er) {}
+    REM = null; setTimeout(() => toast("No se pudo abrir esa caja. Revisa tu internet e inténtalo otra vez.", true), 600);
+    return false;
+  }
+}
+function remSchedule(ms = 1200) { if (!REM) return; clearTimeout(remState.timer); remState.timer = setTimeout(remSend, ms); }
+async function remSend() {
+  if (!REM) return;
+  if (remState.busy) return remSchedule(1500);
+  const d = remDiff(); if (!d.n) { remPaint(); return; }
+  const snap = remSnap(), res = remResumen(d); // la foto se toma ya: lo que cambie mientras se envía va en el siguiente
+  remState.busy = true; remState.err = ""; remPaint();
+  try {
+    const row = await sb("cambios", { method: "POST", headers: { Prefer: "return=representation" }, body: { negocio_id: REM.neg, tienda: REM.sid, datos: { r: d.r, kx: d.kx, log: d.log, c: d.c, cu: d.cu }, resumen: res, dispositivo: cloudLoad().dev } });
+    Object.assign(REM, snap);
+    remState.sent.push({ id: row[0].id, res, t: Date.now(), ok: false });
+    remWatchSoon(8000);
+  } catch (e) {
+    remState.err = navigator.onLine ? "No se pudo enviar. Se reintenta solo." : "Sin internet: tus cambios esperan.";
+    remSchedule(10000);
+  } finally { remState.busy = false; remPaint(); }
+}
+// ¿La caja ya los aplicó? Se pregunta seguido mientras falte alguno.
+function remWatchSoon(ms) { clearTimeout(remState.watch); remState.watch = setTimeout(remWatch, ms); }
+async function remWatch() {
+  const ids = remState.sent.filter((x) => !x.ok).map((x) => x.id);
+  if (!REM || !ids.length) return;
+  try {
+    const l = await sb(`cambios?select=id,aplicado&id=in.(${ids.join(",")})`);
+    l.forEach((c) => { const x = remState.sent.find((y) => y.id === c.id); if (x && c.aplicado) { x.ok = Date.parse(c.aplicado); } });
+    remPaint();
+  } catch (e) {}
+  if (remState.sent.some((x) => !x.ok)) remWatchSoon(15000);
+}
+async function remSalir() {
+  if (remState.busy) { toast("Enviando tus cambios…"); return setTimeout(remSalir, 1200); }
+  if (REM && remDiff().n) { await remSend(); if (remState.err) return toast("Aún no se envían tus cambios. Revisa tu internet antes de salir.", true); }
+  try { sessionStorage.removeItem(REM_KEY); } catch (e) {}
+  location.reload();
+}
+function remGo(neg, sid, name) {
+  confirmBox(`¿Manejar la caja de ${name} desde aquí?`, "Manejar", () => {
+    try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
+    location.reload();
+  }, false, "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender y la caja se ven solo allá.");
+}
+function remPickHtml(neg, tiendas) {
+  return `<h2>¿Qué caja quieres manejar?</h2><p class="muted" style="margin-bottom:12px">Cambia sus productos, precios, clientes, proveedores, usuarios, ajustes y vitrina desde aquí.</p>
+    <div class="list">${tiendas.map((t) => `<button class="it" data-a="remone" data-n="${esc(neg)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}</small></div></button>`).join("")}</div>
+    <div class="btns"><button class="btn sec" data-a="close">Cancelar</button></div>`;
+}
+async function remPick() {
+  try {
+    const t = (await cloudTiendas()).filter((x) => x.tienda !== DB.biz.sid);
+    if (!t.length) return toast("No hay otra caja de tu negocio en la nube");
+    openModal(remPickHtml(cloudLoad().neg, t));
+  } catch (e) { toast("Sin conexión con la nube", true); }
+}
+async function remCliente(id) {
+  try {
+    const t = await sb(`registros?select=tienda,actualizado,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${id}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`);
+    if (!t.length) return toast("Ese cliente aún no tiene cajas en la nube");
+    if (t.length === 1) return remGo(id, t[0].tienda, tiendaNom(t[0]));
+    openModal(remPickHtml(id, t));
+  } catch (e) { toast("No se pudo: el cliente debe darte acceso de soporte", true); }
+}
+
+/* ---------- barra «Manejando la caja de…» ---------- */
+function remPaint() {
+  if (!REM) return;
+  let el = $("#rembar");
+  if (!el) { el = document.createElement("div"); el.id = "rembar"; el.setAttribute("role", "status"); document.body.appendChild(el); document.documentElement.classList.add("rem"); }
+  const falta = remState.sent.filter((x) => !x.ok).length, pend = remDiff().n;
+  const st = remState.busy ? ["env", "Enviando tus cambios…"] : remState.err ? ["err", remState.err]
+    : falta || pend ? ["esp", `Esperando a su caja · ${falta + (pend ? 1 : 0)} ${falta + (pend ? 1 : 0) === 1 ? "envío" : "envíos"}`]
+    : remState.sent.length ? ["ok", "Su caja ya aplicó todo"] : ["ok", "Lo que cambies se envía solo"];
+  const html = `<span class="rb-dot ${st[0]}" aria-hidden="true"></span><span class="rb-tx"><b>Manejando: ${esc(REM.name)}</b><small>${esc(st[1])}</small></span><button class="rb-btn" data-a="remver">Ver</button><button class="rb-btn out" data-a="remsalir">Salir</button>`;
+  if (el.innerHTML !== html) el.innerHTML = html;
+  if (ui.tab === "aj" && ui.atab === "nube" && !modalOpen() && $("#remlist")) $("#remlist").innerHTML = remListHtml();
+}
+function remListHtml() {
+  if (!remState.sent.length) return `<p class="muted">Aún no envías cambios.</p>`;
+  return remState.sent.slice().reverse().slice(0, 30).map((x) => `<div class="kv"><span>${esc(x.res)}<small class="muted"> · ${hhmm(x.t)}</small></span><b class="${x.ok ? "" : "muted"}">${x.ok ? "✓ Aplicado " + hhmm(x.ok) : "Esperando a su caja"}</b></div>`).join("");
+}
+// En Ajustes › Nube mientras se maneja otra caja.
+function remSettingsHtml() {
+  return `<div class="card"><h2>Manejando: ${esc(REM.name)}</h2><p class="muted" style="margin-bottom:10px">Lo que cambias aquí (productos, precios, stock, clientes, proveedores, usuarios, ajustes y vitrina) se envía solo. Su caja lo aplica en un minuto si está prendida y con internet; si no, cuando se conecte.</p>
+    <div class="kv"><span>Código de la caja</span><b>${esc(REM.sid)}</b></div>
+    <h3 style="margin:12px 0 6px">Lo que enviaste</h3><div id="remlist">${remListHtml()}</div>
+    <p class="muted sm" style="margin-top:10px">Vender, la caja, anular ventas y cobrar deudas se hacen solo en la caja de la tienda.</p>
+    <div class="btns h"><button class="btn" data-a="remsalir">Salir y volver a mi caja</button></div></div>`;
+}
+function remOfrecerHtml() {
+  return `<div class="card"><h2>Manejar otra caja</h2><p class="muted" style="margin-bottom:10px">Cambia productos, precios, stock, clientes, usuarios, ajustes y vitrina de otra caja de tu negocio desde este equipo. Su caja recibe los cambios sola en un minuto. Tus datos de aquí no se tocan.</p><button class="btn sec" data-a="rempick">Elegir caja</button></div>`;
+}
+
+/* ---------- en la caja de la tienda: recibir y aplicar ---------- */
+const REM_OK_KEY = "cf-rem-ok"; // ids ya aplicados aquí: si falla el «aplicado» en la nube, no se aplican dos veces
+function remOkList() { try { const l = JSON.parse(localStorage.getItem(REM_OK_KEY) || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+async function remPull() {
+  if (REM || !cloudOn() || cloudLoad().ver || remState.pull || !navigator.onLine) return;
+  remState.pull = true;
+  try {
+    const s = cloudLoad();
+    const l = await sb(`cambios?select=id,datos,resumen,autor&negocio_id=eq.${s.neg}&tienda=eq.${encodeURIComponent(DB.biz.sid)}&aplicado=is.null&order=id.asc&limit=40`);
+    if (!l.length) return;
+    const ok = remOkList(), nuevos = l.filter((c) => !ok.includes(c.id));
+    if (nuevos.length && modalOpen()) { setTimeout(remPull, 15000); return; } // está cobrando o con una ventana: espera a que termine
+    nuevos.forEach((c) => { remApply(c.datos, false, c); ok.push(c.id); });
+    if (nuevos.length) {
+      try { localStorage.setItem(REM_OK_KEY, JSON.stringify(ok.slice(-400))); } catch (e) {}
+      save(); toast(`Cambios del dueño: ${nuevos.map((c) => c.resumen).join(" · ")}`);
+      imgRefresh(0); // vuelve a pintar cuando no estés escribiendo
+    }
+    await sb(`cambios?id=in.(${l.map((c) => c.id).join(",")})`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: { aplicado: new Date().toISOString(), aplicado_por: s.dev } });
+  } catch (e) {} finally { remState.pull = false; }
+}
+function remBoot() {
+  if (REM) { remPaint(); remWatchSoon(2000); setInterval(remPaint, 30000); return; }
+  setTimeout(remPull, 4000);
+  setInterval(remPull, 60000);
+  window.addEventListener("online", () => setTimeout(remPull, 2000));
+}
+
+act({
+  remver: () => { if (modalOpen()) closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); },
+  remsalir: () => remSalir(),
+  rempick: () => remPick(),
+  remcli: (el) => remCliente(el.dataset.id),
+  remone: (el) => { closeModal(); remGo(el.dataset.n, el.dataset.s, el.dataset.name); }
+});
+
 /* ===================== 67 · NUBE (Supabase): respaldo automático, varias tiendas y panel del dueño ===================== */
 // La caja SIEMPRE vende con sus datos locales (sin internet también). Esta parte solo copia los cambios a la nube
 // cuando hay señal, y permite al dueño (con su cuenta de Google) ver todas sus tiendas y recuperar una tienda en otro equipo.
@@ -3258,7 +3523,7 @@ function cloudSnapshot() {
   return out;
 }
 async function cloudPush(force) {
-  if (!cloudOn() || cloud.busy || cloud.st.ver) return; // «solo ver»: este equipo no sube nada
+  if (REM || !cloudOn() || cloud.busy || cloud.st.ver) return; // «solo ver»: este equipo no sube nada
   if (!navigator.onLine) { cloud.err = "Sin internet: se sube solo cuando vuelva la señal."; cloudPaint(); return; }
   cloud.busy = true; cloud.err = "";
   try {
@@ -3287,7 +3552,7 @@ async function cloudPush(force) {
     cloud.err = /auth/.test(e.message) ? cloud.err || "Vuelve a entrar con Google." : navigator.onLine ? "No se pudo subir. Se reintenta solo." : "Sin internet: se sube solo cuando vuelva la señal.";
   } finally { cloud.busy = false; cloudPaint(); }
 }
-function cloudSchedule(ms = 5000) { if (!cloudOn()) return; clearTimeout(cloud.timer); cloud.timer = setTimeout(() => cloudPush(), ms); }
+function cloudSchedule(ms = 5000) { if (REM) return remSchedule(); if (!cloudOn()) return; clearTimeout(cloud.timer); cloud.timer = setTimeout(() => cloudPush(), ms); }
 
 /* ---------- conectar esta caja / recuperar una tienda ---------- */
 async function cloudStart() {
@@ -3430,7 +3695,7 @@ async function cloudSoporte(horas) {
 }
 function soporteHtml() {
   const s = cloudLoad(), on = sopActivo();
-  return `<div class="card"><h2>Soporte técnico</h2><p class="muted" style="margin-bottom:10px">Si tienes un problema, puedes dejar que tu proveedor de Caja Fácil <b>vea</b> (sin cambiar nada) tus ventas, productos y caja por un tiempo.</p>
+  return `<div class="card"><h2>Soporte técnico</h2><p class="muted" style="margin-bottom:10px">Si tienes un problema, puedes dejar que tu proveedor de Caja Fácil vea tus ventas, productos y caja, y te ayude a cambiar productos, precios y ajustes, por un tiempo.</p>
     <div class="kv"><span>Acceso de soporte</span><b>${on ? `Activo hasta ${fmtDT(Date.parse(s.sop))}` : "Cerrado"}</b></div>
     <div class="row wrap" style="margin-top:10px">${on ? `<button class="btn red sec" data-a="sopoff">Quitar acceso ahora</button>` : `<button class="btn sec" data-a="sopon" data-h="24">Dar acceso por 24 horas</button><button class="btn sec" data-a="sopon" data-h="168">Por 7 días</button>`}</div></div>`;
 }
@@ -3445,8 +3710,8 @@ function adminHtml() {
     : c.map((n) => { const sop = n.soporte_hasta && Date.parse(n.soporte_hasta) > Date.now(), mine = n.id === me;
       return `<div class="cli"><div class="clit"><b>${esc(n.nombre)}${mine ? " <small class=\"muted\">(tu negocio)</small>" : ""}</b><small>${esc(n.correo || "")} · ${n.tiendas || 0} ${n.tiendas === 1 ? "caja" : "cajas"} · ${n.ultima ? "última copia " + fmtDT(Date.parse(n.ultima)) : "sin copias aún"}</small>
         <small><span class="tag ${n.estado === "suspendido" || n.estado === "pendiente" ? "out" : ""}">${n.estado === "suspendido" ? "Suspendido" : n.estado === "pendiente" ? "Esperando código" : "Activo"}</span> ${n.vence ? `<span class="tag ${Date.parse(n.vence) < Date.now() + 5 * 864e5 ? "out" : ""}">${Date.parse(n.vence) < Date.now() ? "Venció" : "Vence"} ${dmy(dkey(new Date(n.vence)))}</span> ` : ""}${sop ? `<span class="tag">Soporte hasta ${fmtDT(Date.parse(n.soporte_hasta))}</span>` : ""}${n.nota ? " · " + esc(n.nota) : ""}</small>${n.vozOk ? `<small><span class="tag ${n.voz ? "" : "out"}">Voz ${n.voz ? "activa · hoy " + n.usos_hoy + " de " + n.voz_limite : "apagada"}</span></small>` : ""}</div>
-        <div class="clia">${mine ? "" : `<button class="btn sec sm" data-a="adminren" data-id="${n.id}">Renovar 1 mes</button>`}${n.vozOk ? `<button class="btn sec sm" data-a="adminvoz" data-id="${n.id}" data-e="${n.voz ? 0 : 1}">${n.voz ? "Quitar voz" : "Dar voz"}</button>` : ""}${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" || n.estado === "pendiente" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
-  return `<div class="card"><div class="row sp"><h2>Mis clientes</h2><button class="btn sec sm" data-a="adminlist">Ver clientes</button></div><div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-a="admincod">Generar código</button><button class="btn sec sm" data-a="adminacc">Dar acceso por correo</button></div><p class="muted sm" style="margin-bottom:8px">Solo tú ves esto. Para ver los datos de un cliente, él debe darte acceso en su Ajustes › Nube › Soporte técnico.</p>${body}</div>`;
+        <div class="clia">${mine ? "" : `<button class="btn sec sm" data-a="adminren" data-id="${n.id}">Renovar 1 mes</button>`}${n.vozOk ? `<button class="btn sec sm" data-a="adminvoz" data-id="${n.id}" data-e="${n.voz ? 0 : 1}">${n.voz ? "Quitar voz" : "Dar voz"}</button>` : ""}${sop && !mine ? `<button class="btn sm" data-a="remcli" data-id="${n.id}">Manejar su caja</button>` : ""}${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" || n.estado === "pendiente" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
+  return `<div class="card"><div class="row sp"><h2>Mis clientes</h2><button class="btn sec sm" data-a="adminlist">Ver clientes</button></div><div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-a="admincod">Generar código</button><button class="btn sec sm" data-a="adminacc">Dar acceso por correo</button></div><p class="muted sm" style="margin-bottom:8px">Solo tú ves esto. Para ver o manejar la caja de un cliente, él debe darte acceso en su Ajustes › Nube › Soporte técnico.</p>${body}</div>`;
 }
 // Resumen de solo lectura de un cliente que dio permiso.
 async function adminVer(id) {
@@ -3476,6 +3741,7 @@ async function adminVer(id) {
 /* ---------- pantalla en Ajustes › Nube ---------- */
 function cloudSettingsHtml() {
   const s = cloudLoad();
+  if (REM) return remSettingsHtml();
   if (!s.ses) return `<div class="card"><h2>Tu negocio en la nube</h2><p class="muted" style="margin-bottom:12px">Entra con tu cuenta de Google y esta caja guardará una copia automática en la nube. Así:</p>
       <div class="kv"><span>Ves las ventas de todas tus tiendas desde tu celular</span></div><div class="kv"><span>Si se malogra la computadora, recuperas todo</span></div><div class="kv"><span>La caja sigue vendiendo sin internet y sube los cambios cuando vuelve la señal</span></div>
       ${cloud.err ? `<p class="dpts" style="margin-top:10px">${esc(cloud.err)}</p>` : ""}
@@ -3488,7 +3754,7 @@ function cloudSettingsHtml() {
       <div class="kv"><span>Copia en la nube</span><b id="cloudst">${cloudStatus()}</b></div>
       ${s.vence ? `<div class="kv"><span>Tu plan</span><b>${diasVence() < 0 ? "Venció" : "Vence"} el ${dmy(dkey(new Date(s.vence)))}</b></div>` : ""}
       <div class="row wrap" style="margin-top:12px">${s.ver ? `<button class="btn" data-a="cloudnew">Usar este equipo como caja</button>` : `<button class="btn" data-a="cloudpush">Subir ahora</button>`}<button class="btn sec" data-a="cloudrecover">Recuperar una tienda</button><button class="btn sec" data-a="cloudout">Cerrar sesión</button></div></div>
-    ${s.ver ? "" : soporteHtml()}${s.admin ? adminHtml() : ""}
+    ${remOfrecerHtml()}${s.ver ? "" : soporteHtml()}${s.admin ? adminHtml() : ""}
     <div class="card"><div class="row sp"><h2>Mis tiendas hoy</h2><button class="btn sec sm" data-a="cloudpanel">Ver mis tiendas</button></div>${panelHtml()}</div>
     <p class="muted sm" style="text-align:center">${'<a href="terminos.html" target="_blank" rel="noopener">Términos de uso</a> · <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>'}</p>`;
 }
@@ -3570,6 +3836,7 @@ function cloudBoot() {
   const _saveAll = saveAll; saveAll = function () { cloud.dm = null; dmSave(); return _saveAll.apply(this, arguments); };
   window.addEventListener("online", () => cloudSchedule(1000));
   setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } else applySusp(); }, 120000);
+  remBoot(); // cambios hechos desde otro equipo
 }
 
 /* ===================== 68 · INSTALAR COMO APP (PC, Android, iPhone) ===================== */
@@ -5186,6 +5453,7 @@ const HELP_KB = [
   { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
+  { k: ["manejar otra caja", "cambiar desde mi laptop", "cambiar a distancia", "otra caja", "desde otra computadora", "remoto", "cambios a distancia"], t: "Manejar otra caja desde aquí", s: ["Ve a Ajustes › Nube › «Manejar otra caja» y toca «Elegir caja».", "Elige la caja y toca «Manejar». Arriba sale la barra «Manejando: …».", "Cambia productos, precios, stock, clientes, proveedores, usuarios, ajustes o la vitrina como siempre: se envía solo.", "Su caja lo aplica en un minuto si está prendida y con internet. En «Ver» sale si ya lo aplicó.", "Para terminar toca «Salir»: vuelves a tus datos de este equipo, que no se tocaron."] },
   { k: ["pantalla completa", "f11", "barra de windows", "barra de tareas", "maximizar"], t: "Pantalla completa", s: ["Toca «Completa» en el menú de la izquierda (abajo, junto a «Ocultar»): la caja ocupa toda la pantalla, sin la barra de Windows.", "Para volver, toca «Normal» o mantén apretada la tecla Esc.", "La caja lo recuerda en ese equipo: al abrirla otra vez entra sola en pantalla completa con el primer clic o el primer producto que escanees."] },
   { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "aj.cobros", s: ["La caja redondea el total sola a los 10 céntimos más cercanos: S/ 1.92 → S/ 1.90 y S/ 1.95 → S/ 2.00.", "En el ticket y en el comprobante sale como «Redondeo».", "Se apaga o se prende en Ajustes › Cobros y puntos › Redondeo."] },
   { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja", "2x1", "combo", "lista de precios", "pizarra", "estilo", "ideas"], t: "Afiches para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «2x1 en yogur», «lleva 3 paga 2 en atún», «lista de precios de frutas», «oferta de papaya 3.50, mango 5 y plátano 2» o «aviso: hoy cerramos a las 9 pm».", "Elige el estilo con un toque: Clásico, A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad o Día de la Madre. También puedes decirlo: «… estilo pizarra».", "Si la oferta baja el precio, marca «Cobrar … en la caja» y la caja cobra ese precio hasta la fecha del afiche.", "Escribe «¿qué oferta hago?» y te propongo afiches con lo que vence pronto o no se vende.", "En Ajustes › Pantalla de venta ves todas: ocultar, ordenar, editar y cada cuántos segundos cambian. «Dibuja …» hace un dibujo con IA (necesita internet y el extra de IA)."] },
@@ -5639,7 +5907,7 @@ function receivePack(o) {
   }
   toast("No reconozco ese archivo");
 }
-function restoreDB(o) { DB = normalize(o); ui.user = DB.users[0].id; saveAll(); log("Respaldo restaurado", ""); toast("Respaldo restaurado"); if (needLogin()) loginScreen(); else go("venta"); }
+function restoreDB(o) { if (REM) return remNo(); DB = normalize(o); ui.user = DB.users[0].id; saveAll(); log("Respaldo restaurado", ""); toast("Respaldo restaurado"); if (needLogin()) loginScreen(); else go("venta"); }
 function dbCheck() {
   const fixes = [];
   const seen = new Map();
@@ -5702,7 +5970,7 @@ document.addEventListener("click", (e) => {
   if (e.target === $("#modal")) { if (ui.mk === "pay" || ui.mk === "weigh" || ui.mk === "count") return; if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   const el = e.target.closest("[data-a]");
   const gate = $("#susp"); if (gate && !gate.contains(e.target)) return; // caja bloqueada (licencia): solo funciona su aviso
-  if (el && A[el.dataset.a] && !el.disabled) { e.preventDefault(); A[el.dataset.a](el); }
+  if (el && A[el.dataset.a] && !el.disabled) { e.preventDefault(); if (REM && REM_NO[el.dataset.a]) return remNo(); A[el.dataset.a](el); }
 });
 // Campos de número (precio, costo, stock, cantidad, monto…): al hacer clic o tocar, el número queda marcado entero
 // y lo que escribas lo reemplaza. Solo con el mouse/dedo, nunca cuando la caja pone el cursor por su cuenta.
@@ -5870,15 +6138,17 @@ document.addEventListener("keydown", (e) => {
 // En el programa de Windows se registra "sw.js?escritorio=1": ese service worker no usa el almacén de copias (ver sw.js).
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register(/Electron\/|CajaFacilEscritorio/.test(navigator.userAgent) ? "sw.js?escritorio=1" : "sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
-window.CF = { get DB() { return DB; }, ui, flush, save: (...a) => save(...a), dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan };
+window.CF = { get DB() { return DB; }, ui, flush, save: (...a) => save(...a), dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan, remPull, remSend, get REM() { return REM; }, remState };
 async function boot() {
   await loadDB();
+  await remLoad(); // «Manejar otra caja»: trae esa tienda de la nube en vez de la de este equipo
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; a.on = true; a.role = "admin"; }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   $("#lockPad").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button data-a="lockkey" data-k="${n}">${n}</button>`).join("") + `<button class="ghost" tabindex="-1" aria-hidden="true"></button><button data-a="lockkey" data-k="0">0</button><button data-a="lockkey" data-k="del" aria-label="Borrar">⌫</button>`;
   if (needLogin()) { ui.user = null; render(); loginScreen(); }
+  else if (REM) render();
   else { ui.user = activeUsers()[0].id; render(); avisoDia(); }
-  if (serialOk() && DESK()) connectScale(false);
+  if (!REM && serialOk() && DESK()) connectScale(false);
   if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");
   fsArm();

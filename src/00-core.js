@@ -178,6 +178,9 @@ function wire(db) {
   return db;
 }
 let DB = normalize(null);
+// «Manejar otra caja» (66-remoto): mientras dura, aquí no se guarda nada y Vender/Caja no se muestran.
+let REM = null;
+const REM_TABS_NO = { venta: 1, caja: 1 };
 // Ordenar por nombre en español (localeCompare con "es": V8 lo hace rápido; un Intl.Collator propio resultó más lento).
 const cmpEs = (a, b) => String(a).localeCompare(String(b), "es");
 
@@ -207,6 +210,7 @@ function monthJSON(m) { const o = {}; Object.keys(BIG).forEach((k) => { o[k] = D
 function allMonths() { const s = new Set(); Object.keys(BIG).forEach((k) => DB[k].forEach((x) => s.add(mOf(BIG[k](x))))); s.add(mOf()); return [...s].sort(); }
 function lsSave(str) { try { localStorage.setItem(LSKEY, str); return true; } catch (e) { toast("No se pudo guardar: el almacenamiento está lleno. Descarga un respaldo."); return false; } }
 function flush(hiding) {
+  if (REM) { dirtyCore = false; dirtyCart = false; dirtyM.clear(); return; } // otra caja: sus cambios viajan a la nube, no a este equipo
   if (dirtyCore || dirtyM.size || dirtyCart) {
     if (!idb) { dirtyCore = false; dirtyCart = false; dirtyM.clear(); lsSave(JSON.stringify(DB)); return; }
     // Recorrer toda la historia para saber qué meses hay solo cuando hace falta (al cargar, al borrar o con un mes nuevo).

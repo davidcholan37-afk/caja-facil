@@ -5,7 +5,7 @@ function me() { return usr(ui.user) || null; }
 const userCan = (u, perm) => !!u && (u.role === "admin" || (DB.roles[u.role] || []).includes(perm));
 function can(perm) { return userCan(me(), perm); }
 const activeUsers = () => DB.users.filter((u) => u.on);
-const needLogin = () => { const on = activeUsers(); return on.length > 1 || on.some((u) => u.pin); };
+const needLogin = () => { if (REM) return false; const on = activeUsers(); return on.length > 1 || on.some((u) => u.pin); };
 
 /* ---------- pantalla de ingreso y teclado de clave ---------- */
 let pinBuf = "", pinCb = null, lastAct = Date.now();

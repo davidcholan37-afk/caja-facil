@@ -118,7 +118,7 @@ function cloudSnapshot() {
   return out;
 }
 async function cloudPush(force) {
-  if (!cloudOn() || cloud.busy || cloud.st.ver) return; // «solo ver»: este equipo no sube nada
+  if (REM || !cloudOn() || cloud.busy || cloud.st.ver) return; // «solo ver»: este equipo no sube nada
   if (!navigator.onLine) { cloud.err = "Sin internet: se sube solo cuando vuelva la señal."; cloudPaint(); return; }
   cloud.busy = true; cloud.err = "";
   try {
@@ -147,7 +147,7 @@ async function cloudPush(force) {
     cloud.err = /auth/.test(e.message) ? cloud.err || "Vuelve a entrar con Google." : navigator.onLine ? "No se pudo subir. Se reintenta solo." : "Sin internet: se sube solo cuando vuelva la señal.";
   } finally { cloud.busy = false; cloudPaint(); }
 }
-function cloudSchedule(ms = 5000) { if (!cloudOn()) return; clearTimeout(cloud.timer); cloud.timer = setTimeout(() => cloudPush(), ms); }
+function cloudSchedule(ms = 5000) { if (REM) return remSchedule(); if (!cloudOn()) return; clearTimeout(cloud.timer); cloud.timer = setTimeout(() => cloudPush(), ms); }
 
 /* ---------- conectar esta caja / recuperar una tienda ---------- */
 async function cloudStart() {
@@ -290,7 +290,7 @@ async function cloudSoporte(horas) {
 }
 function soporteHtml() {
   const s = cloudLoad(), on = sopActivo();
-  return `<div class="card"><h2>Soporte técnico</h2><p class="muted" style="margin-bottom:10px">Si tienes un problema, puedes dejar que tu proveedor de Caja Fácil <b>vea</b> (sin cambiar nada) tus ventas, productos y caja por un tiempo.</p>
+  return `<div class="card"><h2>Soporte técnico</h2><p class="muted" style="margin-bottom:10px">Si tienes un problema, puedes dejar que tu proveedor de Caja Fácil vea tus ventas, productos y caja, y te ayude a cambiar productos, precios y ajustes, por un tiempo.</p>
     <div class="kv"><span>Acceso de soporte</span><b>${on ? `Activo hasta ${fmtDT(Date.parse(s.sop))}` : "Cerrado"}</b></div>
     <div class="row wrap" style="margin-top:10px">${on ? `<button class="btn red sec" data-a="sopoff">Quitar acceso ahora</button>` : `<button class="btn sec" data-a="sopon" data-h="24">Dar acceso por 24 horas</button><button class="btn sec" data-a="sopon" data-h="168">Por 7 días</button>`}</div></div>`;
 }
@@ -305,8 +305,8 @@ function adminHtml() {
     : c.map((n) => { const sop = n.soporte_hasta && Date.parse(n.soporte_hasta) > Date.now(), mine = n.id === me;
       return `<div class="cli"><div class="clit"><b>${esc(n.nombre)}${mine ? " <small class=\"muted\">(tu negocio)</small>" : ""}</b><small>${esc(n.correo || "")} · ${n.tiendas || 0} ${n.tiendas === 1 ? "caja" : "cajas"} · ${n.ultima ? "última copia " + fmtDT(Date.parse(n.ultima)) : "sin copias aún"}</small>
         <small><span class="tag ${n.estado === "suspendido" || n.estado === "pendiente" ? "out" : ""}">${n.estado === "suspendido" ? "Suspendido" : n.estado === "pendiente" ? "Esperando código" : "Activo"}</span> ${n.vence ? `<span class="tag ${Date.parse(n.vence) < Date.now() + 5 * 864e5 ? "out" : ""}">${Date.parse(n.vence) < Date.now() ? "Venció" : "Vence"} ${dmy(dkey(new Date(n.vence)))}</span> ` : ""}${sop ? `<span class="tag">Soporte hasta ${fmtDT(Date.parse(n.soporte_hasta))}</span>` : ""}${n.nota ? " · " + esc(n.nota) : ""}</small>${n.vozOk ? `<small><span class="tag ${n.voz ? "" : "out"}">Voz ${n.voz ? "activa · hoy " + n.usos_hoy + " de " + n.voz_limite : "apagada"}</span></small>` : ""}</div>
-        <div class="clia">${mine ? "" : `<button class="btn sec sm" data-a="adminren" data-id="${n.id}">Renovar 1 mes</button>`}${n.vozOk ? `<button class="btn sec sm" data-a="adminvoz" data-id="${n.id}" data-e="${n.voz ? 0 : 1}">${n.voz ? "Quitar voz" : "Dar voz"}</button>` : ""}${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" || n.estado === "pendiente" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
-  return `<div class="card"><div class="row sp"><h2>Mis clientes</h2><button class="btn sec sm" data-a="adminlist">Ver clientes</button></div><div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-a="admincod">Generar código</button><button class="btn sec sm" data-a="adminacc">Dar acceso por correo</button></div><p class="muted sm" style="margin-bottom:8px">Solo tú ves esto. Para ver los datos de un cliente, él debe darte acceso en su Ajustes › Nube › Soporte técnico.</p>${body}</div>`;
+        <div class="clia">${mine ? "" : `<button class="btn sec sm" data-a="adminren" data-id="${n.id}">Renovar 1 mes</button>`}${n.vozOk ? `<button class="btn sec sm" data-a="adminvoz" data-id="${n.id}" data-e="${n.voz ? 0 : 1}">${n.voz ? "Quitar voz" : "Dar voz"}</button>` : ""}${sop && !mine ? `<button class="btn sm" data-a="remcli" data-id="${n.id}">Manejar su caja</button>` : ""}${sop || mine ? `<button class="btn sec sm" data-a="adminver" data-id="${n.id}">Ver datos</button>` : `<button class="btn sec sm" disabled title="El cliente debe dar acceso de soporte">Sin permiso</button>`}${mine ? "" : n.estado === "suspendido" || n.estado === "pendiente" ? `<button class="btn sm" data-a="adminest" data-id="${n.id}" data-e="activo">Activar</button>` : `<button class="btn red sec sm" data-a="adminest" data-id="${n.id}" data-e="suspendido">Suspender</button>`}</div></div>`; }).join("");
+  return `<div class="card"><div class="row sp"><h2>Mis clientes</h2><button class="btn sec sm" data-a="adminlist">Ver clientes</button></div><div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-a="admincod">Generar código</button><button class="btn sec sm" data-a="adminacc">Dar acceso por correo</button></div><p class="muted sm" style="margin-bottom:8px">Solo tú ves esto. Para ver o manejar la caja de un cliente, él debe darte acceso en su Ajustes › Nube › Soporte técnico.</p>${body}</div>`;
 }
 // Resumen de solo lectura de un cliente que dio permiso.
 async function adminVer(id) {
@@ -336,6 +336,7 @@ async function adminVer(id) {
 /* ---------- pantalla en Ajustes › Nube ---------- */
 function cloudSettingsHtml() {
   const s = cloudLoad();
+  if (REM) return remSettingsHtml();
   if (!s.ses) return `<div class="card"><h2>Tu negocio en la nube</h2><p class="muted" style="margin-bottom:12px">Entra con tu cuenta de Google y esta caja guardará una copia automática en la nube. Así:</p>
       <div class="kv"><span>Ves las ventas de todas tus tiendas desde tu celular</span></div><div class="kv"><span>Si se malogra la computadora, recuperas todo</span></div><div class="kv"><span>La caja sigue vendiendo sin internet y sube los cambios cuando vuelve la señal</span></div>
       ${cloud.err ? `<p class="dpts" style="margin-top:10px">${esc(cloud.err)}</p>` : ""}
@@ -348,7 +349,7 @@ function cloudSettingsHtml() {
       <div class="kv"><span>Copia en la nube</span><b id="cloudst">${cloudStatus()}</b></div>
       ${s.vence ? `<div class="kv"><span>Tu plan</span><b>${diasVence() < 0 ? "Venció" : "Vence"} el ${dmy(dkey(new Date(s.vence)))}</b></div>` : ""}
       <div class="row wrap" style="margin-top:12px">${s.ver ? `<button class="btn" data-a="cloudnew">Usar este equipo como caja</button>` : `<button class="btn" data-a="cloudpush">Subir ahora</button>`}<button class="btn sec" data-a="cloudrecover">Recuperar una tienda</button><button class="btn sec" data-a="cloudout">Cerrar sesión</button></div></div>
-    ${s.ver ? "" : soporteHtml()}${s.admin ? adminHtml() : ""}
+    ${remOfrecerHtml()}${s.ver ? "" : soporteHtml()}${s.admin ? adminHtml() : ""}
     <div class="card"><div class="row sp"><h2>Mis tiendas hoy</h2><button class="btn sec sm" data-a="cloudpanel">Ver mis tiendas</button></div>${panelHtml()}</div>
     <p class="muted sm" style="text-align:center">${'<a href="terminos.html" target="_blank" rel="noopener">Términos de uso</a> · <a href="privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>'}</p>`;
 }
@@ -430,4 +431,5 @@ function cloudBoot() {
   const _saveAll = saveAll; saveAll = function () { cloud.dm = null; dmSave(); return _saveAll.apply(this, arguments); };
   window.addEventListener("online", () => cloudSchedule(1000));
   setInterval(() => { if (cloudOn() && !document.hidden) { cloudPush(); cloudRefreshNeg(); } else applySusp(); }, 120000);
+  remBoot(); // cambios hechos desde otro equipo
 }

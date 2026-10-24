@@ -392,6 +392,7 @@ act({
     const r = ui.rs, p = r && prod(r.id); if (!p) return;
     const q = r3(parseQty($("#rsq").value)); if (!(q > 0)) return toast("Escribe cuánto llegó");
     const c = num($("#rsc").value), note = $("#rsn").value.trim(), pay = $("#rspay") && $("#rspay").checked;
+    if (pay && REM) return toast("Pagar desde la caja se hace en la caja de la tienda. Quita esa marca para anotar solo el ingreso.");
     if (c > 0) { if (p.stock > 0 && p.cost > 0) p.cost = r2((p.stock * p.cost + q * c) / (p.stock + q)); else p.cost = r2(c); }
     if (p.stock == null) p.stock = 0;
     stockAdd(p, q, "ingreso", note || "Ingreso");

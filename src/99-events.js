@@ -3,7 +3,7 @@ document.addEventListener("click", (e) => {
   if (e.target === $("#modal")) { if (ui.mk === "pay" || ui.mk === "weigh" || ui.mk === "count") return; if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   const el = e.target.closest("[data-a]");
   const gate = $("#susp"); if (gate && !gate.contains(e.target)) return; // caja bloqueada (licencia): solo funciona su aviso
-  if (el && A[el.dataset.a] && !el.disabled) { e.preventDefault(); A[el.dataset.a](el); }
+  if (el && A[el.dataset.a] && !el.disabled) { e.preventDefault(); if (REM && REM_NO[el.dataset.a]) return remNo(); A[el.dataset.a](el); }
 });
 // Campos de número (precio, costo, stock, cantidad, monto…): al hacer clic o tocar, el número queda marcado entero
 // y lo que escribas lo reemplaza. Solo con el mouse/dedo, nunca cuando la caja pone el cursor por su cuenta.
@@ -171,15 +171,17 @@ document.addEventListener("keydown", (e) => {
 // En el programa de Windows se registra "sw.js?escritorio=1": ese service worker no usa el almacén de copias (ver sw.js).
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register(/Electron\/|CajaFacilEscritorio/.test(navigator.userAgent) ? "sw.js?escritorio=1" : "sw.js").catch(() => {});
 window.addEventListener("afterprint", () => { const p = $("#print"); if (p) p.innerHTML = ""; });
-window.CF = { get DB() { return DB; }, ui, flush, save: (...a) => save(...a), dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan };
+window.CF = { get DB() { return DB; }, ui, flush, save: (...a) => save(...a), dayTotals, cartTotals, totalsOf, parseImport, splitCalc, parseWeight, parseLabel, letras, rucOk, balanceOf, pointsOf, onScaleLine, scaleState, shiftSummary, agingOf, expectedCash, suppBal, curShift, cloud, cloudLoad, cloudSetSession, cloudPush, cloudStart, cloudRecover, cloudPanel, cloudSnapshot, vzParse, vzPlan, remPull, remSend, get REM() { return REM; }, remState };
 async function boot() {
   await loadDB();
+  await remLoad(); // «Manejar otra caja»: trae esa tienda de la nube en vez de la de este equipo
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; a.on = true; a.role = "admin"; }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   $("#lockPad").innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button data-a="lockkey" data-k="${n}">${n}</button>`).join("") + `<button class="ghost" tabindex="-1" aria-hidden="true"></button><button data-a="lockkey" data-k="0">0</button><button data-a="lockkey" data-k="del" aria-label="Borrar">⌫</button>`;
   if (needLogin()) { ui.user = null; render(); loginScreen(); }
+  else if (REM) render();
   else { ui.user = activeUsers()[0].id; render(); avisoDia(); }
-  if (serialOk() && DESK()) connectScale(false);
+  if (!REM && serialOk() && DESK()) connectScale(false);
   if (!cloudOn() && DB.sales.length && (!DB.cfg.lastBackup || Date.now() - DB.cfg.lastBackup > 7 * 864e5)) setTimeout(() => { if (!ui.locked) toast("Hace días que no descargas un respaldo. Hazlo en Ajustes › Datos.", true); }, 2500);
   document.body.classList.add("ready");
   fsArm();

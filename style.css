@@ -2953,3 +2953,25 @@ html[data-theme=dark] #pe.pe4 .pe-main,html[data-theme=dark] #pe.pe4 > .btns.h{b
 html[data-theme=dark] #pe.pe4 .tiles .inp{background:transparent!important}
 html[data-theme=dark] #pe.pe4 .useg button.on{background:#1F7A49!important;border-color:#1F7A49!important;color:#fff!important}
 @media (max-width:600px){#pe.pe4 .useg button{font-size:14px;padding:0 4px}}
+
+/* ===== Manejar otra caja (66-remoto): barra «Manejando: …» =====
+   En computadora va sobre el toldo, en el lugar del cartel con el nombre; en celular, arriba (la pantalla baja 60 px).
+   Queda debajo de las ventanas (z-index 55 < 60). */
+@media (max-width:959px){html.rem #app{padding-top:60px}}
+#rembar{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));width:max-content;z-index:55;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:6px 6px 6px 14px;border-radius:14px;background:#0A3524;color:#F3F7F4;box-shadow:0 6px 20px rgba(4,30,18,.35);font-size:13px;line-height:1.2}
+#rembar .rb-tx{display:flex;flex-direction:column;min-width:0}
+#rembar .rb-tx b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rembar .rb-tx small{color:#B9D3C4;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rembar .rb-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#4ADE80}
+#rembar .rb-dot.esp,#rembar .rb-dot.env{background:#FBBF24}
+#rembar .rb-dot.err{background:#F87171}
+#rembar .rb-btn{flex:none;min-height:36px;padding:0 12px;border-radius:10px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;font-weight:600;cursor:pointer;transition:transform 160ms var(--ease-out)}
+#rembar .rb-btn.out{background:#F3F7F4;color:#0A3524}
+#rembar .rb-btn:active{transform:scale(.97)}
+#rembar .rb-btn:focus-visible{outline:2px solid #FBBF24;outline-offset:2px}
+@media (min-width:960px){
+  html.rem body[data-tienda]::before{display:none}
+  #rembar{top:0;height:32px;padding:0 3px 0 12px;border-radius:0 0 12px 12px;gap:8px;box-shadow:0 0 0 1.5px #0A3524,0 4px 10px rgba(0,0,0,.25)}
+  #rembar .rb-tx{flex-direction:row;gap:8px;align-items:baseline}
+  #rembar .rb-btn{min-height:26px;padding:0 10px;border-radius:8px;font-size:12.5px}
+}

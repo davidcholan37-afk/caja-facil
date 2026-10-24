@@ -252,9 +252,9 @@ const svg = (k, cls = "") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidde
 /* ---------- navegación ---------- */
 const TABS = [["venta", "Vender", null], ["ventas", "Ventas", null], ["prod", "Productos", null], ["cli", "Clientes", null], ["prov", "Proveedores", "caja"], ["caja", "Caja", "caja"], ["rep", "Reportes", "reportes"], ["aj", "Ajustes", "ajustes"]];
 const TAB_GRUPO = { prod: 1, caja: 1 }; // en el menú de la izquierda: línea antes de cada grupo
-const tabOk = (t) => { const x = TABS.find((y) => y[0] === t); return x && (!x[2] || can(x[2])); };
+const tabOk = (t) => { const x = TABS.find((y) => y[0] === t); return x && (!x[2] || can(x[2])) && !(REM && REM_TABS_NO[t]); };
 function paintNav() {
-  const u = me(), tabs = TABS.filter((t) => !t[2] || can(t[2]));
+  const u = me(), tabs = TABS.filter((t) => tabOk(t[0]));
   const btn = ([id, label]) => `<button class="tab ${ui.tab === id ? "on" : ""} ${TAB_GRUPO[id] ? "g" : ""}" data-a="tab" data-t="${id}" ${ui.tab === id ? 'aria-current="page"' : ""}><span class="ic">${svg(id)}</span><span>${label}</span></button>`;
   $("#sideNav").innerHTML = tabs.map(btn).join("");
   const mob = ["venta", "ventas", "caja", "prod"].filter((t) => tabs.some((x) => x[0] === t)).map((t) => tabs.find((x) => x[0] === t));
@@ -266,12 +266,12 @@ function paintNav() {
   document.title = (DB.biz.name ? DB.biz.name + " · " : "") + "Caja Fácil";
 }
 function go(tab) {
-  if (!tabOk(tab)) { toast("Tu usuario no tiene acceso a esa sección"); tab = "venta"; }
+  if (!tabOk(tab)) { if (REM) return remNo(); toast("Tu usuario no tiene acceso a esa sección"); tab = "venta"; }
   ui.tab = tab; document.body.classList.remove("cart-open"); render(); window.scrollTo(0, 0);
 }
 const VIEWS = {};
 function render() {
-  if (!tabOk(ui.tab)) ui.tab = "venta";
+  if (!tabOk(ui.tab)) ui.tab = REM ? "prod" : "venta";
   paintNav();
   document.body.dataset.tab = ui.tab;
   document.body.dataset.tienda = (DB.biz && DB.biz.name) || "Caja Fácil"; // cartel del toldo (CSS body::before)
