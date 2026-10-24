@@ -64,12 +64,18 @@ function dropCurrentTicket() {
   else { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; }
   ui.sel = null;
 }
-// Después de cobrar (o guardar una preventa) el ticket que se cobró queda en blanco en su mismo lugar.
-// Antes se quitaba y el ticket «En espera» pasaba a ser el actual: la caja lo mostraba como si fuera la venta
-// siguiente y se le sumaban productos o se cobraba/borraba sin querer.
+// Después de cobrar (o guardar una preventa) el ticket cobrado se quita y la caja queda en un ticket vacío.
+// Los «En espera» con productos siguen esperando (antes el que esperaba pasaba a ser el actual sin aviso y se le
+// sumaban productos o se cobraba sin querer). Los tickets vacíos no se acumulan: queda uno solo.
 function freshTicketAfterSale() {
-  if (DB.tickets.length > 1) { DB.tickets[DB.cur] = newTicket(++DB.tseq); ui.sel = null; }
-  else dropCurrentTicket();
+  DB.tickets.splice(DB.cur, 1); ui.sel = null;
+  const vacio = (t) => !t.items.length && !t.mesa && !t.prev && !t.name;
+  let libre = -1;
+  DB.tickets = DB.tickets.filter((t) => { if (!vacio(t)) return true; if (libre >= 0) return false; libre = 1; return true; });
+  libre = DB.tickets.findIndex(vacio);
+  if (!DB.tickets.length || (DB.tickets.length === 1 && libre === 0)) { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; return; }
+  if (libre >= 0) DB.cur = libre;
+  else { DB.tickets.push(newTicket(++DB.tseq)); DB.cur = DB.tickets.length - 1; }
 }
 function newTicketNow(extra = {}) {
   DB.tickets.push(Object.assign(newTicket(++DB.tseq), extra)); DB.cur = DB.tickets.length - 1; ui.sel = null; saveCart();
