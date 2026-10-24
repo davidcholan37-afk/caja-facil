@@ -62,7 +62,7 @@ const fmtPhone = (v) => String(v || "").replace(/\D/g, "").replace(/(\d{3})(?=\d
 const parseAmounts = (s) => String(s).replace(/(\d),(\d{1,2})(?!\d)/g, "$1.$2").split(/[\s;,]+/).map((x) => parseFloat(x)).filter((n) => isFinite(n) && n > 0).map(r2);
 
 const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", culqi: "Culqi", tarjeta: "Tarjeta", transferencia: "Transferencia", credito: "Crédito", puntos: "Puntos" };
-const FK = { efectivo: "F2", yape: "F8", tarjeta: "F9", plin: "F10" };
+const FK = { efectivo: "F2", yape: "F8", plin: "F10" }; // F9 también cobra en efectivo (pedido de David); tarjeta: tecla T en el cobro
 const DOCS = { NV: "Nota de venta", B: "Boleta", F: "Factura" };
 const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
 const paysOf = (s) => (s.pays && s.pays.length ? s.pays : [{ m: s.method || "efectivo", amt: s.total }]);
@@ -1411,7 +1411,12 @@ function submitCode(raw) {
 /* ---------- acciones de la pantalla de venta ---------- */
 act({
   learnpick: (el) => { const p = prod(el.dataset.id), c = ui.lc; if (!p || !c) return; p.bar = p.bar || []; if (!p.bar.includes(c)) p.bar.push(c); save(); log("Código enlazado", `${c} → ${p.name}`); ui.lq2 = ""; ui.lc = ""; closeModal(); submitCode(c); },
-  add: (el) => { const p = prod(el.dataset.id); if (!p) return; if ((p.pres || []).length) presPicker(p); else if (p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p); },
+  add: (el) => { const p = prod(el.dataset.id); if (!p) return;
+    // Si en el buscador se escribió la cantidad o el peso con asterisco («0.250*pal») y se toca un producto de la
+    // lista (aunque no sea el primero), se agrega con esa cantidad, sin pedir el peso otra vez.
+    const qi = $("#q"), m = qi && ui.tab === "venta" ? qi.value.trim().match(/^([\d.,\/]+\s*(?:k?g|gr)?)\s*[*xX]\s*(.*)$/i) : null;
+    if (m) { const q = r3(parseQty(m[1])); if (q > 0) { ui.q = ""; ui.vsel = 0; qi.value = ""; addToCart(p, q); paintGrid(); focusQ(); return; } }
+    if ((p.pres || []).length) presPicker(p); else if (p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p); },
   addpres: (el) => { const p = prod(el.dataset.id); if (!p) return; const pres = el.dataset.p; closeModal(); if (!pres && p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p, 1, pres); },
   inc: (el) => changeQty(el.dataset.k, 1),
   dec: (el) => changeQty(el.dataset.k, -1),
@@ -1471,7 +1476,7 @@ act({
     const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
     openModal(`<h2>Funciones</h2>
       <h3 class="fh">Cobrar</h3><div class="fgrid">
-      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "Culqi", "", "culqi") + f("pay", "caja", "Tarjeta", "F9", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
+      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "Culqi", "", "culqi") + f("pay", "caja", "Tarjeta", "", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
       ${f("prevsave", "prev", "Guardar preventa", cobra ? "" : "F2")}${cobra ? f("prevload", "prev", "Cobrar preventa") : ""}
       </div>
       <h3 class="fh">Ticket</h3><div class="fgrid">
@@ -1483,7 +1488,7 @@ act({
   },
   paymas: () => {
     const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
-    openModal(`<h2>Otras formas de pago</h2><div class="fgrid" style="margin:12px 0">${f("pay", "caja", "Tarjeta", "F9", "tarjeta")}${f("pay", "cli", "Crédito", "", "credito")}${f("split", "ventas", "Dividir pago", "F7")}${f("prevsave", "prev", "Guardar preventa", "")}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`);
+    openModal(`<h2>Otras formas de pago</h2><div class="fgrid" style="margin:12px 0">${f("pay", "caja", "Tarjeta", "", "tarjeta")}${f("pay", "cli", "Crédito", "", "credito")}${f("split", "ventas", "Dividir pago", "F7")}${f("prevsave", "prev", "Guardar preventa", "")}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`);
   },
   fn: (el) => { const a = el.dataset.f; closeModal(); if (A[a]) A[a]({ dataset: { m: el.dataset.m || "" } }); },
   quick: openQuick,
@@ -5455,7 +5460,7 @@ function helpStatus() {
 /* ---------- sin internet: pasos guardados ---------- */
 // k = pedazos de palabra (sin tildes) que delatan el tema; gana el que más coincide.
 const HELP_KB = [
-  { k: ["cobr", "yape", "plin", "vuelto", "tarjeta", "efectivo"], t: "Cobrar una venta", go: "venta", s: ["En Vender, agrega los productos al ticket.", "Toca Efectivo, Yape, Plin, Culqi o Tarjeta (atajos F2, F8, F10 y F9; Culqi con la tecla Q dentro del cobro).", "Si es efectivo, escribe con cuánto paga y verás el vuelto.", "Confirma y la venta queda guardada."] },
+  { k: ["cobr", "yape", "plin", "vuelto", "tarjeta", "efectivo"], t: "Cobrar una venta", go: "venta", s: ["En Vender, agrega los productos al ticket.", "Toca Efectivo, Yape, Plin, Culqi o Tarjeta (atajos: F2 o F9 efectivo, F8 Yape, F10 Plin; dentro del cobro, Q Culqi y T tarjeta).", "Si es efectivo, escribe con cuánto paga y verás el vuelto.", "Confirma y la venta queda guardada."] },
   { k: ["buscar", "escane", "codigo de barras", "agregar al ticket", "agrego un producto a la venta", "anotar un producto"], t: "Agregar productos al ticket", go: "venta", s: ["Escribe el nombre arriba (F3) o escanea el código de barras.", "Toca el producto para sumarlo.", "Cambia la cantidad con F6 y quita una línea con Supr."] },
   { k: ["producto nuevo", "crear producto", "crear un producto", "nuevo producto", "agregar producto", "registrar producto", "creo un producto"], t: "Crear un producto", go: "prod", s: ["Entra a Productos.", "Toca el botón para agregar un producto.", "Escribe nombre, precio, costo y stock.", "Guarda. Ya aparece en Vender."] },
   { k: ["cambiar precio", "cambiar el precio", "editar producto", "subir precio", "precio de un producto", "cambio el precio"], t: "Cambiar un precio", go: "prod", s: ["Entra a Productos.", "Toca el producto.", "Cambia el precio y guarda."] },
@@ -5480,7 +5485,7 @@ const HELP_KB = [
   { k: ["instalar", "aplicacion", "programa", "escritorio", "icono"], t: "Instalar Caja Fácil", go: "aj.negocio", s: ["Entra a Ajustes › Negocio.", "Toca «Instalar Caja Fácil»."] },
   { k: ["licencia", "suspend", "bloquead", "activar", "vencio mi"], t: "Caja bloqueada o sin activar", go: "aj.nube", s: ["Entra con tu cuenta de Google en la pantalla de activación.", "Si dice suspendida, habla con el proveedor.", "Si pasaron 15 días sin internet, conéctate un momento para revisar la licencia."] },
   { k: ["fichas", "fotos", "pantalla de venta", "minimarket", "modo escaner"], t: "Cambiar la pantalla de venta", go: "aj.venta", s: ["Entra a Ajustes › Pantalla de venta.", "Elige «Escáner (minimarket)» o «Fichas con fotos»."] },
-  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 efectivo · F8 Yape · F10 Plin · F9 tarjeta · F7 dividir pago.", "Supr quita la línea elegida."] },
+  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 o F9 efectivo · F8 Yape · F10 Plin · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
   { k: ["manejar otra caja", "cambiar desde mi laptop", "cambiar a distancia", "otra caja", "desde otra computadora", "remoto", "cambios a distancia"], t: "Manejar otra caja desde aquí", s: ["Ve a Ajustes › Nube › «Manejar otra caja» y toca «Elegir caja».", "Elige la caja y toca «Manejar». Arriba sale la barra «Manejando: …».", "Cambia productos, precios, stock, clientes, proveedores, usuarios, ajustes o la vitrina como siempre: se envía solo.", "Su caja lo aplica en un minuto si está prendida y con internet. En «Ver» sale si ya lo aplicó.", "Para terminar toca «Salir»: vuelves a tus datos de este equipo, que no se tocaron."] },
@@ -6091,15 +6096,15 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault(); ui.pay.other = true; ui.pay.recv = e.key; paintPay();
     const i = $("#recv"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } return;
   }
-  const FM = { F2: "efectivo", F8: "yape", F9: "tarjeta", F10: "plin" };
+  const FM = { F2: "efectivo", F8: "yape", F9: "efectivo", F10: "plin" }; // F9 = efectivo, igual que F2 (pedido de David)
   if (FM[e.key]) {
     e.preventDefault();
     if (open) {
       if (ui.mk !== "pay" || !ui.pay) return;
       if (ui.pay.split) A.partadd({ dataset: { m: FM[e.key] } });
-      else if (e.key === "F2" && ui.pay.method === "efectivo") confirmPay();
+      else if ((e.key === "F2" || e.key === "F9") && ui.pay.method === "efectivo") confirmPay();
       else { ui.pay.method = FM[e.key]; paintPay(); }
-    } else if (ui.tab === "venta") { if (!can("cobrar") && e.key === "F2") savePrev(); else startPay(FM[e.key]); }
+    } else if (ui.tab === "venta") { if (!can("cobrar") && (e.key === "F2" || e.key === "F9")) savePrev(); else startPay(FM[e.key]); }
     return;
   }
   if (e.key === "F1") { e.preventDefault(); if (!open && ui.tab === "venta") pickClient(); return; }

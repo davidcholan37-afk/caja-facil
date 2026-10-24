@@ -44,7 +44,7 @@ const fmtPhone = (v) => String(v || "").replace(/\D/g, "").replace(/(\d{3})(?=\d
 const parseAmounts = (s) => String(s).replace(/(\d),(\d{1,2})(?!\d)/g, "$1.$2").split(/[\s;,]+/).map((x) => parseFloat(x)).filter((n) => isFinite(n) && n > 0).map(r2);
 
 const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", culqi: "Culqi", tarjeta: "Tarjeta", transferencia: "Transferencia", credito: "Crédito", puntos: "Puntos" };
-const FK = { efectivo: "F2", yape: "F8", tarjeta: "F9", plin: "F10" };
+const FK = { efectivo: "F2", yape: "F8", plin: "F10" }; // F9 también cobra en efectivo (pedido de David); tarjeta: tecla T en el cobro
 const DOCS = { NV: "Nota de venta", B: "Boleta", F: "Factura" };
 const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
 const paysOf = (s) => (s.pays && s.pays.length ? s.pays : [{ m: s.method || "efectivo", amt: s.total }]);

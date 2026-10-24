@@ -94,15 +94,15 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault(); ui.pay.other = true; ui.pay.recv = e.key; paintPay();
     const i = $("#recv"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } return;
   }
-  const FM = { F2: "efectivo", F8: "yape", F9: "tarjeta", F10: "plin" };
+  const FM = { F2: "efectivo", F8: "yape", F9: "efectivo", F10: "plin" }; // F9 = efectivo, igual que F2 (pedido de David)
   if (FM[e.key]) {
     e.preventDefault();
     if (open) {
       if (ui.mk !== "pay" || !ui.pay) return;
       if (ui.pay.split) A.partadd({ dataset: { m: FM[e.key] } });
-      else if (e.key === "F2" && ui.pay.method === "efectivo") confirmPay();
+      else if ((e.key === "F2" || e.key === "F9") && ui.pay.method === "efectivo") confirmPay();
       else { ui.pay.method = FM[e.key]; paintPay(); }
-    } else if (ui.tab === "venta") { if (!can("cobrar") && e.key === "F2") savePrev(); else startPay(FM[e.key]); }
+    } else if (ui.tab === "venta") { if (!can("cobrar") && (e.key === "F2" || e.key === "F9")) savePrev(); else startPay(FM[e.key]); }
     return;
   }
   if (e.key === "F1") { e.preventDefault(); if (!open && ui.tab === "venta") pickClient(); return; }

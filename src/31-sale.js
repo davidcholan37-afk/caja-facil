@@ -490,7 +490,12 @@ function submitCode(raw) {
 /* ---------- acciones de la pantalla de venta ---------- */
 act({
   learnpick: (el) => { const p = prod(el.dataset.id), c = ui.lc; if (!p || !c) return; p.bar = p.bar || []; if (!p.bar.includes(c)) p.bar.push(c); save(); log("Código enlazado", `${c} → ${p.name}`); ui.lq2 = ""; ui.lc = ""; closeModal(); submitCode(c); },
-  add: (el) => { const p = prod(el.dataset.id); if (!p) return; if ((p.pres || []).length) presPicker(p); else if (p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p); },
+  add: (el) => { const p = prod(el.dataset.id); if (!p) return;
+    // Si en el buscador se escribió la cantidad o el peso con asterisco («0.250*pal») y se toca un producto de la
+    // lista (aunque no sea el primero), se agrega con esa cantidad, sin pedir el peso otra vez.
+    const qi = $("#q"), m = qi && ui.tab === "venta" ? qi.value.trim().match(/^([\d.,\/]+\s*(?:k?g|gr)?)\s*[*xX]\s*(.*)$/i) : null;
+    if (m) { const q = r3(parseQty(m[1])); if (q > 0) { ui.q = ""; ui.vsel = 0; qi.value = ""; addToCart(p, q); paintGrid(); focusQ(); return; } }
+    if ((p.pres || []).length) presPicker(p); else if (p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p); },
   addpres: (el) => { const p = prod(el.dataset.id); if (!p) return; const pres = el.dataset.p; closeModal(); if (!pres && p.unit === "kg") openWeigh(p.id, "add"); else addToCart(p, 1, pres); },
   inc: (el) => changeQty(el.dataset.k, 1),
   dec: (el) => changeQty(el.dataset.k, -1),
@@ -550,7 +555,7 @@ act({
     const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
     openModal(`<h2>Funciones</h2>
       <h3 class="fh">Cobrar</h3><div class="fgrid">
-      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "Culqi", "", "culqi") + f("pay", "caja", "Tarjeta", "F9", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
+      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "Culqi", "", "culqi") + f("pay", "caja", "Tarjeta", "", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
       ${f("prevsave", "prev", "Guardar preventa", cobra ? "" : "F2")}${cobra ? f("prevload", "prev", "Cobrar preventa") : ""}
       </div>
       <h3 class="fh">Ticket</h3><div class="fgrid">
@@ -562,7 +567,7 @@ act({
   },
   paymas: () => {
     const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
-    openModal(`<h2>Otras formas de pago</h2><div class="fgrid" style="margin:12px 0">${f("pay", "caja", "Tarjeta", "F9", "tarjeta")}${f("pay", "cli", "Crédito", "", "credito")}${f("split", "ventas", "Dividir pago", "F7")}${f("prevsave", "prev", "Guardar preventa", "")}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`);
+    openModal(`<h2>Otras formas de pago</h2><div class="fgrid" style="margin:12px 0">${f("pay", "caja", "Tarjeta", "", "tarjeta")}${f("pay", "cli", "Crédito", "", "credito")}${f("split", "ventas", "Dividir pago", "F7")}${f("prevsave", "prev", "Guardar preventa", "")}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`);
   },
   fn: (el) => { const a = el.dataset.f; closeModal(); if (A[a]) A[a]({ dataset: { m: el.dataset.m || "" } }); },
   quick: openQuick,
