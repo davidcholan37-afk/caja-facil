@@ -370,7 +370,7 @@ function finalizeSale(pays, cashGiven, extra = {}) {
   T.lines.forEach(({ l, r }) => { if (!r.quick) consume(r.p, r3(l.qty * r.f), "venta", docShort(s)); });
   if (t.prev) { const pv = DB.prev.find((x) => x.no === t.prev); if (pv) { pv.status = "cobrada"; pv.sale = s.id; save(pv.date); } }
   DB.sales.push(s);
-  dropCurrentTicket(); save();
+  freshTicketAfterSale(); save();
   return s;
 }
 

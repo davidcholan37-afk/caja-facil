@@ -848,6 +848,13 @@ function dropCurrentTicket() {
   else { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; }
   ui.sel = null;
 }
+// Después de cobrar (o guardar una preventa) el ticket que se cobró queda en blanco en su mismo lugar.
+// Antes se quitaba y el ticket «En espera» pasaba a ser el actual: la caja lo mostraba como si fuera la venta
+// siguiente y se le sumaban productos o se cobraba/borraba sin querer.
+function freshTicketAfterSale() {
+  if (DB.tickets.length > 1) { DB.tickets[DB.cur] = newTicket(++DB.tseq); ui.sel = null; }
+  else dropCurrentTicket();
+}
 function newTicketNow(extra = {}) {
   DB.tickets.push(Object.assign(newTicket(++DB.tseq), extra)); DB.cur = DB.tickets.length - 1; ui.sel = null; saveCart();
 }
@@ -877,7 +884,7 @@ function savePrev() {
   const t = DB.cart, no = ++DB.pseq;
   const pv = { no, t: Date.now(), date: dkey(), u: me().id, un: me().name, items: t.items.map((i) => Object.assign({}, i)), disc: t.disc || 0, client: t.client || "", total: ticketTotal(t), status: "pendiente", sale: 0 };
   DB.prev.push(pv); log("Preventa", `N° ${no} ${money(pv.total)}`);
-  dropCurrentTicket(); save(); paintSale();
+  freshTicketAfterSale(); save(); paintSale();
   openModal(`<div class="bigok"><span>Preventa guardada</span><b class="num">N° ${no}</b><p>El cliente paga en caja diciendo este número. Total ${money(pv.total)}.</p></div>
     <div class="btns h"><button class="btn sec" data-a="prevprint" data-n="${no}">${svg("print", "bi")}Imprimir</button><button class="btn" data-a="close" data-enter>Seguir vendiendo</button></div>`);
 }
@@ -1277,7 +1284,7 @@ function finalizeSale(pays, cashGiven, extra = {}) {
   T.lines.forEach(({ l, r }) => { if (!r.quick) consume(r.p, r3(l.qty * r.f), "venta", docShort(s)); });
   if (t.prev) { const pv = DB.prev.find((x) => x.no === t.prev); if (pv) { pv.status = "cobrada"; pv.sale = s.id; save(pv.date); } }
   DB.sales.push(s);
-  dropCurrentTicket(); save();
+  freshTicketAfterSale(); save();
   return s;
 }
 
