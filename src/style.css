@@ -2974,3 +2974,9 @@ html[data-theme=dark] #pe.pe4 .useg button.on{background:#1F7A49!important;borde
   #rembar .rb-tx{flex-direction:row;gap:8px;align-items:baseline}
   #rembar .rb-btn{min-height:26px;padding:0 10px;border-radius:8px;font-size:12.5px}
 }
+
+/* ===== Cerrar ventanas sin pestañeo (modalGhost en 10-ui): el fondo oscuro se desvanece, solo opacidad ===== */
+.modal.mghost{z-index:59;pointer-events:none;background:rgba(17,24,39,.34);backdrop-filter:none!important;-webkit-backdrop-filter:none!important;transition:opacity 160ms var(--ease-out)}
+html[data-theme=dark] .modal.mghost{background:rgba(0,0,0,.58)}
+.modal.mghost{animation:none!important}
+.modal.mghost.out{opacity:0}

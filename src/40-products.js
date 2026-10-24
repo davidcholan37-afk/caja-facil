@@ -172,7 +172,12 @@ function saveProduct() {
     ui.pe = null; save(); closeModal(); toast("Producto guardado");
     const row = id && ui.tab === "prod" && $(`#plist .it[data-id="${id}"]`), sum = $("#pbody .sumrow");
     if (row) {
-      row.outerHTML = pRow(p); if (sum) sum.innerHTML = prodSum(); pselMark();
+      // Solo cambia lo que cambió: la foto se queda tal cual (si se vuelve a crear, parpadea un instante).
+      const t = document.createElement("template"); t.innerHTML = pRow(p); const nw = t.content.firstElementChild;
+      const oi = $(".iti", row), ni = $(".iti", nw);
+      if (oi && ni && oi.outerHTML === ni.outerHTML) { ["t", "v"].forEach((c) => { const a = $("." + c, row), b = $("." + c, nw); if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; }); }
+      else row.replaceWith(nw);
+      if (sum) sum.innerHTML = prodSum(); pselMark();
       const q = $("#pq"); if (q && DESK()) { q.focus(); if (q.value) q.select(); }
     } else render();
   };

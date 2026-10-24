@@ -535,8 +535,18 @@ function openModal(html, cls = "") {
   document.body.classList.add("noscroll");
   const f = $("[autofocus]", m); if (f && (DESK() || f.dataset.mfocus !== undefined)) setTimeout(() => { f.focus(); if (f.select && f.value) f.select(); }, 60);
 }
+// Al cerrar con el mouse o el dedo, el fondo oscuro se desvanece en 160 ms (antes desaparecía de golpe junto con la
+// ventana y se veía como un pestañeo). Con el teclado, en modo rápido o con movimiento reducido: al instante.
+function modalGhost(m) {
+  const h = document.documentElement;
+  if (m.hidden || h.dataset.input === "kbd" || h.classList.contains("lite") || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const g = document.createElement("div"); g.className = "modal mghost"; g.setAttribute("aria-hidden", "true");
+  document.body.appendChild(g);
+  requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add("out")));
+  setTimeout(() => g.remove(), 260);
+}
 function closeModal() {
-  const m = $("#modal"); m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
+  const m = $("#modal"); modalGhost(m); m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
   ui.pay = null; ui.mk = ""; stopScaleRead(); stopCam(); stopVoz();
   const b = modalBack; modalBack = null; if (b) return b();
   focusQ();
@@ -2425,7 +2435,12 @@ function saveProduct() {
     ui.pe = null; save(); closeModal(); toast("Producto guardado");
     const row = id && ui.tab === "prod" && $(`#plist .it[data-id="${id}"]`), sum = $("#pbody .sumrow");
     if (row) {
-      row.outerHTML = pRow(p); if (sum) sum.innerHTML = prodSum(); pselMark();
+      // Solo cambia lo que cambió: la foto se queda tal cual (si se vuelve a crear, parpadea un instante).
+      const t = document.createElement("template"); t.innerHTML = pRow(p); const nw = t.content.firstElementChild;
+      const oi = $(".iti", row), ni = $(".iti", nw);
+      if (oi && ni && oi.outerHTML === ni.outerHTML) { ["t", "v"].forEach((c) => { const a = $("." + c, row), b = $("." + c, nw); if (a && b && a.innerHTML !== b.innerHTML) a.innerHTML = b.innerHTML; }); }
+      else row.replaceWith(nw);
+      if (sum) sum.innerHTML = prodSum(); pselMark();
       const q = $("#pq"); if (q && DESK()) { q.focus(); if (q.value) q.select(); }
     } else render();
   };
