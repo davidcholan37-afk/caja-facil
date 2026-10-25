@@ -848,15 +848,14 @@ function dropCurrentTicket() {
   else { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; }
   ui.sel = null;
 }
-// Después de cobrar (o guardar una preventa) el ticket cobrado se borra y la caja pasa al ticket que estaba
-// «En espera» (pedido de David). Los tickets vacíos no se acumulan; si no queda ninguno, vuelve a «Ticket 1».
-// La pantalla «¡Vendido!» con el vuelto se sigue viendo hasta tocar «Seguir…»/Enter o escanear (ui.doneTk en paintCart).
+// Después de cobrar (o guardar una preventa) el ticket cobrado se borra y la caja queda en un ticket NUEVO vacío,
+// listo para el siguiente cliente; los «En espera» con productos siguen esperando (se vuelve a ellos con ← →).
+// Los vacíos no se acumulan: queda uno solo, y si no hay nada en espera vuelve a «Ticket 1». (David, 24 oct 2026)
 function freshTicketAfterSale() {
-  const at = DB.cur;
-  DB.tickets.splice(at, 1); ui.sel = null;
+  DB.tickets.splice(DB.cur, 1); ui.sel = null;
   DB.tickets = DB.tickets.filter((t) => t.items.length || t.mesa || t.prev || t.name);
   if (!DB.tickets.length) { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; return; }
-  DB.cur = Math.max(0, Math.min(at - 1, DB.tickets.length - 1));
+  DB.tickets.push(newTicket(++DB.tseq)); DB.cur = DB.tickets.length - 1;
 }
 function tkStep(d) {
   const n = DB.tickets.length; if (n < 2) return;
@@ -1023,6 +1022,20 @@ function saleCmp(key, q, favs) {
   const kg = !!q && !/^\d+$/.test(key);
   return (a, b) => ((b.code === key) - (a.code === key)) || (kg ? (b.unit === "kg") - (a.unit === "kg") : 0) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (favs ? 1 : 0) || cmpEs(a.name, b.name);
 }
+function gMark(scroll) {
+  const its = $$("#grid > [data-a=add]");
+  if (!ui.gq || !its.length) { its.forEach((x) => x.classList.remove("ksel")); return; }
+  ui.gsel = Math.max(0, Math.min(its.length - 1, ui.gsel || 0));
+  its.forEach((x, i) => x.classList.toggle("ksel", i === ui.gsel));
+  if (scroll) its[ui.gsel].scrollIntoView({ block: "nearest" });
+}
+// ↑ ↓ (y ← → en Fichas): d = ±1 lado a lado, ±"fila" arriba/abajo.
+function gMove(d, rows) {
+  const its = $$("#grid > [data-a=add]"); if (!its.length) return;
+  let step = 1;
+  if (rows) { const top = its[0].offsetTop; step = Math.max(1, its.filter((x) => x.offsetTop === top).length); }
+  ui.gsel = Math.max(0, Math.min(its.length - 1, (ui.gsel || 0) + d * step)); gMark(true);
+}
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
@@ -1041,12 +1054,14 @@ function paintGrid() {
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : saleCmp(key, q, !ui.cat));
   if (!list.length) { el._gh = null; el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
   if (sm && vit() && q) { ui.vq = key; ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
+  // Resultados de la búsqueda (Escáner y Fichas): uno marcado que se mueve con las flechas y Enter agrega (gMark).
+  if (q) { if (ui.graw !== raw) ui.gsel = 0; ui.graw = raw; ui.gq = key; ui.glist = list.slice(0, 120).map((p) => p.id); } else { ui.gq = null; ui.glist = []; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
   const MAXL = 120, shown = list.slice(0, MAXL);
   // Si la lista es la misma (solo cambió el ticket), no se vuelve a dibujar: solo se ponen las cantidades. En PC lentas redibujar 120 fichas por producto agregado pesaba.
   const html = shown.map((p) => (sm ? rowHtml : tileHtml)(p, 0)).join("") + (list.length > MAXL ? `<p class="muted" style="grid-column:1/-1;padding:8px 4px">Mostrando ${MAXL} de ${list.length}. Escribe más para encontrar el producto.</p>` : "");
   if (el._gh !== html || !el.firstElementChild) { el.innerHTML = html; el._gh = html; }
-  qtyMarks(el, inCart, sm);
+  qtyMarks(el, inCart, sm); gMark();
   ui.bump = null;
 }
 // Pone o quita la cantidad que ya está en el ticket sobre cada ficha/fila, sin redibujar la lista.
@@ -1405,7 +1420,7 @@ function submitCode(raw) {
   const exact = !!p;
   if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { list.sort(saleCmp(code, k, true)); const kgs = list.filter((x) => x.unit === "kg");
       // En Vitrina, Enter toma el marcado de la lista (si la lista es de esta misma búsqueda; si no, el primero). Con peso «0.250*…» y un solo producto por kilo, ese.
-      const vp = vit() ? (ui.vq === code && ui.vlist && ui.vlist.length > 1 ? prod(ui.vlist[ui.vsel || 0]) : list[0]) : qty != null && kgs.length === 1 ? kgs[0] : null; if (vp) p = vp; else { toast("Hay varios productos así: toca el que quieras"); return; } } }
+      const vp = vit() ? (ui.vq === code && ui.vlist && ui.vlist.length > 1 ? prod(ui.vlist[ui.vsel || 0]) : list[0]) : ui.gq === code && ui.glist && ui.glist.length ? prod(ui.glist[ui.gsel || 0]) || list[0] : list[0]; if (vp) p = vp; else { toast("Hay varios productos así: toca el que quieras"); return; } } }
   if (!p && qty == null && /^\d{6,}$/.test(code) && can("cobrar")) { beep(false); clear(); ui.lq2 = ""; learnOpen(code); return; } // código de barras nuevo: se enlaza a un producto
   if (!p) { toast("No encontramos «" + code + "»"); beep(false); return; }
   clear();
@@ -6127,6 +6142,12 @@ document.addEventListener("keydown", (e) => {
     const lr = e.key === "ArrowLeft" || e.key === "ArrowRight", ud = e.key === "ArrowDown" || e.key === "ArrowUp";
     if ((lr || (ud && !DB.cart.items.length)) && DB.tickets.length > 1 && (!field || (inQ && !e.target.value)) && !e.shiftKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault(); tkStep(e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1); return;
+    }
+    // Escáner y Fichas: con algo escrito, ↑ ↓ se mueven por los resultados; en Fichas también ← →.
+    if (inQ && e.target.value.trim() && !vit() && ui.glist && ui.glist.length && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      const tiles = DB.cfg.view === "tiles";
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); gMove(e.key === "ArrowDown" ? 1 : -1, tiles); return; }
+      if (tiles && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { e.preventDefault(); gMove(e.key === "ArrowRight" ? 1 : -1, false); return; }
     }
     if ((e.key === "ArrowDown" || e.key === "ArrowUp") && vit() && ui.q.trim() && ui.vlist && ui.vlist.length > 1) { e.preventDefault(); ui.vsel = Math.min(ui.vlist.length - 1, Math.max(0, (ui.vsel || 0) + (e.key === "ArrowDown" ? 1 : -1))); paintGrid(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); moveSel(e.key === "ArrowDown" ? 1 : -1); return; }

@@ -64,15 +64,14 @@ function dropCurrentTicket() {
   else { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; }
   ui.sel = null;
 }
-// Después de cobrar (o guardar una preventa) el ticket cobrado se borra y la caja pasa al ticket que estaba
-// «En espera» (pedido de David). Los tickets vacíos no se acumulan; si no queda ninguno, vuelve a «Ticket 1».
-// La pantalla «¡Vendido!» con el vuelto se sigue viendo hasta tocar «Seguir…»/Enter o escanear (ui.doneTk en paintCart).
+// Después de cobrar (o guardar una preventa) el ticket cobrado se borra y la caja queda en un ticket NUEVO vacío,
+// listo para el siguiente cliente; los «En espera» con productos siguen esperando (se vuelve a ellos con ← →).
+// Los vacíos no se acumulan: queda uno solo, y si no hay nada en espera vuelve a «Ticket 1». (David, 24 oct 2026)
 function freshTicketAfterSale() {
-  const at = DB.cur;
-  DB.tickets.splice(at, 1); ui.sel = null;
+  DB.tickets.splice(DB.cur, 1); ui.sel = null;
   DB.tickets = DB.tickets.filter((t) => t.items.length || t.mesa || t.prev || t.name);
   if (!DB.tickets.length) { DB.tickets = [newTicket(1)]; DB.tseq = 1; DB.cur = 0; return; }
-  DB.cur = Math.max(0, Math.min(at - 1, DB.tickets.length - 1));
+  DB.tickets.push(newTicket(++DB.tseq)); DB.cur = DB.tickets.length - 1;
 }
 function tkStep(d) {
   const n = DB.tickets.length; if (n < 2) return;

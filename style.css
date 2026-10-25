@@ -2981,3 +2981,7 @@ html[data-theme=dark] #pe.pe4 .useg button.on{background:#1F7A49!important;borde
 html[data-theme=dark] .modal.mghost{background:rgba(0,0,0,.58)}
 .modal.mghost{animation:none!important}
 .modal.mghost.out{opacity:0}
+
+/* ===== Resultados con flechas (Escáner y Fichas, gMark en 31-sale): el marcado lleva borde verde ===== */
+#grid > .prow.ksel,#grid > .pt.ksel{outline:2.5px solid var(--ac,#1D8A4E);outline-offset:-2.5px;background-color:color-mix(in srgb,var(--ac,#1D8A4E) 9%,var(--s1,#fff))}
+#grid > .pt.ksel{outline-offset:1px}

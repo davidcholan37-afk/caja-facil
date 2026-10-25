@@ -117,6 +117,12 @@ document.addEventListener("keydown", (e) => {
     if ((lr || (ud && !DB.cart.items.length)) && DB.tickets.length > 1 && (!field || (inQ && !e.target.value)) && !e.shiftKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault(); tkStep(e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1); return;
     }
+    // Escáner y Fichas: con algo escrito, ↑ ↓ se mueven por los resultados; en Fichas también ← →.
+    if (inQ && e.target.value.trim() && !vit() && ui.glist && ui.glist.length && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      const tiles = DB.cfg.view === "tiles";
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); gMove(e.key === "ArrowDown" ? 1 : -1, tiles); return; }
+      if (tiles && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { e.preventDefault(); gMove(e.key === "ArrowRight" ? 1 : -1, false); return; }
+    }
     if ((e.key === "ArrowDown" || e.key === "ArrowUp") && vit() && ui.q.trim() && ui.vlist && ui.vlist.length > 1) { e.preventDefault(); ui.vsel = Math.min(ui.vlist.length - 1, Math.max(0, (ui.vsel || 0) + (e.key === "ArrowDown" ? 1 : -1))); paintGrid(); return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); moveSel(e.key === "ArrowDown" ? 1 : -1); return; }
     if (!field || (inQ && !e.target.value)) {
