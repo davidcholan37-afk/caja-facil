@@ -1017,6 +1017,12 @@ function scanHome() {
     : `<div class="lastp idle">${svg("scan")}<b class="ln1">Escanea un producto</b></div>`;
   return `${last}${quick.length ? `<div class="quick"><h3>Sin código</h3><div class="qgrid">${quick.map((p) => `<button class="qk" data-a="add" data-id="${p.id}">${p.code ? `<i class="num">${esc(p.code)}</i>` : ""}<b>${esc(p.name)}</b><span class="num">${money(p.price)}${p.unit === "kg" ? "/kg" : ""}</span></button>`).join("")}</div></div>` : ""}`;
 }
+// Orden de la búsqueda en Vender: el código exacto primero; al buscar por nombre, primero lo que se vende por kilo
+// (lo que no tiene código de barras se busca escribiendo; pedido de David); luego lo que empieza igual, favoritos y A-Z.
+function saleCmp(key, q, favs) {
+  const kg = !!q && !/^\d+$/.test(key);
+  return (a, b) => ((b.code === key) - (a.code === key)) || (kg ? (b.unit === "kg") - (a.unit === "kg") : 0) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (favs ? 1 : 0) || cmpEs(a.name, b.name);
+}
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
@@ -1032,9 +1038,9 @@ function paintGrid() {
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
   let list = DB.products.filter((p) => p.on !== false && catOk(p) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
-  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : (a, b) => ((b.code === key) - (a.code === key)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (ui.cat ? 0 : 1) || cmpEs(a.name, b.name));
+  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : saleCmp(key, q, !ui.cat));
   if (!list.length) { el._gh = null; el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
-  if (sm && vit() && q) { ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
+  if (sm && vit() && q) { ui.vq = key; ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
   const MAXL = 120, shown = list.slice(0, MAXL);
   // Si la lista es la misma (solo cambió el ticket), no se vuelve a dibujar: solo se ponen las cantidades. En PC lentas redibujar 120 fichas por producto agregado pesaba.
@@ -1397,7 +1403,9 @@ function submitCode(raw) {
   if (!p) { for (const x of DB.products) { const ps = (x.pres || []).find((y) => y.code && y.code === code); if (ps) { p = x; pres = ps.id; break; } } }
   if (!p) p = DB.products.find((x) => (x.bar || []).includes(code)); // código de barras enlazado (aprendido al escanear)
   const exact = !!p;
-  if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { const vp = vit() && ui.vlist && ui.vlist.length > 1 ? prod(ui.vlist[ui.vsel || 0]) : null; if (vp) p = vp; else { toast("Hay varios productos así: toca el que quieras"); return; } } }
+  if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { list.sort(saleCmp(code, k, true)); const kgs = list.filter((x) => x.unit === "kg");
+      // En Vitrina, Enter toma el marcado de la lista (si la lista es de esta misma búsqueda; si no, el primero). Con peso «0.250*…» y un solo producto por kilo, ese.
+      const vp = vit() ? (ui.vq === code && ui.vlist && ui.vlist.length > 1 ? prod(ui.vlist[ui.vsel || 0]) : list[0]) : qty != null && kgs.length === 1 ? kgs[0] : null; if (vp) p = vp; else { toast("Hay varios productos así: toca el que quieras"); return; } } }
   if (!p && qty == null && /^\d{6,}$/.test(code) && can("cobrar")) { beep(false); clear(); ui.lq2 = ""; learnOpen(code); return; } // código de barras nuevo: se enlaza a un producto
   if (!p) { toast("No encontramos «" + code + "»"); beep(false); return; }
   clear();

@@ -58,6 +58,7 @@ App web estática (HTML/CSS/JS sin frameworks) publicada con GitHub Pages. Todo 
 
 ## Cantidad con asterisco y teclas de cobro
 - **«0.250*pal» y tocar un producto de la lista** (pedido de David, video del 23 oct 2026): la acción `add` (31-sale) lee la cantidad/peso escrita antes del `*`/`x` en `#q` (mismo patrón que `submitCode`) y agrega el producto tocado con esa cantidad, aunque no sea el primero de la lista y aunque sea por kilo: ya no abre la ventana del peso. Limpia el buscador. Prueba: `peso.py`.
+- **Primero lo que se vende por kilo** (idea de David, 24 oct 2026): al buscar por nombre en Vender, `saleCmp(key, q, favs)` (31-sale) ordena: código exacto → por kilo → lo que empieza igual (`nameRank`) → favoritos → A-Z. Si se escribe un código (solo números) no se reordena. En Vitrina, Enter toma el marcado solo si la lista es de esa misma búsqueda (`ui.vq`); si no, el primero (antes, escribir rápido y Enter podía tomar uno de la búsqueda anterior). En Escáner/Fichas, con «0.250*…» y un solo producto por kilo que coincide, Enter lo agrega; con varios sigue «Hay varios productos así». Prueba: `kgfirst.py`.
 - **F9 cobra en efectivo** igual que F2 (abre el cobro y, dentro, confirma). Tarjeta ya no tiene tecla F (dentro del cobro es la T). `FM`/`FK` en 99-events/00-core; textos de `HELP_KB` y prompt de `ayuda` (v16) actualizados.
 
 ## Códigos de barras que la caja aprende
