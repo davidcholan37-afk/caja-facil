@@ -5509,7 +5509,7 @@ const HELP_KB = [
   { k: ["instalar", "aplicacion", "programa", "escritorio", "icono"], t: "Instalar Caja Fácil", go: "aj.negocio", s: ["Entra a Ajustes › Negocio.", "Toca «Instalar Caja Fácil»."] },
   { k: ["licencia", "suspend", "bloquead", "activar", "vencio mi"], t: "Caja bloqueada o sin activar", go: "aj.nube", s: ["Entra con tu cuenta de Google en la pantalla de activación.", "Si dice suspendida, habla con el proveedor.", "Si pasaron 15 días sin internet, conéctate un momento para revisar la licencia."] },
   { k: ["fichas", "fotos", "pantalla de venta", "minimarket", "modo escaner"], t: "Cambiar la pantalla de venta", go: "aj.venta", s: ["Entra a Ajustes › Pantalla de venta.", "Elige «Escáner (minimarket)» o «Fichas con fotos»."] },
-  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 o F9 efectivo · F8 Yape · F10 Plin · F7 dividir pago.", "Supr quita la línea elegida."] },
+  { k: ["atajo", "tecla", "teclado", "f1", "f2"], t: "Teclas rápidas", go: "venta", s: ["F1 cliente · F3 buscar · F5 en espera · F6 cantidad.", "F2 o F9 efectivo · F8 Yape · F10 Plin · En el cobro, flechas ← → eligen el medio de pago y ↓ los billetes; Enter cobra con el marcado · F7 dividir pago.", "Supr quita la línea elegida."] },
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
   { k: ["manejar otra caja", "cambiar desde mi laptop", "cambiar a distancia", "otra caja", "desde otra computadora", "remoto", "cambios a distancia"], t: "Manejar otra caja desde aquí", s: ["Ve a Ajustes › Nube › «Manejar otra caja» y toca «Elegir caja».", "Elige la caja y toca «Manejar». Arriba sale la barra «Manejando: …».", "Cambia productos, precios, stock, clientes, proveedores, usuarios, ajustes o la vitrina como siempre: se envía solo.", "Su caja lo aplica en un minuto si está prendida y con internet. En «Ver» sale si ya lo aplicó.", "Para terminar toca «Salir»: vuelves a tus datos de este equipo, que no se tocaron."] },
@@ -6103,6 +6103,33 @@ function applySetting(t) {
   setK(key, v); save(); toast("Guardado"); paintNav();
   if (/tables|pts|igvOn|docDef|scale\.(baud|fmt)/.test(key)) render();
 }
+// Cobro con flechas. En los medios de pago ← → pasan al anterior/siguiente en orden (y queda elegido); ↓ baja a los
+// billetes o al botón de cobrar. Ahí las flechas se mueven a lo que está al lado/arriba/abajo, y ↑ desde la fila de
+// arriba vuelve a los medios. Enter cobra con lo marcado.
+function payNav(k) {
+  const vis = (x) => x && x.offsetParent !== null && !x.disabled;
+  const mths = $$("#modal .mth").filter(vis), on = $("#modal .mth.on");
+  const body = [...$$("#modal .paybody .bill"), ...$$("#modal .paybody #payok"), ...$$("#modal .paybody [data-a=payother]")].filter(vis);
+  let cur = document.activeElement;
+  if (!mths.includes(cur) && !body.includes(cur)) cur = on;
+  if (!cur) return;
+  const pick = (el) => { if (el.classList.contains("mth")) { A.method(el); const n = $("#modal .mth.on"); if (n) n.focus(); } else el.focus(); };
+  if (mths.includes(cur)) {
+    if (k === "ArrowLeft" || k === "ArrowRight") { const i = mths.indexOf(cur), n = mths[(i + (k === "ArrowRight" ? 1 : -1) + mths.length) % mths.length]; return pick(n); }
+    if (k === "ArrowDown" && body.length) body[0].focus();
+    return;
+  }
+  const dx = k === "ArrowRight" ? 1 : k === "ArrowLeft" ? -1 : 0, dy = k === "ArrowDown" ? 1 : k === "ArrowUp" ? -1 : 0;
+  const r0 = cur.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
+  let best = null, bd = 1e9;
+  body.forEach((c) => {
+    if (c === cur) return;
+    const r = c.getBoundingClientRect(), x = r.left + r.width / 2 - cx, y = r.top + r.height / 2 - cy;
+    const main = dx ? x * dx : y * dy, cross = dx ? Math.abs(y) : Math.abs(x);
+    if (main <= 4) return; const d = main + cross * 2.5; if (d < bd) { bd = d; best = c; }
+  });
+  if (best) best.focus(); else if (k === "ArrowUp" && on) on.focus();
+}
 function moveSel(d) {
   const ks = cartLines().map((x) => lineKey(x.l.id, x.l.pres)); if (!ks.length) return;
   let i = ks.indexOf(ui.sel); i = i < 0 ? ks.length - 1 : Math.min(ks.length - 1, Math.max(0, i + d));
@@ -6121,6 +6148,8 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k" && ui.tab === "venta") { e.preventDefault(); if (!open) A.tools(); else if ($("#modal .fgrid")) closeModal(); return; }
   if (e.key === "Escape" && open) { e.preventDefault(); if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   if (e.key === "Escape" && !open && ui.tab === "venta" && ui.done) { e.preventDefault(); return A.newsale(); }
+  // Cobro: las flechas se mueven entre los medios de pago (al pasar por uno, queda elegido) y los billetes; Enter cobra con el marcado.
+  if (open && ui.mk === "pay" && ui.pay && !ui.pay.split && /^Arrow(Left|Right|Up|Down)$/.test(e.key) && !(field && e.target.value) && !e.shiftKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); payNav(e.key); return; }
   if (open && ui.mk === "pay" && ui.pay && !ui.pay.split && ui.pay.method === "efectivo" && !field && !e.ctrlKey && !e.metaKey && /^[\d.,]$/.test(e.key)) {
     e.preventDefault(); ui.pay.other = true; ui.pay.recv = e.key; paintPay();
     const i = $("#recv"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } return;

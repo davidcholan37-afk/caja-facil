@@ -3014,3 +3014,12 @@ html[data-theme=dark] .modal.mghost{background:rgba(0,0,0,.58)}
   html body.vit[data-tab=venta] .vr .num{white-space:nowrap;font-size:15px}
   html body.vit[data-tab=venta] .vlist{padding-bottom:64px}
 }
+
+/* ===== Cobro con flechas (payNav en 99-events): el botón marcado se ve con un anillo verde grueso ===== */
+.sheet.paym .mth:focus-visible,.sheet.paym .bill:focus-visible,.sheet.paym #payok:focus-visible,.sheet.paym [data-a=payother]:focus-visible{outline:3px solid var(--ac,#1D8A4E);outline-offset:3px}
+/* Si con las flechas se marca otro billete, «Enter» se pasa a ese (Enter cobra con el marcado) y Exacto queda normal. */
+html body .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) .bill.exact{box-shadow:none;background:var(--s1,#fff)}
+html body .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) .bill.exact::after{content:none}
+html body .sheet.paym:has(.paybody) .bill:focus-visible:not(.exact){position:relative}
+html body .sheet.paym:has(.paybody) .bill:focus-visible:not(.exact)::after{content:"Enter";position:absolute;top:8px;right:8px;padding:1px 6px;border-radius:5px;background:var(--ac,#1D8A4E);color:#fff;font:700 10px/16px var(--f)}
+html[data-theme=dark] body .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) .bill.exact{background:var(--s1,#14211A)}

@@ -77,6 +77,33 @@ function applySetting(t) {
   setK(key, v); save(); toast("Guardado"); paintNav();
   if (/tables|pts|igvOn|docDef|scale\.(baud|fmt)/.test(key)) render();
 }
+// Cobro con flechas. En los medios de pago ← → pasan al anterior/siguiente en orden (y queda elegido); ↓ baja a los
+// billetes o al botón de cobrar. Ahí las flechas se mueven a lo que está al lado/arriba/abajo, y ↑ desde la fila de
+// arriba vuelve a los medios. Enter cobra con lo marcado.
+function payNav(k) {
+  const vis = (x) => x && x.offsetParent !== null && !x.disabled;
+  const mths = $$("#modal .mth").filter(vis), on = $("#modal .mth.on");
+  const body = [...$$("#modal .paybody .bill"), ...$$("#modal .paybody #payok"), ...$$("#modal .paybody [data-a=payother]")].filter(vis);
+  let cur = document.activeElement;
+  if (!mths.includes(cur) && !body.includes(cur)) cur = on;
+  if (!cur) return;
+  const pick = (el) => { if (el.classList.contains("mth")) { A.method(el); const n = $("#modal .mth.on"); if (n) n.focus(); } else el.focus(); };
+  if (mths.includes(cur)) {
+    if (k === "ArrowLeft" || k === "ArrowRight") { const i = mths.indexOf(cur), n = mths[(i + (k === "ArrowRight" ? 1 : -1) + mths.length) % mths.length]; return pick(n); }
+    if (k === "ArrowDown" && body.length) body[0].focus();
+    return;
+  }
+  const dx = k === "ArrowRight" ? 1 : k === "ArrowLeft" ? -1 : 0, dy = k === "ArrowDown" ? 1 : k === "ArrowUp" ? -1 : 0;
+  const r0 = cur.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
+  let best = null, bd = 1e9;
+  body.forEach((c) => {
+    if (c === cur) return;
+    const r = c.getBoundingClientRect(), x = r.left + r.width / 2 - cx, y = r.top + r.height / 2 - cy;
+    const main = dx ? x * dx : y * dy, cross = dx ? Math.abs(y) : Math.abs(x);
+    if (main <= 4) return; const d = main + cross * 2.5; if (d < bd) { bd = d; best = c; }
+  });
+  if (best) best.focus(); else if (k === "ArrowUp" && on) on.focus();
+}
 function moveSel(d) {
   const ks = cartLines().map((x) => lineKey(x.l.id, x.l.pres)); if (!ks.length) return;
   let i = ks.indexOf(ui.sel); i = i < 0 ? ks.length - 1 : Math.min(ks.length - 1, Math.max(0, i + d));
@@ -95,6 +122,8 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k" && ui.tab === "venta") { e.preventDefault(); if (!open) A.tools(); else if ($("#modal .fgrid")) closeModal(); return; }
   if (e.key === "Escape" && open) { e.preventDefault(); if (ui.mk === "cam" && cam.mode === "codigo") return A.camback(); return closeModal(); }
   if (e.key === "Escape" && !open && ui.tab === "venta" && ui.done) { e.preventDefault(); return A.newsale(); }
+  // Cobro: las flechas se mueven entre los medios de pago (al pasar por uno, queda elegido) y los billetes; Enter cobra con el marcado.
+  if (open && ui.mk === "pay" && ui.pay && !ui.pay.split && /^Arrow(Left|Right|Up|Down)$/.test(e.key) && !(field && e.target.value) && !e.shiftKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); payNav(e.key); return; }
   if (open && ui.mk === "pay" && ui.pay && !ui.pay.split && ui.pay.method === "efectivo" && !field && !e.ctrlKey && !e.metaKey && /^[\d.,]$/.test(e.key)) {
     e.preventDefault(); ui.pay.other = true; ui.pay.recv = e.key; paintPay();
     const i = $("#recv"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } return;
