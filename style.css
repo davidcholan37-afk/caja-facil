@@ -3024,3 +3024,16 @@ html body .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) 
 html body .sheet.paym:has(.paybody) .bill:focus-visible:not(.exact){position:relative}
 html body .sheet.paym:has(.paybody) .bill:focus-visible:not(.exact)::after{content:"Enter";position:absolute;top:8px;right:8px;padding:1px 6px;border-radius:5px;background:var(--ac,#1D8A4E);color:#fff;font:700 10px/16px var(--f)}
 html[data-theme=dark] body .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) .bill.exact{background:var(--s1,#14211A)}
+
+/* ===== Total en el verde del menú (opción 1, David 24 oct 2026; antes franja casi negra del «Súper moderno») ===== */
+html body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:var(--fv,#0F4D32)!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:#14402A!important;box-shadow:none}
+/* ===== Menú oculto: en vez de la franja verde del borde, solo una pestaña verde a media altura (opción 3, David 24 oct 2026) =====
+   El botón .siderail no ocupa ancho; su flecha es una pestaña fija de 26×56 px (fácil de tocar en la NCR). */
+@media (min-width:960px){
+  html.side-off .siderail{width:0!important;padding:0!important;background:transparent!important;overflow:visible}
+  html.side-off .siderail svg{position:fixed;left:0;top:50%;margin-top:-28px;width:26px!important;height:56px!important;padding:18px 5px 18px 3px;box-sizing:border-box;border-radius:0 14px 14px 0;background:var(--fv2,#1D8A4E);color:#fff;box-shadow:2px 0 8px rgba(0,0,0,.18);z-index:45}
+  @media (hover:hover) and (pointer:fine){html.side-off .siderail:hover{background:transparent!important}html.side-off .siderail:hover svg{background:var(--fv,#0F4D32)}}
+  html.side-off .siderail:focus-visible{outline:none}
+  html.side-off .siderail:focus-visible svg{outline:3px solid var(--fvl,#8BD448);outline-offset:2px}
+}
