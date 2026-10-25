@@ -133,7 +133,7 @@ function paintGrid() {
   let list = DB.products.filter((p) => p.on !== false && catOk(p) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : saleCmp(key, q, !ui.cat));
   if (!list.length) { el._gh = null; el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
-  if (sm && vit() && q) { ui.vq = key; ui.vlist = list.slice(0, 8).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 8), key); ui.bump = null; return; }
+  if (sm && vit() && q) { ui.vq = key; ui.vlist = list.slice(0, 12).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 12), key); ui.bump = null; return; }
   // Resultados de la búsqueda (Escáner y Fichas): uno marcado que se mueve con las flechas y Enter agrega (gMark).
   if (q) { if (ui.graw !== raw) ui.gsel = 0; ui.graw = raw; ui.gq = key; ui.glist = list.slice(0, 120).map((p) => p.id); } else { ui.gq = null; ui.glist = []; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });

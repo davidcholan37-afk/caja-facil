@@ -2984,3 +2984,33 @@ html[data-theme=dark] .modal.mghost{background:rgba(0,0,0,.58)}
 /* ===== Resultados con flechas (Escáner y Fichas, gMark en 31-sale): el marcado lleva borde verde ===== */
 #grid > .prow.ksel,#grid > .pt.ksel{outline:2.5px solid var(--ac,#1D8A4E);outline-offset:-2.5px;background-color:color-mix(in srgb,var(--ac,#1D8A4E) 9%,var(--s1,#fff))}
 #grid > .pt.ksel{outline-offset:1px}
+
+/* ===== Vitrina: los resultados de la búsqueda se desplazan dentro de su columna (antes los de abajo quedaban fuera
+   de la pantalla y no se podían ver ni tocar) ===== */
+@media (min-width:960px){
+  html body.vit[data-tab=venta] #grid:has(> .vres){overflow-y:auto;overscroll-behavior:contain;scroll-padding:8px}
+  html body.vit[data-tab=venta] .vpv{top:0}
+}
+/* ===== NCR (960–1099 px) «ultra»: nada apachurrado =====
+   Resultados en UNA columna ancha (sin la vista previa, que dejaba la lista angosta y los nombres en 5-6 renglones):
+   foto 48 px, nombre de 3 renglones como máximo (el tamaño va al final), precio grande a la derecha. Ticket sin la
+   foto de cada línea (el nombre gana ~55 px). */
+@media (min-width:960px) and (max-width:1099px){
+  html body.vit[data-tab=venta] .vres{grid-template-columns:1fr!important;gap:0}
+  html body.vit[data-tab=venta] .vpv{display:none!important}
+  html body.vit[data-tab=venta] .vlist{gap:6px;padding:2px 2px 64px} /* abajo deja lugar para el botón de Luis */
+  html body.vit[data-tab=venta] .vr{grid-template-columns:48px minmax(0,1fr) auto;min-height:60px;gap:12px;padding:6px 14px 6px 6px;border-radius:12px;box-shadow:0 0 0 1px var(--hl,rgba(15,23,42,.08))}
+  html body.vit[data-tab=venta] .vr .vth{width:48px;height:48px}
+  html body.vit[data-tab=venta] .vr b{font:650 15px/1.25 var(--f);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+  html body.vit[data-tab=venta] .vr .num{font:800 17px var(--f);letter-spacing:-.01em;white-space:nowrap}
+  html body.vit[data-tab=venta] .vr.on{outline-width:2.5px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm .lim{display:none!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+}
+/* Laptops (1100–1439 px): la lista de resultados más ancha que la vista previa. */
+@media (min-width:1100px) and (max-width:1439px){
+  html body.vit[data-tab=venta] .vres{grid-template-columns:minmax(0,1.55fr) minmax(190px,1fr)}
+  html body.vit[data-tab=venta] .vr b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:14.5px;line-height:1.25} /* 3: el tamaño (120 G, 2 K) va al final y no debe cortarse */
+  html body.vit[data-tab=venta] .vr .num{white-space:nowrap;font-size:15px}
+  html body.vit[data-tab=venta] .vlist{padding-bottom:64px}
+}
