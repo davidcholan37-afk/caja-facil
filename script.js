@@ -6035,6 +6035,11 @@ document.addEventListener("click", (e) => {
 // y lo que escribas lo reemplaza. Solo con el mouse/dedo, nunca cuando la caja pone el cursor por su cuenta.
 const NUM_IN = "input.num, input[inputmode=decimal], input[inputmode=numeric]";
 document.addEventListener("pointerdown", (e) => { const t = e.target; if (t && t.matches && t.matches(NUM_IN) && document.activeElement !== t) t._selAll = true; }, true);
+// Buscadores (Productos, Vender, Clientes…): cada clic marca todo lo escrito, así lo nuevo reemplaza sin borrar con la X (pedido de David).
+const SEARCH_IN = "#pq, #q, input[type=search]";
+document.addEventListener("pointerdown", (e) => { const t = e.target; if (t && t.matches && t.matches(SEARCH_IN)) t._selAll = true; }, true);
+// Con el mouse se marca al soltar y se evita que Chrome desmarque (si ya estaba marcado lo desmarcaba al soltar); con el dedo, en el clic.
+document.addEventListener("mouseup", (e) => { const t = e.target; if (t && t._selAll) { t._selAll = false; if (t.value) { e.preventDefault(); try { t.select(); } catch (er) {} } } }, true);
 document.addEventListener("click", (e) => { const t = e.target; if (t && t._selAll) { t._selAll = false; if (t.value) try { t.select(); } catch (er) {} } }, true);
 function keepFocus(id, fn) {
   const el = $("#" + id), pos = el ? el.selectionStart : null; fn();
