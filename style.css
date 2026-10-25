@@ -3037,3 +3037,38 @@ html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{backgroun
   html.side-off .siderail:focus-visible{outline:none}
   html.side-off .siderail:focus-visible svg{outline:3px solid var(--fvl,#8BD448);outline-offset:2px}
 }
+
+/* ===== NCR (960–1099 px): ticket apretado (opción 1, David 25 oct 2026) =====
+   Antes se veían 4 productos y había que bajar; ahora 9 en 1024×768. Cabecera y total más bajos, «Elegir cliente»
+   sin subtítulo, líneas de 42 px con el nombre en 2 renglones (se ve el tamaño) y el precio unitario chico debajo
+   del importe, a la derecha. −/+ y × siguen de 30–36 px para el dedo. */
+@media (min-width:960px) and (max-width:1099px){
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .rhead{padding:6px 12px 0!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .rmeta{min-height:0!important;padding:0!important;height:34px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .rmeta .tkn{font-size:16px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .rmeta .ib{min-height:32px!important;height:32px;padding:0 8px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .who{padding:2px 0 6px!important;min-height:0!important;gap:8px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .who .cl{min-height:40px!important;padding:2px 6px 2px 2px!important;gap:8px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .who .cl .av{width:30px!important;height:30px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .who .cl:not(.set) small{display:none!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .who .seg button{min-height:34px!important;padding:0 10px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .lines{padding:2px 6px 4px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln{min-height:42px!important;padding-top:2px!important;padding-bottom:2px!important;
+    grid-template-columns:92px minmax(0,1fr) auto 34px!important;grid-template-areas:"qc nm amt rm" "qc nm pu rm"!important;grid-template-rows:auto auto!important;align-items:center;column-gap:8px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .sb{width:30px!important;height:36px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .qc .qv{min-width:36px!important;height:36px!important;font-size:15px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm{grid-area:nm;align-self:center}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .nm b{font-size:14px!important;line-height:1.18!important;-webkit-line-clamp:2!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .amt{grid-area:amt;align-self:end;text-align:right;font-size:16px!important;line-height:1.1}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .pu{grid-area:pu;align-self:start;justify-self:end;text-align:right;padding:0!important;min-height:0!important;font-size:12px!important;line-height:1.1;color:var(--t3)}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .ln .rm{width:34px!important;height:36px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .tot{padding:4px 12px 8px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .trow{min-height:0!important;height:24px}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{margin-top:4px!important;padding:6px 16px!important;min-height:0!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot b{font-size:34px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox{margin-top:8px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo{min-height:56px!important}
+  html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo){min-height:50px!important}
+  /* Escáner y Fichas tienen el ticket más angosto: ahí el nombre puede usar 3 renglones para no perder el tamaño */
+  html body.vtk:not(.vit)[data-tab=venta] .cart .ln .nm b{-webkit-line-clamp:3!important;font-size:13.5px!important}
+}
