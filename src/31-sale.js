@@ -198,7 +198,7 @@ function paintCart() {
       </div>
     </div>
     <div class="paybox">
-      ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="pmx num">${lines.length ? money(T.total) : "<small>Agrega un producto</small>"}</span><span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm culqi" data-a="pay" data-m="culqi" ${dis}>Culqi</button><button class="pm" data-a="paymas" ${dis}>Más</button></div>`
+      ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="pmx num">${lines.length ? money(T.total) : "<small>Agrega un producto</small>"}</span><span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm bcp" data-a="pay" data-m="bcp" ${dis}>BCP</button><button class="pm" data-a="paymas" ${dis}>Más</button></div>`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();
@@ -292,8 +292,8 @@ const billCls = (v) => (BILLS.includes(v) ? "b" + v : "coin");
 function paintPay() {
   const p = ui.pay, total = cartTotals().total, due = payDue(), t = DB.cart, doc = t.doc || DB.cfg.docDef || "NV", c = cli(t.client);
   if (p.split) return paintSplit();
-  const M = ["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia", "credito"].filter((m) => m !== "credito" || DB.clients.length || can("clientes"));
-  const KEYL = { efectivo: "E", yape: "Y", plin: "P", culqi: "Q", tarjeta: "T", transferencia: "R", credito: "C" };
+  const M = ["efectivo", "yape", "plin", "bcp", "tarjeta", "credito"].filter((m) => m !== "credito" || DB.clients.length || can("clientes"));
+  const KEYL = { efectivo: "E", yape: "Y", plin: "P", bcp: "B", tarjeta: "T", credito: "C" };
   let body;
   if (p.method === "efectivo" && due <= 0) body = `<button class="btn lg" id="payok" data-a="payok" data-enter>Cobrar ${money(due)}</button>`;
   else if (p.method === "efectivo") body = `<div class="bills"><button class="bill exact" data-a="cashgo" data-v="${due}" data-enter><small>Exacto</small><b class="num">${money(due)}</b><em>Sin vuelto</em></button>${cashOpts(due).map((v) => `<button class="bill ${billCls(v)}" data-a="cashgo" data-v="${v}"><small>${BILLS.includes(v) ? "Billete" : "Paga con"}</small><b class="num">S/ ${v}</b><em class="num">Vuelto ${money(r2(v - due))}</em></button>`).join("")}</div>
@@ -301,8 +301,8 @@ function paintPay() {
       <button class="btn lg" id="payok" data-a="payok">Cobrar en efectivo</button>` : `<button class="link" data-a="payother" style="margin:0 0 6px">Paga con otro monto</button>`}`;
   else if (p.method === "yape" || p.method === "plin") body = `${payTo(p.method)}<button class="btn lg go ${p.method}" id="payok" data-a="payok">Ya llegó el ${METHODS[p.method]}: cobrar ${money(due)}</button>`;
   else if (p.method === "credito") body = `${creditBlock()}<button class="btn lg" id="payok" data-a="payok" ${c ? "" : "disabled"}>Anotar ${money(due)} al crédito</button>`;
-  else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : p.method === "culqi" ? "Cobra con Culqi (enlace, QR o POS). N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
-      <button class="btn lg${p.method === "culqi" ? " go culqi" : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" ? "Culqi" : METHODS[p.method].toLowerCase()}</button>`;
+  else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : p.method === "bcp" ? "Cobra con BCP. N° de operación (opcional)" : p.method === "culqi" ? "Cobra con Culqi (enlace, QR o POS). N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
+      <button class="btn lg${p.method === "culqi" || p.method === "bcp" ? " go " + p.method : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" || p.method === "bcp" ? METHODS[p.method] : METHODS[p.method].toLowerCase()}</button>`;
   openModal(`<div class="payhead"><div class="paytot"><span>A cobrar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
     ${ptsBlock()}
     <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}" data-k="${KEYL[k]}"><span>${METHODS[k]}</span></button>`).join("")}</div>
@@ -320,23 +320,37 @@ function splitCalc() {
   if (acc.efectivo != null) acc.efectivo = r2(acc.efectivo - change);
   return { ok, rem, change, cashGiven, nonCash, pays: Object.entries(acc).filter(([, a]) => a > 0).map(([m, amt]) => ({ m, amt })) };
 }
+// Dividir pago (rehecho el 25 oct 2026 a pedido de David, para que sea fácil): arriba el total y una barra con lo que ya
+// se pagó por cada medio; «Falta» / «Vuelto» en grande; paso 1 «¿Cuánto paga?» (vacío = lo que falta, o montos rápidos)
+// y paso 2 «¿Con qué paga?» (cada medio con su logo; tocarlo agrega esa parte). Crédito sin cliente pide elegirlo.
 function paintSplit() {
-  const p = ui.pay, r = splitCalc(), falta = Math.max(0, r.rem), c = cli(DB.cart.client);
-  let st;
-  if (r.rem > 0) st = `<span>Falta</span><b class="num">${money(r.rem)}</b>`;
-  else if (r.nonCash > payDue()) st = `<span>Yape, Plin, Culqi, tarjeta o crédito no pueden pasar el total</span><b></b>`;
-  else if (r.change > 0) st = `<span>Vuelto</span><b class="num">${money(r.change)}</b>`;
-  else st = `<span>Pago completo</span><b>✓</b>`;
-  const bad = r.rem > 0 || r.nonCash > payDue() || r.change > r.cashGiven;
-  const M = ["efectivo", "yape", "tarjeta", "plin", "culqi", "transferencia"].concat(c ? ["credito"] : []);
-  openModal(`<div class="payhead"><h2>Dividir pago</h2></div><div class="paytot"><span class="muted">Total a pagar</span><b class="num">${money(payDue())}</b></div>
+  const p = ui.pay, r = splitCalc(), due = payDue(), falta = Math.max(0, r.rem), c = cli(DB.cart.client);
+  const paid = r2(r.cashGiven + r.nonCash);
+  let st, cls;
+  if (r.nonCash > due) { st = `<span>Yape, Plin, BCP, tarjeta o crédito no pueden pasar el total</span><b></b>`; cls = "bad"; }
+  else if (r.rem > 0) { st = `<span>${p.parts.length ? "Falta" : "Por pagar"}</span><b class="num">${money(r.rem)}</b>`; cls = "falta"; }
+  else if (r.change > 0) { st = `<span>Vuelto</span><b class="num">${money(r.change)}</b>`; cls = "ok"; }
+  else { st = `<span>Pago completo</span><b>✓</b>`; cls = "ok"; }
+  const M = ["efectivo", "yape", "plin", "bcp", "tarjeta"].concat(DB.clients.length || can("clientes") ? ["credito"] : []);
+  const base = Math.max(due, paid) || 1;
+  const quick = [];
+  if (falta > 0) {
+    quick.push([falta, "Lo que falta"]);
+    if (!p.parts.length && due >= 2) quick.push([r2(Math.round(due * 5) / 10), "La mitad"]);
+    [10, 20, 50, 100].filter((v) => v < falta - 0.001).slice(-3).forEach((v) => quick.push([v, ""]));
+  }
+  openModal(`<div class="sphead"><div><h2>Dividir pago</h2><p class="muted">Una parte con un medio y el resto con otro.</p></div><div class="sptot"><span>Total</span><b class="num">${money(due)}</b></div></div>
     ${ptsBlock()}
-    <div class="parts">${p.parts.length ? p.parts.map((x, i) => `<div class="part"><span>${METHODS[x.m]}</span><b class="num">${money(x.amt)}</b><button class="x" data-a="partdel" data-i="${i}" aria-label="Quitar este pago">✕</button></div>`).join("") : `<p class="muted">Escribe cuánto paga con cada medio y toca el medio. Ej: S/ 10 en efectivo y el resto con Yape.</p>`}</div>
-    <div class="vuelto ${bad ? "bad" : ""}" id="splitst">${st}</div>
-    <label class="fld"><span>Monto de esta parte (vacío = lo que falta)</span><input class="inp num" id="pamt" inputmode="decimal" placeholder="${falta > 0 ? falta.toFixed(2) : "0.00"}" autofocus></label>
-    <div class="methods m6">${M.map((m) => `<button class="mth ${m}" data-a="partadd" data-m="${m}">+ ${METHODS[m]}${FK[m] ? `<span class="kbd">${FK[m]}</span>` : ""}</button>`).join("")}</div>
-    ${p.parts.some((x) => x.m === "yape") && DB.cfg.yapeNum ? `<p class="muted" style="margin-bottom:10px">Yape: <b>${fmtPhone(DB.cfg.yapeNum)}</b></p>` : ""}
-    <div class="btns h"><button class="btn sec" data-a="split">Pago único</button><button class="btn" id="payok" data-a="payok" ${r.ok ? "" : "disabled"}>Confirmar cobro</button></div>`, "paym");
+    <div class="spbar" aria-hidden="true">${p.parts.map((x) => `<i class="m-${x.m}" style="width:${Math.min(100, (x.amt / base) * 100).toFixed(2)}%"></i>`).join("")}</div>
+    <div class="vuelto spst ${cls}" id="splitst">${st}</div>
+    ${p.parts.length ? `<div class="parts">${p.parts.map((x, i) => `<div class="part"><i class="pmi m-${x.m}" aria-hidden="true"></i><span>${METHODS[x.m]}</span><b class="num">${money(x.amt)}</b><button class="x" data-a="partdel" data-i="${i}" aria-label="Quitar este pago">✕</button></div>`).join("")}</div>` : ""}
+    ${falta > 0 ? `<div class="spstep"><span class="spn">1</span><b>¿Cuánto paga?</b></div>
+    <div class="sprow"><input class="inp num big" id="pamt" inputmode="decimal" placeholder="${falta.toFixed(2)}" aria-label="Monto de esta parte (vacío = lo que falta)" autofocus>
+      <div class="spq">${quick.map(([v, t]) => `<button class="spc" data-a="pamtset" data-v="${v}">${t ? `<small>${t}</small>` : ""}<b class="num">${money(v)}</b></button>`).join("")}</div></div>
+    <div class="spstep"><span class="spn">2</span><b>¿Con qué paga?</b></div>
+    <div class="spm">${M.map((m) => `<button class="spmb" data-a="partadd" data-m="${m}"><i class="pmi m-${m}" aria-hidden="true"></i><span>${METHODS[m]}</span></button>`).join("")}</div>` : ""}
+    ${p.parts.some((x) => x.m === "yape") && DB.cfg.yapeNum ? `<p class="muted" style="margin:8px 0 0">Yape: <b>${fmtPhone(DB.cfg.yapeNum)}</b></p>` : ""}
+    <div class="btns h spfoot"><button class="btn sec" data-a="split">Volver</button><button class="btn" id="payok" data-a="payok" ${r.ok ? "data-enter" : "disabled"}>${r.ok ? `Cobrar ${money(due)}` : "Confirmar cobro"}</button></div>`, "paym spl");
   ui.mk = "pay";
 }
 function updPay() {
@@ -564,9 +578,11 @@ act({
     const r = splitCalc(), m = el.dataset.m, falta = Math.max(0, r.rem);
     const raw = ($("#pamt") || { value: "" }).value.trim(), a = r2(raw === "" ? falta : num(raw));
     if (!(a > 0)) { toast(falta <= 0 ? "El total ya está cubierto" : "Escribe un monto"); return; }
+    if (m === "credito" && !cli(DB.cart.client)) { toast("Elige a quién le fías"); return A.pickcli({ dataset: { back: "pay" } }); }
     if (m !== "efectivo" && a > falta + 0.001) { toast(`${METHODS[m]} no puede pasar de lo que falta (${money(falta)})`); beep(false); return; }
     p.parts.push({ m, amt: a }); paintPay();
   },
+  pamtset: (el) => { const i = $("#pamt"); if (i) { i.value = String(el.dataset.v); i.focus(); i.select(); } },
   partdel: (el) => { ui.pay.parts.splice(+el.dataset.i, 1); paintPay(); },
   gosettings: () => { closeModal(); ui.atab = "cobros"; go("aj"); },
   focusq: () => { const q = $("#q"); if (q) { q.focus(); q.select(); } },
@@ -580,7 +596,7 @@ act({
     const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
     openModal(`<h2>Funciones</h2>
       <h3 class="fh">Cobrar</h3><div class="fgrid">
-      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "Culqi", "", "culqi") + f("pay", "caja", "Tarjeta", "", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
+      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "BCP", "", "bcp") + f("pay", "caja", "Tarjeta", "", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
       ${f("prevsave", "prev", "Guardar preventa", cobra ? "" : "F2")}${cobra ? f("prevload", "prev", "Cobrar preventa") : ""}
       </div>
       <h3 class="fh">Ticket</h3><div class="fgrid">

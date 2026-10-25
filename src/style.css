@@ -1744,7 +1744,7 @@ body .paybox .pay4 .pm.efectivo:not(:disabled){background:#16A34A}
 body .paybox .pay4 .pm.yape:not(:disabled){background:#742284;box-shadow:none}
 body .paybox .pay4 .pm.plin:not(:disabled){background:#00B8D9;box-shadow:none}
 
-body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){background:var(--s1,#fff);color:var(--t2,#444);border:1px solid var(--hl,#ddd);text-shadow:none}
+body .paybox .pay4 .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)){background:var(--s1,#fff);color:var(--t2,#444);border:1px solid var(--hl,#ddd);text-shadow:none}
 
 /* Carrito más limpio: sin cabecera de columnas, «Vaciar» solo con el ícono, sin hora arriba en PC */
 .cart .lh{display:none!important}
@@ -1888,11 +1888,11 @@ html.lite .help-launcher{box-shadow:0 0 0 1px var(--hsep)}
 html.lite .hl-orb .h{display:none}
 
 /* Culqi: naranja (cobro, medios de pago y botón de confirmar) */
-body .paybox .pay4 .pm.culqi,body .paybox .pay4 .pm.culqi:not(:disabled){background:#FF7A1A;color:#1D1D1F;text-shadow:none;box-shadow:none}
+body .paybox .pay4 .pm:is(.culqi,.bcp),body .paybox .pay4 .pm:is(.culqi,.bcp):not(:disabled){background:#FF7A1A;color:#1D1D1F;text-shadow:none;box-shadow:none}
 body .paybox .paymini.pay4{grid-template-columns:1.25fr 1fr 1fr 1fr .8fr}
-.mth.culqi.on{background:#FF7A1A;border-color:#FF7A1A;color:#1D1D1F}
-.btn.go.culqi{background:#FF7A1A;color:#1D1D1F}
-body .paybox .pay4 .pm.culqi{background:#FF7A1A;color:#1D1D1F;text-shadow:none;border:0}
+.mth:is(.culqi,.bcp).on{background:#FF7A1A;border-color:#FF7A1A;color:#1D1D1F}
+.btn.go:is(.culqi,.bcp){background:#FF7A1A;color:#1D1D1F}
+body .paybox .pay4 .pm:is(.culqi,.bcp){background:#FF7A1A;color:#1D1D1F;text-shadow:none;border:0}
 
 .cfcode{font:700 2rem/1.2 var(--fm,monospace);letter-spacing:.06em;text-align:center;padding:14px 0 18px}
 
@@ -2076,15 +2076,15 @@ body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:active{transform:scale(.97)}
 body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.efectivo{--pc:#16A34A;background:linear-gradient(135deg,#1DB954,#12873F)!important;min-height:72px;font-size:22px;border-radius:20px;justify-content:flex-start;padding:0 20px}
 body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.efectivo::before{content:"";width:34px;height:34px;flex:none;background:#fff;opacity:.95;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3Cpath d='M6 9.5v.01M18 14.5v.01'/%3E%3C/svg%3E") center/contain no-repeat}
 body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.efectivo .kbd{margin-left:auto;background:rgba(255,255,255,.22);color:#fff;border-radius:8px;padding:3px 9px;font:700 12px var(--f)}
-body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi{min-height:54px;border-radius:16px;font-size:14.5px}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:is(.culqi,.bcp){min-height:54px;border-radius:16px;font-size:14.5px}
 body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape{--pc:#742284;background:linear-gradient(135deg,#8A2BA0,#5E1B6E)!important}
 body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin{--pc:#00B8D9;background:linear-gradient(135deg,#17D0EE,#00A3C4)!important;color:#05323B}
-body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi{--pc:#FF7A1A;background:linear-gradient(135deg,#FF9440,#F26A0A)!important;color:#2A1300}
-body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape::before,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin::before,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi::before{width:26px;height:26px;border-radius:50%;background:#fff;display:grid;place-items:center;font:800 14px var(--f);flex:none;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:is(.culqi,.bcp){--pc:#FF7A1A;background:linear-gradient(135deg,#FF9440,#F26A0A)!important;color:#2A1300}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape::before,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin::before,body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:is(.culqi,.bcp)::before{width:26px;height:26px;border-radius:50%;background:#fff;display:grid;place-items:center;font:800 14px var(--f);flex:none;box-shadow:0 2px 6px rgba(0,0,0,.18)}
 body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.yape::before{content:"Y";color:#742284}
 body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.plin::before{content:"P";color:#00A3C4}
-body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.culqi::before{content:"C";color:#F26A0A}
-body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){min-height:54px;border-radius:16px;background:#fff!important;color:#1D1D1F;border:1.5px solid rgba(15,23,42,.12);box-shadow:none}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:is(.culqi,.bcp)::before{content:"C";color:#F26A0A}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)){min-height:54px;border-radius:16px;background:#fff!important;color:#1D1D1F;border:1.5px solid rgba(15,23,42,.12);box-shadow:none}
 /* Menú lateral */
 body.vit .side{background:linear-gradient(180deg,#fff,#F3F6FA)!important;border-right:1px solid rgba(15,23,42,.08)}
 body.vit #sideNav .tab{color:#5A6776;font-weight:600}
@@ -2134,21 +2134,21 @@ body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo .pmx small{font
 /* Billeteras: color de marca sólido + ícono cuadrado tipo app */
 body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape{background:#742284!important;color:#fff}
 body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin{background:#00B2D6!important;color:#03323C;--pk:rgba(0,60,75,.28)}
-body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi{background:#FF7A1A!important;color:#2A1300;--pk:rgba(90,30,0,.28)}
-body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi{min-height:56px;gap:10px;font-size:15.5px}
-body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape::before,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin::before,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi::before{width:26px;height:26px;border-radius:8px;font:900 14px var(--f);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:is(.culqi,.bcp){background:#FF7A1A!important;color:#2A1300;--pk:rgba(90,30,0,.28)}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:is(.culqi,.bcp){min-height:56px;gap:10px;font-size:15.5px}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape::before,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin::before,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:is(.culqi,.bcp)::before{width:26px;height:26px;border-radius:8px;font:900 14px var(--f);box-shadow:0 1px 0 rgba(0,0,0,.18)}
 /* Más */
-body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):not(:disabled){background:#fff!important;color:#1D2633;min-height:56px;--pk:rgba(15,23,42,.10);box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 var(--pk)!important}
-body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi)::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x;mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):not(:disabled){background:#fff!important;color:#1D2633;min-height:56px;--pk:rgba(15,23,42,.10);box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 var(--pk)!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp))::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x;mask:radial-gradient(circle,#000 1.7px,transparent 2.2px) 0 50%/6px 6px repeat-x}
 /* Ticket vacío: teclas en gris claro, legibles, sin parecer rotas */
-body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#E3E8EF!important;color:#7A8698!important;cursor:not-allowed;box-shadow:inset 0 0 0 1px rgba(15,23,42,.06),inset 0 -3px 0 rgba(15,23,42,.06)!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):disabled{background:#E3E8EF!important;color:#7A8698!important;cursor:not-allowed;box-shadow:inset 0 0 0 1px rgba(15,23,42,.06),inset 0 -3px 0 rgba(15,23,42,.06)!important}
 body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled::before{background:#fff;color:#9AA5B5!important;filter:grayscale(1)}
 body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background:#9AA5B5}
 body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .kbd{background:rgba(15,23,42,.07);color:#7A8698;box-shadow:none}
 body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .pmx{font:600 15px var(--f);letter-spacing:0}
 /* Oscuro */
-html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):not(:disabled){background:#1C222B!important;color:#E6EAF0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.10),inset 0 -3px 0 rgba(0,0,0,.35)!important}
-html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#1A1F27!important;color:#5F6B7C!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):not(:disabled){background:#1C222B!important;color:#E6EAF0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.10),inset 0 -3px 0 rgba(0,0,0,.35)!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):disabled{background:#1A1F27!important;color:#5F6B7C!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)!important}
 html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled::before{background:#2A313C;color:#5F6B7C!important}
 html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background:#4A5566}
 html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled .kbd{background:rgba(255,255,255,.06);color:#5F6B7C}
@@ -2208,7 +2208,7 @@ html[data-theme=dark] body{--ac:#2FA864;--ac2:#4CC07E;--ac-t:rgba(47,168,100,.16
 .sheet.paym{--mc:#15A048;--mci:#fff;--mcd:#0E7A36}
 .sheet.paym:has(.mth.yape.on){--mc:#742284;--mci:#fff;--mcd:#5A1A67}
 .sheet.paym:has(.mth.plin.on){--mc:#00B2D6;--mci:#03323C;--mcd:#00728A}
-.sheet.paym:has(.mth.culqi.on){--mc:#FF7A1A;--mci:#2A1300;--mcd:#B8500A}
+.sheet.paym:has(.mth:is(.culqi,.bcp).on){--mc:#FF7A1A;--mci:#2A1300;--mcd:#B8500A}
 .sheet.paym:has(.mth.tarjeta.on){--mc:#1F3A8A;--mci:#fff;--mcd:#1F3A8A}
 .sheet.paym:has(.mth.transferencia.on){--mc:#0F766E;--mci:#fff;--mcd:#0F766E}
 .sheet.paym:has(.mth.credito.on){--mc:#B45309;--mci:#fff;--mcd:#9A4508}
@@ -2220,24 +2220,24 @@ html body .sheet.paym:has(.paybody) .payhead .paytot small{color:var(--mci);opac
 .sheet.paym:has(.mth.efectivo.on) .paytot span::after{content:" en efectivo"}
 .sheet.paym:has(.mth.yape.on) .paytot span::after{content:" con Yape"}
 .sheet.paym:has(.mth.plin.on) .paytot span::after{content:" con Plin"}
-.sheet.paym:has(.mth.culqi.on) .paytot span::after{content:" con Culqi"}
+.sheet.paym:has(.mth:is(.culqi,.bcp).on) .paytot span::after{content:" con Culqi"}
 .sheet.paym:has(.mth.tarjeta.on) .paytot span::after{content:" con tarjeta"}
 .sheet.paym:has(.mth.transferencia.on) .paytot span::after{content:" por transferencia"}
 .sheet.paym:has(.mth.credito.on) .paytot span::after{content:" al crédito"}
 html body .sheet.paym:has(.paybody) .payhead .tag{align-self:flex-start;background:rgba(255,255,255,.2);color:var(--mci);border:0;font-weight:650}
-.sheet.paym:has(.mth.plin.on) .payhead .tag,.sheet.paym:has(.mth.culqi.on) .payhead .tag{background:rgba(255,255,255,.4)}
+.sheet.paym:has(.mth.plin.on) .payhead .tag,.sheet.paym:has(.mth:is(.culqi,.bcp).on) .payhead .tag{background:rgba(255,255,255,.4)}
 /* Medios de pago en fichas: 4 grandes arriba, 3 abajo */
 html body .sheet.paym:has(.paybody) .methods{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;margin:0 0 16px;padding:0;background:none;box-shadow:none;border-radius:0;overflow:visible}
 html body .sheet.paym:has(.paybody) .mth{--c:#15A048;position:relative;grid-column:span 3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:8px 4px;border:0;border-radius:16px;background:var(--s1,#fff);color:var(--t1);font:650 14px var(--f);box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.14));cursor:pointer}
 html body .sheet.paym:has(.paybody) .mth.tarjeta,html body .sheet.paym:has(.paybody) .mth.transferencia,html body .sheet.paym:has(.paybody) .mth.credito{grid-column:span 4;flex-direction:row;min-height:50px;gap:9px}
-html body .sheet.paym:has(.paybody) .mth.yape{--c:#742284}html body .sheet.paym:has(.paybody) .mth.plin{--c:#00A3C4}html body .sheet.paym:has(.paybody) .mth.culqi{--c:#F26A0A}
+html body .sheet.paym:has(.paybody) .mth.yape{--c:#742284}html body .sheet.paym:has(.paybody) .mth.plin{--c:#00A3C4}html body .sheet.paym:has(.paybody) .mth:is(.culqi,.bcp){--c:#F26A0A}
 html body .sheet.paym:has(.paybody) .mth.tarjeta{--c:#1F3A8A}html body .sheet.paym:has(.paybody) .mth.transferencia{--c:#0F766E}html body .sheet.paym:has(.paybody) .mth.credito{--c:#B45309}
 html body .sheet.paym:has(.paybody) .mth::before{content:"";flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--c);color:#fff;font:900 15px var(--f);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
 html body .sheet.paym:has(.paybody) .mth.tarjeta::before,html body .sheet.paym:has(.paybody) .mth.transferencia::before,html body .sheet.paym:has(.paybody) .mth.credito::before{width:28px;height:28px;border-radius:8px}
 html body .sheet.paym:has(.paybody) .mth.efectivo::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3C/svg%3E") center/18px no-repeat}
 html body .sheet.paym:has(.paybody) .mth.yape::before{content:"Y"}
 html body .sheet.paym:has(.paybody) .mth.plin::before{content:"P"}
-html body .sheet.paym:has(.paybody) .mth.culqi::before{content:"C"}
+html body .sheet.paym:has(.paybody) .mth:is(.culqi,.bcp)::before{content:"C"}
 html body .sheet.paym:has(.paybody) .mth.tarjeta::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='M2.5 10h19M6.5 15h4'/%3E%3C/svg%3E") center/18px no-repeat}
 html body .sheet.paym:has(.paybody) .mth.transferencia::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h14l-3.5-3.5M20 16H6l3.5 3.5'/%3E%3C/svg%3E") center/18px no-repeat}
 html body .sheet.paym:has(.paybody) .mth.credito::before{background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v14.5a1 1 0 0 1-1 1H6a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 6 3.5z'/%3E%3Cpath d='M8.5 8.5h6M8.5 12h6M8.5 15.5h3.5'/%3E%3C/svg%3E") center/18px no-repeat}
@@ -2298,13 +2298,13 @@ html body .sheet.paym:has(.paybody) .mth span{white-space:nowrap;overflow:hidden
 }
 
 /* ===== Logos de Yape, Plin y Culqi (img/pagos/, enviados por David) en los botones de venta y en el cobro ===== */
-.paybox .pm.yape::before,.paybox .pm.plin::before,.paybox .pm.culqi::before,.sheet.paym .mth.yape::before,.sheet.paym .mth.plin::before,.sheet.paym .mth.culqi::before{content:""!important;flex:none;width:28px;height:28px;border-radius:8px;background-color:#fff!important;background-repeat:no-repeat!important;background-position:center!important;box-shadow:0 1px 3px rgba(0,0,0,.22)!important}
+.paybox .pm.yape::before,.paybox .pm.plin::before,.paybox .pm:is(.culqi,.bcp)::before,.sheet.paym .mth.yape::before,.sheet.paym .mth.plin::before,.sheet.paym .mth:is(.culqi,.bcp)::before{content:""!important;flex:none;width:28px;height:28px;border-radius:8px;background-color:#fff!important;background-repeat:no-repeat!important;background-position:center!important;box-shadow:0 1px 3px rgba(0,0,0,.22)!important}
 .paybox .pm.yape::before,.sheet.paym .mth.yape::before{background-image:url(img/pagos/yape.png)!important;background-size:cover!important;box-shadow:0 0 0 2px #fff,0 1px 3px rgba(0,0,0,.25)!important}
 .paybox .pm.plin::before,.sheet.paym .mth.plin::before{background-image:url(img/pagos/plin.png)!important;background-size:86%!important}
-.paybox .pm.culqi::before,.sheet.paym .mth.culqi::before{background-image:url(img/pagos/culqi.png)!important;background-size:84%!important}
-html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth.culqi::before{width:34px;height:34px;border-radius:10px}
-.paybox .pay4 .pm.yape,.paybox .pay4 .pm.plin,.paybox .pay4 .pm.culqi{gap:8px}
-@media (max-width:640px){html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth.culqi::before{width:30px;height:30px}}
+.paybox .pm:is(.culqi,.bcp)::before,.sheet.paym .mth:is(.culqi,.bcp)::before{background-image:url(img/pagos/culqi.png)!important;background-size:84%!important}
+html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth:is(.culqi,.bcp)::before{width:34px;height:34px;border-radius:10px}
+.paybox .pay4 .pm.yape,.paybox .pay4 .pm.plin,.paybox .pay4 .pm:is(.culqi,.bcp){gap:8px}
+@media (max-width:640px){html body .sheet.paym:has(.paybody) .mth.yape::before,html body .sheet.paym:has(.paybody) .mth.plin::before,html body .sheet.paym:has(.paybody) .mth:is(.culqi,.bcp)::before{width:30px;height:30px}}
 
 /* ===== Menú de la izquierda ordenado en grupos + «Ocultar» / franja para volver a mostrarlo (cf-side en localStorage, por equipo) ===== */
 .siderail{display:none}
@@ -2466,7 +2466,7 @@ html[data-theme=dark] body{--bg:#070B09;--s1:#121A16;--s2:#0D1310;--s3:#1A241F;-
 /* «Escanea un producto» y lo último que pasaste: menta en vez de celeste */
 html:not([data-theme=dark]) .lastp{background:#E6F3EA}
 /* Botones de pago sin ticket (Vitrina): gris verdoso */
-body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#E1E9E4!important;color:#6F8177!important}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled,body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):disabled{background:#E1E9E4!important;color:#6F8177!important}
 html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled{background:#1A241F!important;color:#7F9087!important}
 body.vit .side .logo{box-shadow:0 10px 20px -12px rgba(139,212,72,.7)}
 
@@ -2488,12 +2488,13 @@ body.vit .side .logo{box-shadow:0 10px 20px -12px rgba(139,212,72,.7)}
 .vdia .vdr.cero .vdn,.vdia .vdr.cero b{color:var(--t3);font-weight:500}
 .vdia .vdr.cero .pmi{opacity:.55}
 .pmi{flex:none;width:32px;height:32px;border-radius:9px;background:var(--c,#15A048) center/18px no-repeat;box-shadow:inset 0 -2px 0 rgba(0,0,0,.16)}
-.m-efectivo{--c:#15A048;background-color:#15A048}.m-yape{--c:#742284;background-color:#742284}.m-plin{--c:#00B2D6;background-color:#00B2D6}.m-culqi{--c:#FF7A1A;background-color:#FF7A1A}
+.m-efectivo{--c:#15A048;background-color:#15A048}.m-yape{--c:#742284;background-color:#742284}.m-plin{--c:#00B2D6;background-color:#00B2D6}.m-culqi{--c:#FF7A1A;background-color:#FF7A1A}.m-bcp{--c:#012D74;background-color:#012D74}
 .m-tarjeta{--c:#1F3A8A;background-color:#1F3A8A}.m-transferencia{--c:#0F766E;background-color:#0F766E}.m-credito{--c:#B45309;background-color:#B45309}.m-puntos{--c:#CA8A04;background-color:#CA8A04}
 .pmi.m-efectivo{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='6' width='19' height='12' rx='2.5'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3C/svg%3E")}.pmi.m-tarjeta{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='M2.5 10h19M6.5 15h4'/%3E%3C/svg%3E")}.pmi.m-transferencia{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h14l-3.5-3.5M20 16H6l3.5 3.5'/%3E%3C/svg%3E")}.pmi.m-credito{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v14.5a1 1 0 0 1-1 1H6a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 6 3.5z'/%3E%3Cpath d='M8.5 8.5h6M8.5 12h6M8.5 15.5h3.5'/%3E%3C/svg%3E")}
 .pmi.m-puntos{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z'/%3E%3C/svg%3E")}
-.pmi.m-yape,.pmi.m-plin,.pmi.m-culqi{background:#fff center/86% no-repeat;box-shadow:inset 0 0 0 1px var(--hl2)}
-.pmi.m-yape{background-image:url(img/pagos/yape.png);background-size:cover}.pmi.m-plin{background-image:url(img/pagos/plin.png)}.pmi.m-culqi{background-image:url(img/pagos/culqi.png);background-size:84%}
+.pmi.m-tarjeta{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='M2.5 10h19M6.5 15h4'/%3E%3C/svg%3E")}.pmi.m-credito{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v14.5a1 1 0 0 1-1 1H6a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 6 3.5z'/%3E%3Cpath d='M8.5 8.5h6M8.5 12h6M8.5 15.5h3.5'/%3E%3C/svg%3E")}
+.pmi.m-yape,.pmi.m-plin,.pmi.m-culqi,.pmi.m-bcp{background:#fff center/86% no-repeat;box-shadow:inset 0 0 0 1px var(--hl2)}
+.pmi.m-yape{background-image:url(img/pagos/yape.png);background-size:cover}.pmi.m-plin{background-image:url(img/pagos/plin.png)}.pmi.m-culqi{background-image:url(img/pagos/culqi.png);background-size:84%}.pmi.m-bcp{background-image:url(img/pagos/bcp.png);background-size:cover}
 @media (max-width:520px){.vdia .vdtot b{font-size:1.9rem}.vdia .vdr b{min-width:0}}
 
 /* ===== Afiches: estilos (A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad, Día de la Madre), combo y lista. Marcado: .vs.s-X > .vs-w ===== */
@@ -2692,7 +2693,7 @@ html body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:#0C1913!importa
 html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{background:#050807!important;box-shadow:inset 0 0 0 1px var(--smb)}
 html body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot b{font-weight:700!important;letter-spacing:-.03em}
 html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm{border-radius:10px!important;box-shadow:none!important;position:relative}
-html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi){border:1px solid var(--smb)!important;transform:none}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)){border:1px solid var(--smb)!important;transform:none}
 html body.vit[data-tab=venta] .brandrow b{font-weight:700;text-transform:none}
 html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding:0!important}
 /* Teclas F en los botones de pago (solo en computadora y con algo en el ticket) */
@@ -2747,10 +2748,10 @@ html body.vit[data-tab=venta] .brandrow .cstat{background:none!important;padding
 }
 
 /* ===== Logos de Yape, Plin y Culqi sin cuadro blanco ni sombra (pedido de David) ===== */
-.paybox .pm.yape::before,.paybox .pm.plin::before,.paybox .pm.culqi::before,.sheet.paym .mth.yape::before,.sheet.paym .mth.plin::before,.sheet.paym .mth.culqi::before{background-color:transparent!important;box-shadow:none!important}
+.paybox .pm.yape::before,.paybox .pm.plin::before,.paybox .pm:is(.culqi,.bcp)::before,.sheet.paym .mth.yape::before,.sheet.paym .mth.plin::before,.sheet.paym .mth:is(.culqi,.bcp)::before{background-color:transparent!important;box-shadow:none!important}
 .paybox .pm.plin::before,.sheet.paym .mth.plin::before{background-size:contain!important}
-.paybox .pm.culqi::before,.sheet.paym .mth.culqi::before{background-image:url(img/pagos/culqi-q.png)!important;background-size:contain!important}
-.paybox .pm.culqi::before{filter:brightness(0) invert(1)}
+.paybox .pm:is(.culqi,.bcp)::before,.sheet.paym .mth:is(.culqi,.bcp)::before{background-image:url(img/pagos/culqi-q.png)!important;background-size:contain!important}
+.paybox .pm:is(.culqi,.bcp)::before{filter:brightness(0) invert(1)}
 
 /* ===== Vitrina a sangre (opción 4 elegida por David, 23 oct 2026; solo PC ≥960 px y solo con la vitrina en pantalla):
    las fotos/afiches llegan hasta el borde de la pantalla, el buscador flota encima (en el mismo sitio de siempre, así no salta
@@ -2832,14 +2833,14 @@ html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{b
 html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled{background:#1F8A4F!important}
 html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.yape:disabled{background:#742284!important;color:#fff!important;box-shadow:none!important}
 html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.plin:disabled{background:#00B2D6!important;color:#03323C!important;box-shadow:none!important}
-html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi:disabled{background:#FF7A1A!important;color:#2A1300!important;box-shadow:none!important}
-html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#fff!important;color:#1D2633!important;box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 rgba(15,23,42,.1)!important}
-html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled{background:#1C222B!important;color:#E6EAF0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -3px 0 rgba(0,0,0,.35)!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:is(.culqi,.bcp):disabled{background:#FF7A1A!important;color:#2A1300!important;box-shadow:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):disabled{background:#fff!important;color:#1D2633!important;box-shadow:inset 0 0 0 1.5px rgba(15,23,42,.14),inset 0 -3px 0 rgba(15,23,42,.1)!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):disabled{background:#1C222B!important;color:#E6EAF0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -3px 0 rgba(0,0,0,.35)!important}
 html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:disabled::before{filter:none!important}
 html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.efectivo:disabled::before{background-color:#fff!important}
-html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.culqi:disabled::before{filter:brightness(0) invert(1)!important}
-html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#1D2633!important}
-html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(.culqi):disabled::before{background-color:#E6EAF0!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:is(.culqi,.bcp):disabled::before{filter:brightness(0) invert(1)!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):disabled::before{background-color:#1D2633!important}
+html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm:not(.efectivo):not(.yape):not(.plin):not(:is(.culqi,.bcp)):disabled::before{background-color:#E6EAF0!important}
 /* Fotos de la vitrina con su color natural (sin filtro: además es más liviano) */
 body.vit .vmos i{filter:none!important}
 html[data-theme=dark] body.vit .vmos i{filter:brightness(.85)!important}
@@ -3071,3 +3072,120 @@ html[data-theme=dark] body:is(.vit,.vtk)[data-tab=venta] .cart .bigtot{backgroun
   /* Escáner y Fichas tienen el ticket más angosto: ahí el nombre puede usar 3 renglones para no perder el tamaño */
   html body.vtk:not(.vit)[data-tab=venta] .cart .ln .nm b{-webkit-line-clamp:3!important;font-size:13.5px!important}
 }
+
+/* ===== BCP (pedido de David, 25 oct 2026): reemplaza a Culqi en la venta y el cobro. Usa las mismas reglas que Culqi
+   (:is(.culqi,.bcp)) y aquí solo cambia color, letra y logo: azul BCP #012D74 (el fondo del logo), texto blanco. ===== */
+.sheet.paym:has(.mth.bcp.on){--mc:#012D74;--mci:#fff;--mcd:#012D74}
+.sheet.paym:has(.mth.bcp.on) .paytot span::after{content:" con BCP"}
+.sheet.paym:has(.mth.bcp.on) .payhead .tag{background:rgba(255,255,255,.2)}
+html body .sheet.paym:has(.paybody) .mth.bcp{--c:#012D74}
+.mth.bcp.on{background:#012D74;border-color:#012D74;color:#fff}
+.btn.go.bcp{background:#012D74;color:#fff}
+body .paybox .pay4 .pm.bcp,body .paybox .pay4 .pm.bcp:not(:disabled){background:#012D74;color:#fff}
+body:is(.vit,.vtk)[data-tab=venta] .paymini .pm.bcp{--pc:#012D74;background:#012D74!important;color:#fff}
+body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.bcp{background:#012D74!important;color:#fff;--pk:rgba(0,0,0,.35)}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.bcp:disabled{background:#012D74!important;color:#fff!important;box-shadow:none!important}
+.paybox .pm.bcp::before,.sheet.paym .mth.bcp::before{content:""!important;background-image:url(img/pagos/bcp.png)!important;background-size:cover!important;background-color:#012D74!important;filter:none!important}
+html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.bcp::before,html body:is(.vit,.vtk)[data-tab=venta] .paybox .paymini .pm.bcp:disabled::before{filter:none!important}
+
+/* ===== Cobro «pestañas» (opción 3 elegida por David, 25 oct 2026): menos cargado y fácil de usar =====
+   Los medios van arriba como pestañas (logo + nombre, rayita del color del medio en el elegido; sin letras: las teclas
+   E/Y/P/B/T/C y ← → siguen funcionando). Debajo el monto en un fondo suave del color del medio. En efectivo, «Exacto» es
+   un botón ancho del color del medio (Enter) y los billetes van en una fila, solo con el monto y el vuelto.
+   «Dividir pago» es un botón visible abajo. Solo apariencia: los botones y acciones son los mismos de siempre. */
+html body #modal .sheet.paym:has(.paybody){display:flex!important;flex-direction:column}
+html body #modal .sheet.paym:has(.paybody) .mth::after{content:none!important}
+html body #modal .sheet.paym:has(.paybody) .methods{order:-1;display:flex!important;gap:2px!important;margin:-6px -6px 14px!important;padding:0!important;border-bottom:1.5px solid var(--hl,rgba(15,23,42,.1))!important;border-radius:0!important;background:none!important}
+html body #modal .sheet.paym:has(.paybody) .mth{flex:1 1 0;min-width:0;flex-direction:column!important;justify-content:center!important;min-height:66px!important;padding:8px 2px 9px!important;gap:5px!important;border-radius:12px 12px 0 0!important;background:transparent!important;box-shadow:none!important;font:600 12.5px var(--f)!important;color:var(--t2)!important}
+html body #modal .sheet.paym:has(.paybody) .mth span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+html body #modal .sheet.paym:has(.paybody) .mth::before{width:30px!important;height:30px!important;border-radius:9px!important}
+html body #modal .sheet.paym:has(.paybody) .mth.on{background:color-mix(in srgb,var(--c) 11%,transparent)!important;box-shadow:inset 0 -4px 0 var(--c)!important;color:var(--t1)!important;font-weight:750!important}
+@media (hover:hover) and (pointer:fine){html body #modal .sheet.paym:has(.paybody) .mth:not(.on):hover{background:var(--s2,rgba(15,23,42,.04))!important;box-shadow:none!important}}
+html body #modal .sheet.paym:has(.paybody) .payhead{background:color-mix(in srgb,var(--mc) 11%,var(--s1,#fff))!important;color:var(--t1)!important;box-shadow:none!important;padding:14px 18px!important;margin:0 0 14px!important;border-radius:16px!important}
+html body #modal .sheet.paym:has(.paybody) .payhead .paytot span{color:var(--mcd)!important;opacity:1!important;font:700 14px var(--f)!important}
+html body #modal .sheet.paym:has(.paybody) .payhead .paytot b{color:var(--mcd)!important;font-size:3.3rem!important}
+html body #modal .sheet.paym:has(.paybody) .payhead .paytot small{color:var(--t2)!important}
+html body #modal .sheet.paym:has(.paybody) .payhead .tag{background:var(--s1,#fff)!important;color:var(--t2)!important}
+/* efectivo: Exacto ancho + 4 billetes */
+html body #modal .sheet.paym:has(.paybody) .bills{display:grid!important;grid-auto-flow:row!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin-bottom:10px!important}
+html body #modal .sheet.paym:has(.paybody) .bill{min-height:64px!important;padding:8px 6px!important;border-radius:14px!important;box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.14))!important}
+html body #modal .sheet.paym:has(.paybody) .bill::before{display:none!important}
+html body #modal .sheet.paym:has(.paybody) .bill small{display:none!important}
+html body #modal .sheet.paym:has(.paybody) .bill b{font-size:21px!important;color:var(--t1)!important}
+html body #modal .sheet.paym:has(.paybody) .bill em{font:600 12px var(--f)!important;color:var(--t3)!important}
+html body #modal .sheet.paym:has(.paybody) .bill.exact{grid-column:1/-1;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:12px!important;min-height:66px!important;background:var(--mc)!important;box-shadow:inset 0 -3px 0 rgba(0,0,0,.16)!important}
+html body #modal .sheet.paym:has(.paybody) .bill.exact small,html body #modal .sheet.paym:has(.paybody) .bill.exact b,html body #modal .sheet.paym:has(.paybody) .bill.exact em{display:block!important;margin:0!important;color:var(--mci,#fff)!important}
+html body #modal .sheet.paym:has(.paybody) .bill.exact small{font:650 16px var(--f)!important}
+html body #modal .sheet.paym:has(.paybody) .bill.exact b{font-size:26px!important}
+html body #modal .sheet.paym:has(.paybody) .bill.exact em{opacity:.85}
+html body #modal .sheet.paym:has(.paybody) .bill.exact::after{content:"Enter"!important;position:static!important;padding:1px 7px!important;border-radius:6px!important;background:rgba(255,255,255,.22)!important;color:var(--mci,#fff)!important;font:700 11px/18px var(--f)!important}
+/* si con las flechas se marca otro billete, Exacto queda blanco y el «Enter» pasa al marcado */
+html body #modal .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) .bill.exact{background:var(--s1,#fff)!important;box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.14))!important}
+html body #modal .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) .bill.exact :is(small,b,em){color:var(--t1)!important}
+html body #modal .sheet.paym:has(.paybody) .bills:has(.bill:focus-visible:not(.exact)) .bill.exact::after{content:none!important}
+html body #modal .sheet.paym:has(.paybody) .paybody>.link{margin:2px 0 4px!important}
+/* pie: Volver y Dividir pago como botón */
+html body #modal .sheet.paym:has(.paybody) .payfoot{margin-top:12px!important;align-items:center}
+html body #modal .sheet.paym:has(.paybody) .payfoot [data-a=split]{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px!important;border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.16));text-decoration:none!important}
+html body #modal .sheet.paym:has(.paybody) .payfoot [data-a=split]:active{transform:scale(.97)}
+/* oscuro */
+html[data-theme=dark] body #modal .sheet.paym:has(.paybody) .payhead .paytot :is(span,b){color:color-mix(in srgb,var(--mc) 50%,#fff)!important}
+html[data-theme=dark] body #modal .sheet.paym:has(.paybody) .payhead{background:color-mix(in srgb,var(--mc) 22%,var(--s1,#14211A))!important}
+/* celular: pestañas más chicas */
+@media (max-width:640px){
+  html body #modal .sheet.paym:has(.paybody) .methods{margin:-4px -4px 12px!important}
+  html body #modal .sheet.paym:has(.paybody) .mth{min-height:58px!important;font-size:11px!important;padding:6px 0 8px!important}
+  html body #modal .sheet.paym:has(.paybody) .mth::before{width:26px!important;height:26px!important}
+  html body #modal .sheet.paym:has(.paybody) .payhead .paytot b{font-size:2.6rem!important}
+  html body #modal .sheet.paym:has(.paybody) .bills{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+/* ===== Dividir pago fácil (paintSplit, 25 oct 2026): total arriba, barra de lo pagado por medio, «Falta»/«Vuelto» en
+   grande, paso 1 «¿Cuánto paga?» con montos rápidos y paso 2 «¿Con qué paga?» con el logo de cada medio. ===== */
+html body #modal .sheet.paym.spl{max-width:600px}
+.sheet.spl .sphead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 12px}
+.sheet.spl .sphead h2{margin:0 0 2px}
+.sheet.spl .sphead p{margin:0;font-size:13.5px}
+.sheet.spl .sptot{display:flex;flex-direction:column;align-items:flex-end;flex:none}
+.sheet.spl .sptot span{color:var(--t3);font:600 12.5px var(--f)}
+.sheet.spl .sptot b{font:800 28px/1.1 var(--f);letter-spacing:-.03em;color:var(--t1)}
+.sheet.spl .spbar{display:flex;height:10px;margin:0 0 10px;border-radius:99px;background:var(--s2,#EEF2EF);overflow:hidden}
+.sheet.spl .spbar i{display:block;height:100%}
+.sheet.spl .spbar i+i{box-shadow:inset 2px 0 0 var(--s1,#fff)}
+html body #modal .sheet.spl #splitst{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;min-height:58px;margin:0 0 10px;padding:8px 16px;border-radius:14px;border:0}
+html body #modal .sheet.spl #splitst span{font:650 15px var(--f);color:inherit}
+html body #modal .sheet.spl #splitst b{font:800 28px var(--f);letter-spacing:-.03em;color:inherit}
+html body #modal .sheet.spl #splitst.falta{background:#FFF4D6;color:#7A4B00}
+html body #modal .sheet.spl #splitst.ok{background:#DDF5E6;color:#0E6B33}
+html body #modal .sheet.spl #splitst.bad{background:#FDE2DF;color:#9B1C12}
+html[data-theme=dark] body #modal .sheet.spl #splitst.falta{background:#3A2E12;color:#FFD98A}
+html[data-theme=dark] body #modal .sheet.spl #splitst.ok{background:#123B24;color:#8BE0AE}
+html[data-theme=dark] body #modal .sheet.spl #splitst.bad{background:#3F1714;color:#FFB4A8}
+.sheet.spl .parts{gap:6px;margin:0 0 4px}
+html body #modal .sheet.spl .part{grid-template-columns:30px minmax(0,1fr) auto 40px;gap:10px;min-height:48px;padding:6px 6px 6px 10px;border-radius:12px;background:var(--s2,#F1F5F3)}
+.sheet.spl .part .pmi{width:30px;height:30px;background-size:17px}
+.sheet.spl .part .pmi:is(.m-yape,.m-plin,.m-bcp){background-size:cover}
+.sheet.spl .part span{font:650 15px var(--f)}
+.sheet.spl .part b{font:800 18px var(--f)}
+.sheet.spl .part .x{width:40px;height:40px;border-radius:10px}
+.sheet.spl .spstep{display:flex;align-items:center;gap:10px;margin:14px 0 8px}
+.sheet.spl .spstep b{font:750 16px var(--f);color:var(--t1)}
+.sheet.spl .spn{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ac,#1D8A4E);color:#fff;font:800 13px var(--f)}
+.sheet.spl .sprow{display:flex;flex-direction:column;gap:8px}
+html body #modal .sheet.spl #pamt{min-height:56px;font-size:24px}
+.sheet.spl .spq{display:flex;flex-wrap:wrap;gap:6px}
+.sheet.spl .spq .spc{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border:0;border-radius:12px;background:var(--s1,#fff);color:var(--t1);box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.14));cursor:pointer;transition:transform .14s var(--ease-out,ease-out)}
+.sheet.spl .spq .spc small{color:var(--t3);font:600 12.5px var(--f)}
+.sheet.spl .spq .spc b{font:750 16px var(--f)}
+.sheet.spl .spq .spc:active{transform:scale(.97)}
+.sheet.spl .spm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sheet.spl .spmb{position:relative;display:flex;align-items:center;gap:10px;min-height:58px;padding:0 12px;border:0;border-radius:14px;background:var(--s1,#fff);color:var(--t1);font:700 15px var(--f);text-align:left;box-shadow:inset 0 0 0 1.5px var(--hl2,rgba(15,23,42,.14));cursor:pointer;transition:transform .14s var(--ease-out,ease-out)}
+.sheet.spl .spmb .pmi{width:32px;height:32px;background-size:18px}
+.sheet.spl .spmb .pmi:is(.m-yape,.m-plin,.m-bcp){background-size:cover}
+.sheet.spl .spmb .kbd{margin-left:auto}
+.sheet.spl .spmb:active{transform:scale(.97)}
+.sheet.spl .spmb:focus-visible,.sheet.spl .spq .spc:focus-visible{outline:3px solid var(--ac,#1D8A4E);outline-offset:2px}
+@media (hover:hover) and (pointer:fine){.sheet.spl .spmb:hover,.sheet.spl .spq .spc:hover{box-shadow:inset 0 0 0 2px var(--ac,#1D8A4E)}}
+.sheet.spl .spfoot{margin-top:16px}
+html body #modal .sheet.spl .spfoot #payok{min-height:56px;font-size:17px}
+@media (max-width:640px){.sheet.spl .spm{grid-template-columns:repeat(2,minmax(0,1fr))}.sheet.spl .sptot b{font-size:24px}}

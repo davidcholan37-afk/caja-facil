@@ -98,7 +98,7 @@ function retAmount(s) {
 function paintReturn() {
   const r = ui.ret, s = saleById(r.id); if (!s) return;
   const amt = retAmount(s), cr = paysOf(s).some((p) => p.m === "credito") && s.client;
-  const M = ["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia"].concat(cr ? ["credito"] : []);
+  const M = ["efectivo", "yape", "plin", "bcp", "tarjeta"].concat(cr ? ["credito"] : []);
   openModal(`<h2>Devolución · ${docShort(s)}</h2><p class="muted" style="margin-bottom:10px">Marca lo que el cliente devuelve.</p>
     <div class="list">${s.items.map((it, i) => { const left = r3(it.qty - returnedQty(s, i)), q = r.q[i] || 0, kg = it.unit === "kg"; return left > 0 ? `<div class="it sm"><div class="t"><b>${esc(it.name)}</b><small>Vendió ${fmtQ(it.qty)}${kg ? " kg" : ""} × ${money(it.price)}${left < it.qty ? ` · ya devolvió ${fmtQ(it.qty - left)}` : ""}</small></div>
       <span class="step"><button data-a="retq" data-i="${i}" data-v="-1" aria-label="Menos">−</button><span class="num">${fmtQ(q)}</span><button data-a="retq" data-i="${i}" data-v="1" aria-label="Más">+</button></span>${kg || left !== Math.round(left) ? `<button class="link xs" data-a="retall" data-i="${i}">todo</button>` : ""}</div>` : ""; }).join("")}</div>

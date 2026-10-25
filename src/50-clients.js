@@ -112,7 +112,7 @@ function openAbono(id) {
   ui.ab = { id, m: "efectivo" };
   openModal(`<h2>Cobrar deuda</h2><p class="muted" style="margin-bottom:12px">${esc(c.name)} debe <b>${money(debt)}</b>.</p>
     <label class="fld"><span>Monto que paga (S/)</span><input class="inp num big" id="abq" inputmode="decimal" value="${debt.toFixed(2)}" autofocus></label>
-    <div class="methods" id="abm">${["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia"].map((m) => `<button class="mth ${m === "efectivo" ? "on" : ""}" data-a="abm" data-m="${m}">${METHODS[m]}</button>`).join("")}</div>
+    <div class="methods" id="abm">${["efectivo", "yape", "plin", "bcp", "tarjeta"].map((m) => `<button class="mth ${m === "efectivo" ? "on" : ""}" data-a="abm" data-m="${m}">${METHODS[m]}</button>`).join("")}</div>
     <label class="fld"><span>Nota (opcional)</span><input class="inp" id="abn" maxlength="50"></label>
     <div class="btns h"><button class="btn sec" data-a="cliopen" data-id="${id}">Volver</button><button class="btn" data-enter data-a="abok">Registrar pago</button></div>`);
 }

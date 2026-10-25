@@ -61,7 +61,7 @@ const parseQty = (v) => {
 const fmtPhone = (v) => String(v || "").replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ").trim();
 const parseAmounts = (s) => String(s).replace(/(\d),(\d{1,2})(?!\d)/g, "$1.$2").split(/[\s;,]+/).map((x) => parseFloat(x)).filter((n) => isFinite(n) && n > 0).map(r2);
 
-const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", culqi: "Culqi", tarjeta: "Tarjeta", transferencia: "Transferencia", credito: "Crédito", puntos: "Puntos" };
+const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", bcp: "BCP", culqi: "Culqi", tarjeta: "Tarjeta", transferencia: "Transferencia", credito: "Crédito", puntos: "Puntos" };
 const FK = { efectivo: "F2", yape: "F8", plin: "F10" }; // F9 también cobra en efectivo (pedido de David); tarjeta: tecla T en el cobro
 const DOCS = { NV: "Nota de venta", B: "Boleta", F: "Factura" };
 const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
@@ -1118,7 +1118,7 @@ function paintCart() {
       </div>
     </div>
     <div class="paybox">
-      ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="pmx num">${lines.length ? money(T.total) : "<small>Agrega un producto</small>"}</span><span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm culqi" data-a="pay" data-m="culqi" ${dis}>Culqi</button><button class="pm" data-a="paymas" ${dis}>Más</button></div>`
+      ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="pmx num">${lines.length ? money(T.total) : "<small>Agrega un producto</small>"}</span><span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm bcp" data-a="pay" data-m="bcp" ${dis}>BCP</button><button class="pm" data-a="paymas" ${dis}>Más</button></div>`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
   paintTickets();
@@ -1212,8 +1212,8 @@ const billCls = (v) => (BILLS.includes(v) ? "b" + v : "coin");
 function paintPay() {
   const p = ui.pay, total = cartTotals().total, due = payDue(), t = DB.cart, doc = t.doc || DB.cfg.docDef || "NV", c = cli(t.client);
   if (p.split) return paintSplit();
-  const M = ["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia", "credito"].filter((m) => m !== "credito" || DB.clients.length || can("clientes"));
-  const KEYL = { efectivo: "E", yape: "Y", plin: "P", culqi: "Q", tarjeta: "T", transferencia: "R", credito: "C" };
+  const M = ["efectivo", "yape", "plin", "bcp", "tarjeta", "credito"].filter((m) => m !== "credito" || DB.clients.length || can("clientes"));
+  const KEYL = { efectivo: "E", yape: "Y", plin: "P", bcp: "B", tarjeta: "T", credito: "C" };
   let body;
   if (p.method === "efectivo" && due <= 0) body = `<button class="btn lg" id="payok" data-a="payok" data-enter>Cobrar ${money(due)}</button>`;
   else if (p.method === "efectivo") body = `<div class="bills"><button class="bill exact" data-a="cashgo" data-v="${due}" data-enter><small>Exacto</small><b class="num">${money(due)}</b><em>Sin vuelto</em></button>${cashOpts(due).map((v) => `<button class="bill ${billCls(v)}" data-a="cashgo" data-v="${v}"><small>${BILLS.includes(v) ? "Billete" : "Paga con"}</small><b class="num">S/ ${v}</b><em class="num">Vuelto ${money(r2(v - due))}</em></button>`).join("")}</div>
@@ -1221,8 +1221,8 @@ function paintPay() {
       <button class="btn lg" id="payok" data-a="payok">Cobrar en efectivo</button>` : `<button class="link" data-a="payother" style="margin:0 0 6px">Paga con otro monto</button>`}`;
   else if (p.method === "yape" || p.method === "plin") body = `${payTo(p.method)}<button class="btn lg go ${p.method}" id="payok" data-a="payok">Ya llegó el ${METHODS[p.method]}: cobrar ${money(due)}</button>`;
   else if (p.method === "credito") body = `${creditBlock()}<button class="btn lg" id="payok" data-a="payok" ${c ? "" : "disabled"}>Anotar ${money(due)} al crédito</button>`;
-  else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : p.method === "culqi" ? "Cobra con Culqi (enlace, QR o POS). N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
-      <button class="btn lg${p.method === "culqi" ? " go culqi" : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" ? "Culqi" : METHODS[p.method].toLowerCase()}</button>`;
+  else body = `<label class="fld"><span>${p.method === "tarjeta" ? "Pasa la tarjeta en tu POS. N° de operación (opcional)" : p.method === "bcp" ? "Cobra con BCP. N° de operación (opcional)" : p.method === "culqi" ? "Cobra con Culqi (enlace, QR o POS). N° de operación (opcional)" : "N° de operación de la transferencia (opcional)"}</span><input class="inp" id="pref" value="${esc(p.ref)}" placeholder="Ej: 004512" autocomplete="off" autofocus></label>
+      <button class="btn lg${p.method === "culqi" || p.method === "bcp" ? " go " + p.method : ""}" id="payok" data-a="payok">Cobrar ${money(due)} con ${p.method === "culqi" || p.method === "bcp" ? METHODS[p.method] : METHODS[p.method].toLowerCase()}</button>`;
   openModal(`<div class="payhead"><div class="paytot"><span>A cobrar</span><b class="num">${money(due)}</b>${p.pts ? `<small>Total ${money(total)} − puntos ${money(p.pts)}</small>` : ""}</div><span class="tag">${DOCS[doc]}${c ? " · " + esc(c.name) : ""}</span></div>
     ${ptsBlock()}
     <div class="methods" role="tablist" aria-label="Medio de pago">${M.map((k) => `<button class="mth ${k} ${p.method === k ? "on" : ""}" role="tab" aria-selected="${p.method === k}" data-a="method" data-m="${k}" data-k="${KEYL[k]}"><span>${METHODS[k]}</span></button>`).join("")}</div>
@@ -1240,23 +1240,37 @@ function splitCalc() {
   if (acc.efectivo != null) acc.efectivo = r2(acc.efectivo - change);
   return { ok, rem, change, cashGiven, nonCash, pays: Object.entries(acc).filter(([, a]) => a > 0).map(([m, amt]) => ({ m, amt })) };
 }
+// Dividir pago (rehecho el 25 oct 2026 a pedido de David, para que sea fácil): arriba el total y una barra con lo que ya
+// se pagó por cada medio; «Falta» / «Vuelto» en grande; paso 1 «¿Cuánto paga?» (vacío = lo que falta, o montos rápidos)
+// y paso 2 «¿Con qué paga?» (cada medio con su logo; tocarlo agrega esa parte). Crédito sin cliente pide elegirlo.
 function paintSplit() {
-  const p = ui.pay, r = splitCalc(), falta = Math.max(0, r.rem), c = cli(DB.cart.client);
-  let st;
-  if (r.rem > 0) st = `<span>Falta</span><b class="num">${money(r.rem)}</b>`;
-  else if (r.nonCash > payDue()) st = `<span>Yape, Plin, Culqi, tarjeta o crédito no pueden pasar el total</span><b></b>`;
-  else if (r.change > 0) st = `<span>Vuelto</span><b class="num">${money(r.change)}</b>`;
-  else st = `<span>Pago completo</span><b>✓</b>`;
-  const bad = r.rem > 0 || r.nonCash > payDue() || r.change > r.cashGiven;
-  const M = ["efectivo", "yape", "tarjeta", "plin", "culqi", "transferencia"].concat(c ? ["credito"] : []);
-  openModal(`<div class="payhead"><h2>Dividir pago</h2></div><div class="paytot"><span class="muted">Total a pagar</span><b class="num">${money(payDue())}</b></div>
+  const p = ui.pay, r = splitCalc(), due = payDue(), falta = Math.max(0, r.rem), c = cli(DB.cart.client);
+  const paid = r2(r.cashGiven + r.nonCash);
+  let st, cls;
+  if (r.nonCash > due) { st = `<span>Yape, Plin, BCP, tarjeta o crédito no pueden pasar el total</span><b></b>`; cls = "bad"; }
+  else if (r.rem > 0) { st = `<span>${p.parts.length ? "Falta" : "Por pagar"}</span><b class="num">${money(r.rem)}</b>`; cls = "falta"; }
+  else if (r.change > 0) { st = `<span>Vuelto</span><b class="num">${money(r.change)}</b>`; cls = "ok"; }
+  else { st = `<span>Pago completo</span><b>✓</b>`; cls = "ok"; }
+  const M = ["efectivo", "yape", "plin", "bcp", "tarjeta"].concat(DB.clients.length || can("clientes") ? ["credito"] : []);
+  const base = Math.max(due, paid) || 1;
+  const quick = [];
+  if (falta > 0) {
+    quick.push([falta, "Lo que falta"]);
+    if (!p.parts.length && due >= 2) quick.push([r2(Math.round(due * 5) / 10), "La mitad"]);
+    [10, 20, 50, 100].filter((v) => v < falta - 0.001).slice(-3).forEach((v) => quick.push([v, ""]));
+  }
+  openModal(`<div class="sphead"><div><h2>Dividir pago</h2><p class="muted">Una parte con un medio y el resto con otro.</p></div><div class="sptot"><span>Total</span><b class="num">${money(due)}</b></div></div>
     ${ptsBlock()}
-    <div class="parts">${p.parts.length ? p.parts.map((x, i) => `<div class="part"><span>${METHODS[x.m]}</span><b class="num">${money(x.amt)}</b><button class="x" data-a="partdel" data-i="${i}" aria-label="Quitar este pago">✕</button></div>`).join("") : `<p class="muted">Escribe cuánto paga con cada medio y toca el medio. Ej: S/ 10 en efectivo y el resto con Yape.</p>`}</div>
-    <div class="vuelto ${bad ? "bad" : ""}" id="splitst">${st}</div>
-    <label class="fld"><span>Monto de esta parte (vacío = lo que falta)</span><input class="inp num" id="pamt" inputmode="decimal" placeholder="${falta > 0 ? falta.toFixed(2) : "0.00"}" autofocus></label>
-    <div class="methods m6">${M.map((m) => `<button class="mth ${m}" data-a="partadd" data-m="${m}">+ ${METHODS[m]}${FK[m] ? `<span class="kbd">${FK[m]}</span>` : ""}</button>`).join("")}</div>
-    ${p.parts.some((x) => x.m === "yape") && DB.cfg.yapeNum ? `<p class="muted" style="margin-bottom:10px">Yape: <b>${fmtPhone(DB.cfg.yapeNum)}</b></p>` : ""}
-    <div class="btns h"><button class="btn sec" data-a="split">Pago único</button><button class="btn" id="payok" data-a="payok" ${r.ok ? "" : "disabled"}>Confirmar cobro</button></div>`, "paym");
+    <div class="spbar" aria-hidden="true">${p.parts.map((x) => `<i class="m-${x.m}" style="width:${Math.min(100, (x.amt / base) * 100).toFixed(2)}%"></i>`).join("")}</div>
+    <div class="vuelto spst ${cls}" id="splitst">${st}</div>
+    ${p.parts.length ? `<div class="parts">${p.parts.map((x, i) => `<div class="part"><i class="pmi m-${x.m}" aria-hidden="true"></i><span>${METHODS[x.m]}</span><b class="num">${money(x.amt)}</b><button class="x" data-a="partdel" data-i="${i}" aria-label="Quitar este pago">✕</button></div>`).join("")}</div>` : ""}
+    ${falta > 0 ? `<div class="spstep"><span class="spn">1</span><b>¿Cuánto paga?</b></div>
+    <div class="sprow"><input class="inp num big" id="pamt" inputmode="decimal" placeholder="${falta.toFixed(2)}" aria-label="Monto de esta parte (vacío = lo que falta)" autofocus>
+      <div class="spq">${quick.map(([v, t]) => `<button class="spc" data-a="pamtset" data-v="${v}">${t ? `<small>${t}</small>` : ""}<b class="num">${money(v)}</b></button>`).join("")}</div></div>
+    <div class="spstep"><span class="spn">2</span><b>¿Con qué paga?</b></div>
+    <div class="spm">${M.map((m) => `<button class="spmb" data-a="partadd" data-m="${m}"><i class="pmi m-${m}" aria-hidden="true"></i><span>${METHODS[m]}</span></button>`).join("")}</div>` : ""}
+    ${p.parts.some((x) => x.m === "yape") && DB.cfg.yapeNum ? `<p class="muted" style="margin:8px 0 0">Yape: <b>${fmtPhone(DB.cfg.yapeNum)}</b></p>` : ""}
+    <div class="btns h spfoot"><button class="btn sec" data-a="split">Volver</button><button class="btn" id="payok" data-a="payok" ${r.ok ? "data-enter" : "disabled"}>${r.ok ? `Cobrar ${money(due)}` : "Confirmar cobro"}</button></div>`, "paym spl");
   ui.mk = "pay";
 }
 function updPay() {
@@ -1484,9 +1498,11 @@ act({
     const r = splitCalc(), m = el.dataset.m, falta = Math.max(0, r.rem);
     const raw = ($("#pamt") || { value: "" }).value.trim(), a = r2(raw === "" ? falta : num(raw));
     if (!(a > 0)) { toast(falta <= 0 ? "El total ya está cubierto" : "Escribe un monto"); return; }
+    if (m === "credito" && !cli(DB.cart.client)) { toast("Elige a quién le fías"); return A.pickcli({ dataset: { back: "pay" } }); }
     if (m !== "efectivo" && a > falta + 0.001) { toast(`${METHODS[m]} no puede pasar de lo que falta (${money(falta)})`); beep(false); return; }
     p.parts.push({ m, amt: a }); paintPay();
   },
+  pamtset: (el) => { const i = $("#pamt"); if (i) { i.value = String(el.dataset.v); i.focus(); i.select(); } },
   partdel: (el) => { ui.pay.parts.splice(+el.dataset.i, 1); paintPay(); },
   gosettings: () => { closeModal(); ui.atab = "cobros"; go("aj"); },
   focusq: () => { const q = $("#q"); if (q) { q.focus(); q.select(); } },
@@ -1500,7 +1516,7 @@ act({
     const f = (act, ic, name, key, m) => `<button class="fb" data-a="fn" data-f="${act}"${m ? ` data-m="${m}"` : ""}>${svg(ic)}<span>${name}</span>${key ? `<kbd>${key}</kbd>` : ""}</button>`;
     openModal(`<h2>Funciones</h2>
       <h3 class="fh">Cobrar</h3><div class="fgrid">
-      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "Culqi", "", "culqi") + f("pay", "caja", "Tarjeta", "", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
+      ${cobra ? f("pay", "money", "Efectivo", "F2", "efectivo") + f("pay", "money", "Yape", "F8", "yape") + f("pay", "money", "Plin", "F10", "plin") + f("pay", "money", "BCP", "", "bcp") + f("pay", "caja", "Tarjeta", "", "tarjeta") + f("split", "ventas", "Dividir pago", "F7") + f("pay", "cli", "Crédito", "", "credito") : ""}
       ${f("prevsave", "prev", "Guardar preventa", cobra ? "" : "F2")}${cobra ? f("prevload", "prev", "Cobrar preventa") : ""}
       </div>
       <h3 class="fh">Ticket</h3><div class="fgrid">
@@ -2854,7 +2870,7 @@ function openAbono(id) {
   ui.ab = { id, m: "efectivo" };
   openModal(`<h2>Cobrar deuda</h2><p class="muted" style="margin-bottom:12px">${esc(c.name)} debe <b>${money(debt)}</b>.</p>
     <label class="fld"><span>Monto que paga (S/)</span><input class="inp num big" id="abq" inputmode="decimal" value="${debt.toFixed(2)}" autofocus></label>
-    <div class="methods" id="abm">${["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia"].map((m) => `<button class="mth ${m === "efectivo" ? "on" : ""}" data-a="abm" data-m="${m}">${METHODS[m]}</button>`).join("")}</div>
+    <div class="methods" id="abm">${["efectivo", "yape", "plin", "bcp", "tarjeta"].map((m) => `<button class="mth ${m === "efectivo" ? "on" : ""}" data-a="abm" data-m="${m}">${METHODS[m]}</button>`).join("")}</div>
     <label class="fld"><span>Nota (opcional)</span><input class="inp" id="abn" maxlength="50"></label>
     <div class="btns h"><button class="btn sec" data-a="cliopen" data-id="${id}">Volver</button><button class="btn" data-enter data-a="abok">Registrar pago</button></div>`);
 }
@@ -2966,7 +2982,7 @@ function closeShiftUI(id) {
       ${S.abonosCash ? `<div class="kv"><span>+ Cobros de deudas</span><b class="num">${money(S.abonosCash)}</b></div>` : ""}${S.ingresos ? `<div class="kv"><span>+ Otros ingresos</span><b class="num">${money(S.ingresos)}</b></div>` : ""}
       ${S.prov ? `<div class="kv"><span>− Proveedores</span><b class="num">${money(S.prov)}</b></div>` : ""}${S.gastos ? `<div class="kv"><span>− Gastos</span><b class="num">${money(S.gastos)}</b></div>` : ""}${S.retiros ? `<div class="kv"><span>− Retiros</span><b class="num">${money(S.retiros)}</b></div>` : ""}${S.devol || S.anul ? `<div class="kv"><span>− Devoluciones y anulaciones</span><b class="num">${money(S.devol + S.anul)}</b></div>` : ""}
       <div class="kv strong"><span>Debe haber</span><b class="num">${money(S.expected)}</b></div>
-      <div class="kv"><span>Yape / Plin / Culqi / tarjeta</span><b class="num">${money((S.by.yape || 0) + (S.by.plin || 0) + (S.by.culqi || 0) + (S.by.tarjeta || 0) + (S.by.transferencia || 0))}</b></div>
+      <div class="kv"><span>Yape / Plin / BCP / tarjeta</span><b class="num">${money((S.by.yape || 0) + (S.by.plin || 0) + (S.by.bcp || 0) + (S.by.culqi || 0) + (S.by.tarjeta || 0) + (S.by.transferencia || 0))}</b></div>
       ${S.by.credito ? `<div class="kv"><span>Ventas al crédito</span><b class="num">${money(S.by.credito)}</b></div>` : ""}
       ${any ? `<div class="verdict ${diff === 0 ? "ok" : diff < 0 ? "short" : "over"}"><span>${diff === 0 ? "La caja cuadra" : diff < 0 ? "Falta dinero" : "Sobra dinero"}</span><b class="num">${money(Math.abs(diff))}</b></div>` : ""}
     </div><div>
@@ -3012,7 +3028,7 @@ function zHtml(z) {
 /* ---------- pantalla de caja ---------- */
 // «Ventas del día»: total grande, barra con lo que entró por cada medio y cada medio con su logo o ícono.
 function cajaDia(T) {
-  const rows = ["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia", "credito", "puntos"]
+  const rows = ["efectivo", "yape", "plin", "bcp", "culqi", "tarjeta", "transferencia", "credito", "puntos"]
     .filter((m) => T.by[m] || ["efectivo", "yape", "plin"].includes(m))
     .map((m) => ({ m, amt: (m === "yape" ? T.yapeAll : T.by[m]) || 0 }));
   const sum = rows.reduce((a, r) => a + r.amt, 0);
@@ -5363,7 +5379,7 @@ function retAmount(s) {
 function paintReturn() {
   const r = ui.ret, s = saleById(r.id); if (!s) return;
   const amt = retAmount(s), cr = paysOf(s).some((p) => p.m === "credito") && s.client;
-  const M = ["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia"].concat(cr ? ["credito"] : []);
+  const M = ["efectivo", "yape", "plin", "bcp", "tarjeta"].concat(cr ? ["credito"] : []);
   openModal(`<h2>Devolución · ${docShort(s)}</h2><p class="muted" style="margin-bottom:10px">Marca lo que el cliente devuelve.</p>
     <div class="list">${s.items.map((it, i) => { const left = r3(it.qty - returnedQty(s, i)), q = r.q[i] || 0, kg = it.unit === "kg"; return left > 0 ? `<div class="it sm"><div class="t"><b>${esc(it.name)}</b><small>Vendió ${fmtQ(it.qty)}${kg ? " kg" : ""} × ${money(it.price)}${left < it.qty ? ` · ya devolvió ${fmtQ(it.qty - left)}` : ""}</small></div>
       <span class="step"><button data-a="retq" data-i="${i}" data-v="-1" aria-label="Menos">−</button><span class="num">${fmtQ(q)}</span><button data-a="retq" data-i="${i}" data-v="1" aria-label="Más">+</button></span>${kg || left !== Math.round(left) ? `<button class="link xs" data-a="retall" data-i="${i}">todo</button>` : ""}</div>` : ""; }).join("")}</div>
@@ -5484,7 +5500,7 @@ function helpStatus() {
 /* ---------- sin internet: pasos guardados ---------- */
 // k = pedazos de palabra (sin tildes) que delatan el tema; gana el que más coincide.
 const HELP_KB = [
-  { k: ["cobr", "yape", "plin", "vuelto", "tarjeta", "efectivo"], t: "Cobrar una venta", go: "venta", s: ["En Vender, agrega los productos al ticket.", "Toca Efectivo, Yape, Plin, Culqi o Tarjeta (atajos: F2 o F9 efectivo, F8 Yape, F10 Plin; dentro del cobro, Q Culqi y T tarjeta).", "Si es efectivo, escribe con cuánto paga y verás el vuelto.", "Confirma y la venta queda guardada."] },
+  { k: ["cobr", "yape", "plin", "vuelto", "tarjeta", "efectivo"], t: "Cobrar una venta", go: "venta", s: ["En Vender, agrega los productos al ticket.", "Toca Efectivo, Yape, Plin, BCP o Tarjeta (atajos: F2 o F9 efectivo, F8 Yape, F10 Plin; dentro del cobro, B BCP, T tarjeta y C crédito; ← → cambian de medio).", "Si es efectivo, escribe con cuánto paga y verás el vuelto.", "Confirma y la venta queda guardada."] },
   { k: ["buscar", "escane", "codigo de barras", "agregar al ticket", "agrego un producto a la venta", "anotar un producto"], t: "Agregar productos al ticket", go: "venta", s: ["Escribe el nombre arriba (F3) o escanea el código de barras.", "Toca el producto para sumarlo.", "Cambia la cantidad con F6 y quita una línea con Supr."] },
   { k: ["producto nuevo", "crear producto", "crear un producto", "nuevo producto", "agregar producto", "registrar producto", "creo un producto"], t: "Crear un producto", go: "prod", s: ["Entra a Productos.", "Toca el botón para agregar un producto.", "Escribe nombre, precio, costo y stock.", "Guarda. Ya aparece en Vender."] },
   { k: ["cambiar precio", "cambiar el precio", "editar producto", "subir precio", "precio de un producto", "cambio el precio"], t: "Cambiar un precio", go: "prod", s: ["Entra a Productos.", "Toca el producto.", "Cambia el precio y guarda."] },
@@ -6234,7 +6250,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (open && ui.mk === "pay" && ui.pay && !ui.pay.split && !field && !e.ctrlKey && !e.metaKey) {
-    const m = { e: "efectivo", y: "yape", p: "plin", q: "culqi", t: "tarjeta", r: "transferencia", c: "credito" }[e.key.toLowerCase()];
+    const m = { e: "efectivo", y: "yape", p: "plin", b: "bcp", t: "tarjeta", c: "credito" }[e.key.toLowerCase()];
     if (m) { ui.pay.method = m; paintPay(); }
   }
 });

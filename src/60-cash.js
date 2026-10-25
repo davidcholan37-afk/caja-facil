@@ -61,7 +61,7 @@ function closeShiftUI(id) {
       ${S.abonosCash ? `<div class="kv"><span>+ Cobros de deudas</span><b class="num">${money(S.abonosCash)}</b></div>` : ""}${S.ingresos ? `<div class="kv"><span>+ Otros ingresos</span><b class="num">${money(S.ingresos)}</b></div>` : ""}
       ${S.prov ? `<div class="kv"><span>− Proveedores</span><b class="num">${money(S.prov)}</b></div>` : ""}${S.gastos ? `<div class="kv"><span>− Gastos</span><b class="num">${money(S.gastos)}</b></div>` : ""}${S.retiros ? `<div class="kv"><span>− Retiros</span><b class="num">${money(S.retiros)}</b></div>` : ""}${S.devol || S.anul ? `<div class="kv"><span>− Devoluciones y anulaciones</span><b class="num">${money(S.devol + S.anul)}</b></div>` : ""}
       <div class="kv strong"><span>Debe haber</span><b class="num">${money(S.expected)}</b></div>
-      <div class="kv"><span>Yape / Plin / Culqi / tarjeta</span><b class="num">${money((S.by.yape || 0) + (S.by.plin || 0) + (S.by.culqi || 0) + (S.by.tarjeta || 0) + (S.by.transferencia || 0))}</b></div>
+      <div class="kv"><span>Yape / Plin / BCP / tarjeta</span><b class="num">${money((S.by.yape || 0) + (S.by.plin || 0) + (S.by.bcp || 0) + (S.by.culqi || 0) + (S.by.tarjeta || 0) + (S.by.transferencia || 0))}</b></div>
       ${S.by.credito ? `<div class="kv"><span>Ventas al crédito</span><b class="num">${money(S.by.credito)}</b></div>` : ""}
       ${any ? `<div class="verdict ${diff === 0 ? "ok" : diff < 0 ? "short" : "over"}"><span>${diff === 0 ? "La caja cuadra" : diff < 0 ? "Falta dinero" : "Sobra dinero"}</span><b class="num">${money(Math.abs(diff))}</b></div>` : ""}
     </div><div>
@@ -107,7 +107,7 @@ function zHtml(z) {
 /* ---------- pantalla de caja ---------- */
 // «Ventas del día»: total grande, barra con lo que entró por cada medio y cada medio con su logo o ícono.
 function cajaDia(T) {
-  const rows = ["efectivo", "yape", "plin", "culqi", "tarjeta", "transferencia", "credito", "puntos"]
+  const rows = ["efectivo", "yape", "plin", "bcp", "culqi", "tarjeta", "transferencia", "credito", "puntos"]
     .filter((m) => T.by[m] || ["efectivo", "yape", "plin"].includes(m))
     .map((m) => ({ m, amt: (m === "yape" ? T.yapeAll : T.by[m]) || 0 }));
   const sum = rows.reduce((a, r) => a + r.amt, 0);
