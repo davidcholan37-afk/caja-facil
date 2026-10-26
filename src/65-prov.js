@@ -49,35 +49,26 @@ function pvDia(k) {
   if (n < 31) return `Hace ${n} días · ${dia} de ${MONTHS[d.getMonth()]}`;
   return `${dia} de ${MONTHS[d.getMonth()]}${k.slice(0, 4) !== t.slice(0, 4) ? " de " + k.slice(0, 4) : ""}`;
 }
-// Detalle del proveedor «conversación» (opción 3 de David, 26 oct 2026): lo que te fió a la izquierda, lo que le pagaste a la derecha,
-// separadores «Hoy / Ayer / Hace N días», arriba la deuda fija y abajo Pagar todo / Abonar / Me fiaron fijos. Abre en lo más nuevo (abajo).
+// Detalle del proveedor «lista simple» (opción 2 de David, 26 oct 2026; antes «conversación»): arriba cuánto le debes
+// con Pagar todo / Abonar / Me fiaron, y abajo los movimientos del más nuevo al más viejo con «Hoy / Ayer / Hace N días».
 const PV_MAX = 60;
-const pvEnd = () => requestAnimationFrame(() => { window.scrollTo(0, 1e7); const v = $("#view"); if (v && v.scrollHeight > v.clientHeight) v.scrollTop = 1e7; });
 function provDetail(v, s) {
   const b = suppBal(s), rows = DB.sm.filter((x) => x.sid === s.id).sort((x, y) => y.t - x.t);
-  let run = b; const withBal = rows.map((x) => { const r = { x, bal: run }; run = r2(run - (x.type === "deuda" ? x.amt : -x.amt)); return r; });
-  const fio = r2(rows.filter((x) => x.type === "deuda").reduce((a, x) => a + x.amt, 0)), pago = r2(rows.filter((x) => x.type === "pago").reduce((a, x) => a + x.amt, 0)), ult = rows.find((x) => x.type === "pago");
-  const pct = fio > 0 ? Math.min(100, Math.round((pago / fio) * 100)) : 0;
-  const all = ui.pvAll === s.id || withBal.length <= PV_MAX, shown = (all ? withBal : withBal.slice(0, PV_MAX)).slice().reverse();
+  const all = ui.pvAll === s.id || rows.length <= PV_MAX, shown = all ? rows : rows.slice(0, PV_MAX);
   const nuevo = ui.pvNew; ui.pvNew = null;
-  let dAnt = "";
-  const chat = shown.map(({ x, bal }) => {
-    const pg = x.type === "pago", sep = x.date !== dAnt ? `<div class="pvsep"><span>${pvDia(x.date)}</span></div>` : ""; dAnt = x.date;
-    return `${sep}<div class="pvbb ${pg ? "p" : "d"}${x.id === nuevo ? " nuevo" : ""}"><div class="pvbub">
-      <div class="pvbh">${pvI(pg ? "pay" : "box")}<span>${pg ? `Le pagaste${x.m ? " con " + (METHODS[x.m] || x.m) : ""}` : "Te fió"}</span><button class="pvdel" data-a="psdel" data-id="${x.id}" aria-label="Borrar este movimiento" title="Borrar">✕</button></div>
-      <b class="num">${money(x.amt)}</b>${x.note ? `<p>${esc(x.note)}</p>` : ""}
-      <small><span>${hhmm(x.t)}${x.un ? " · " + esc(x.un) : ""}</span><span class="num">${bal > 0 ? "quedó " + money(bal) : bal < 0 ? "a favor " + money(-bal) : "quedó en cero ✓"}</span></small></div></div>`;
+  const list = shown.map((x) => {
+    const pg = x.type === "pago", sub = [pvDia(x.date), hhmm(x.t), pg && x.m ? "con " + (METHODS[x.m] || x.m) : ""].filter(Boolean).join(" · ");
+    return `<div class="pvmv ${pg ? "p" : "d"}${x.id === nuevo ? " nuevo" : ""}"><div class="pvmt"><b>${pg ? "Le pagaste" : "Te fió"}${x.note ? " · " + esc(x.note) : ""}</b><small>${sub}</small></div>
+      <span class="pvma num">${pg ? "−" : "+"} ${money(x.amt)}</span><button class="pvdel" data-a="psdel" data-id="${x.id}" aria-label="Borrar este movimiento" title="Borrar">✕</button></div>`;
   }).join("");
   v.innerHTML = `<button class="link pvback" data-a="psback">‹ Proveedores</button>
-    <div class="card pvch"><span class="pvav big" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span>
-      <div class="pvchn"><h1>${esc(s.name)}</h1><p>${[s.phone ? esc(s.phone) : "", s.note ? esc(s.note) : ""].filter(Boolean).join(" · ") || "Sin celular ni nota"}</p>
-        ${fio > 0 ? `<div class="pvprog" role="img" aria-label="Ya le pagaste ${pct}% de lo que te fió"><i style="width:${pct}%"></i></div><p class="pvpt">Ya le pagaste <b class="num">${money(pago)}</b> de <b class="num">${money(fio)}</b> que te fió${ult ? ` · último pago ${pvDia(ult.date).split(" · ")[0].toLowerCase()}` : ""}</p>` : ""}</div>
-      <div class="pvchd ${b > 0 ? "owe" : b < 0 ? "fav" : "ok"}"><small>${b > 0 ? "Le debes" : b < 0 ? "A tu favor" : "No le debes"}</small><b class="num">${b === 0 ? "S/ 0.00 ✓" : money(Math.abs(b))}</b></div>
+    <div class="pvhd"><span class="pvav big" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span>
+      <div class="pvchn"><h1>${esc(s.name)}</h1><p>${[s.phone ? esc(s.phone) : "", s.note ? esc(s.note) : ""].filter(Boolean).join(" · ") || "Sin celular ni nota"}</p></div>
       <button class="btn sec sm pved" data-a="psedit" data-id="${s.id}" aria-label="Editar proveedor">${svg("edit", "bi")}<span>Editar</span></button></div>
-    <div class="card pvchat"><div class="pvleg"><span>← Lo que te fió</span><span>Lo que le pagaste →</span></div>
-      ${!all ? `<div class="pvsep"><button class="pvmore" data-a="pvall" data-id="${s.id}">Ver ${withBal.length - PV_MAX} movimientos anteriores</button></div>` : ""}
-      ${chat || `<div class="pvvac"><b>Todavía no hay movimientos</b><span>Cuando ${esc(s.name)} te deje mercadería, toca «Me fiaron». Cuando le pagues, toca «Pagar todo» o «Abonar».</span></div>`}</div>
-    <div class="pvbar">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div>`;
+    <div class="card pvtop"><div class="pvdebe ${b > 0 ? "owe" : b < 0 ? "fav" : "ok"}"><small>${b > 0 ? "Le debes" : b < 0 ? "A tu favor" : "No le debes"}</small><b class="num">${b === 0 ? "S/ 0.00 ✓" : money(Math.abs(b))}</b></div>
+      <div class="pvtacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div></div>
+    <div class="card pvlist">${list || `<div class="pvvac"><b>Todavía no hay movimientos</b><span>Cuando ${esc(s.name)} te deje mercadería, toca «Me fiaron». Cuando le pagues, toca «Pagar todo» o «Abonar».</span></div>`}
+      ${!all ? `<button class="pvmore" data-a="pvall" data-id="${s.id}">Ver ${rows.length - PV_MAX} movimientos anteriores</button>` : ""}</div>`;
 }
 function suppForm(id) {
   const s = id ? supp(id) : { name: "", phone: "", note: "" };
@@ -101,7 +92,7 @@ function suppMoney(kind, id, modo) {
 }
 act({
   psback: () => { ui.ps = null; render(); },
-  psopen: (el) => { ui.ps = el.dataset.id; render(); pvEnd(); },
+  psopen: (el) => { ui.ps = el.dataset.id; render(); window.scrollTo(0, 0); },
   pvall: (el) => { ui.pvAll = el.dataset.id; render(); },
   psnew: () => suppForm(""),
   psedit: (el) => suppForm(el.dataset.id),
@@ -132,7 +123,7 @@ act({
     }
     DB.sm.push(e); log(p.kind === "pago" ? "Pago a proveedor" : "Deuda con proveedor", `${s.name} ${money(amt)}`); save();
     if (ui.ps === s.id) ui.pvNew = e.id;
-    ui.sp = null; closeModal(); toast(p.kind === "pago" ? `Pago registrado: ${money(amt)}` : `Anotado: le debes ${money(suppBal(s))}`); render(); if (ui.ps === s.id) pvEnd();
+    ui.sp = null; closeModal(); toast(p.kind === "pago" ? `Pago registrado: ${money(amt)}` : `Anotado: le debes ${money(suppBal(s))}`); render();
   },
   psdel: (el) => { const x = DB.sm.find((y) => y.id === el.dataset.id); if (!x) return; const s = supp(x.sid);
     need("cierre", () => confirmBox("¿Borrar este movimiento?", "Borrar", () => {
