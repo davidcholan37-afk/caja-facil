@@ -3394,3 +3394,10 @@ body:has(.pvbar) .help-launcher{bottom:88px}
 @media (max-width:959px){body:has(.pvbar) .help-launcher{bottom:calc(var(--tabs,64px) + 80px)}}
 @media (max-width:759px){.pvch{position:static}}
 @media (prefers-reduced-motion:reduce){.pvbb.nuevo .pvbub{animation:none}.pvdel{transition:none}}
+
+/* ===== Toda la caja con flechas (26 oct 2026): borde verde bien visible en lo marcado con el teclado ===== */
+html[data-input=kbd] :is(button,a,summary,select,[data-a],[tabindex]):focus-visible{outline:3px solid #15A048!important;outline-offset:2px!important;box-shadow:0 0 0 6px rgba(21,160,72,.22)!important}
+html[data-input=kbd] :is(input,textarea):focus-visible{outline:3px solid #15A048!important;outline-offset:1px!important}
+html[data-input=kbd] aside.side :is(button,a):focus-visible{outline-color:#B9F5CF!important;box-shadow:0 0 0 6px rgba(185,245,207,.25)!important}
+html[data-input=kbd] .cjbar2 :is(button):focus-visible{outline-color:#FACC15!important;box-shadow:0 0 0 6px rgba(250,204,21,.25)!important}
+html[data-input=kbd] .pvq input:focus-visible{outline:0!important}

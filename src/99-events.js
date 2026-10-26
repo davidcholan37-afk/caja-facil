@@ -110,6 +110,72 @@ function payNav(k) {
   });
   if (best) best.focus(); else if (k === "ArrowUp" && on) on.focus();
 }
+// Toda la caja con flechas (pedido de David, 26 oct 2026): fuera de Vender, las flechas llevan el foco (borde verde) al botón,
+// campo o fila que está al lado en esa dirección, también al menú de la izquierda. Enter lo aprieta y Esc vuelve atrás o cierra.
+// En los campos de texto ← → mueven el cursor y solo salen del campo desde el borde (o si está vacío o todo marcado).
+const GN_SEL = 'button, a[href], input:not([type=hidden]), select, textarea, summary, [data-a], [tabindex]:not([tabindex="-1"])';
+function gnScope() {
+  if (modalOpen()) return [$("#modal")];
+  const h = $(".help-chat:not([hidden])"); if (h && h.contains(document.activeElement)) return [h];
+  return [$("#view"), $("aside.side"), $("#tabNav")].filter(Boolean);
+}
+const gnVis = (el) => { if (el.disabled || el.closest("[hidden],[inert],[aria-hidden=true]")) return false; const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; const cs = getComputedStyle(el); return cs.visibility !== "hidden" && cs.display !== "none" && !(el.matches("input,select") && +cs.opacity === 0); };
+function gnItems() {
+  const out = [];
+  gnScope().forEach((sc) => sc.querySelectorAll(GN_SEL).forEach((el) => {
+    if (el.matches("main#view") || (el.matches("[data-a]") && el.parentElement && el.parentElement.closest("button,a[href]"))) return; // un botón dentro de otro: cuenta el de afuera
+    if (el.matches("[data-a]:not(button,a,input,select,textarea,summary)") && el.querySelector("button,a[href],input,select,textarea")) return; // filas con botones adentro: se va a los botones
+    if (gnVis(el)) out.push(el);
+  }));
+  return out;
+}
+const gnKey = (el) => el && (el.id ? "#" + el.id : el.dataset && el.dataset.a ? `[data-a="${el.dataset.a}"]${el.dataset.t ? `[data-t="${el.dataset.t}"]` : ""}${el.dataset.id ? `[data-id="${el.dataset.id}"]` : ""}${el.dataset.m ? `[data-m="${el.dataset.m}"]` : ""}${el.dataset.f ? `[data-f="${el.dataset.f}"]` : ""}` : "");
+let gnLast = "", gnTab = "";
+function gnFocus(el) {
+  if (!el.matches("button,a[href],input,select,textarea,summary,[tabindex]")) el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll: true }); el.scrollIntoView({ block: "nearest", inline: "nearest" }); gnLast = gnKey(el); gnTab = ui.tab + "|" + (ui.ps || "");
+}
+// ¿La flecha la usa el campo (mover el cursor, cambiar la opción) o sirve para salir de él?
+function gnFieldKeeps(t, k) {
+  if (!/INPUT|TEXTAREA|SELECT/.test(t.tagName)) return false;
+  if (t.tagName === "SELECT") return k === "ArrowUp" || k === "ArrowDown";
+  if (/date|time|month|week|range|color|file/.test(t.type)) return true;
+  if (/checkbox|radio/.test(t.type)) return false;
+  const v = t.value || ""; if (!v) return false;
+  let a = 0, b = 0; try { a = t.selectionStart; b = t.selectionEnd; } catch (e) { return false; }
+  if (a === 0 && b === v.length) return false; // todo marcado: sale
+  if (t.tagName === "TEXTAREA") return k === "ArrowUp" ? v.slice(0, a).includes("\n") : k === "ArrowDown" ? v.slice(b).includes("\n") : k === "ArrowLeft" ? a > 0 : b < v.length;
+  if (k === "ArrowLeft") return a > 0;
+  if (k === "ArrowRight") return b < v.length;
+  return false;
+}
+function gnav(k, from) {
+  const items = gnItems(); if (!items.length) return false;
+  let cur = from && from !== document.body && items.includes(from) ? from : null;
+  if (!cur && gnLast && gnTab === ui.tab + "|" + (ui.ps || "")) { try { const x = document.querySelector(gnLast); if (x && items.includes(x)) cur = x; } catch (e) {} }
+  if (!cur) { // nada marcado: empieza por lo primero de la pantalla (arriba a la izquierda, sin contar el menú)
+    const main = items.filter((x) => !x.closest("aside.side,#tabNav"));
+    const pool = main.length ? main : items;
+    const first = pool.reduce((a, x) => { const r = x.getBoundingClientRect(), ra = a.getBoundingClientRect(); return r.top + r.left * 0.3 < ra.top + ra.left * 0.3 - 2 && r.bottom > 0 ? x : a; }, pool.find((x) => x.getBoundingClientRect().bottom > 0) || pool[0]);
+    gnFocus(first); return true;
+  }
+  const dx = k === "ArrowRight" ? 1 : k === "ArrowLeft" ? -1 : 0, dy = k === "ArrowDown" ? 1 : k === "ArrowUp" ? -1 : 0;
+  const r0 = cur.getBoundingClientRect();
+  let best = null, bs = 1e9;
+  items.forEach((c) => {
+    if (c === cur || c.contains(cur) || cur.contains(c)) return;
+    const r = c.getBoundingClientRect();
+    const main = dx > 0 ? r.left - r0.right : dx < 0 ? r0.left - r.right : dy > 0 ? r.top - r0.bottom : r0.top - r.bottom;
+    const cMain = dx ? (r.left + r.width / 2 - (r0.left + r0.width / 2)) * dx : (r.top + r.height / 2 - (r0.top + r0.height / 2)) * dy;
+    if (cMain <= 2 || main < -Math.min(r0.width, r0.height, dx ? r.width : r.height) / 2) return;
+    const cross = dx ? Math.max(0, r.top - r0.bottom, r0.top - r.bottom) : Math.max(0, r.left - r0.right, r0.left - r.right);
+    const off = dx ? Math.abs(r.top + r.height / 2 - (r0.top + r0.height / 2)) : Math.abs(r.left + r.width / 2 - (r0.left + r0.width / 2));
+    const sc = Math.max(0, main) + cross * 6 + off * 0.15;
+    if (sc < bs) { bs = sc; best = c; }
+  });
+  if (best) { gnFocus(best); if (best.matches("input:not([type=checkbox]):not([type=radio]),textarea") && best.select && best.value) try { best.select(); } catch (e) {} return true; }
+  return false;
+}
 function moveSel(d) {
   const ks = cartLines().map((x) => lineKey(x.l.id, x.l.pres)); if (!ks.length) return;
   let i = ks.indexOf(ui.sel); i = i < 0 ? ks.length - 1 : Math.min(ks.length - 1, Math.max(0, i + d));
@@ -202,6 +268,15 @@ document.addEventListener("keydown", (e) => {
       return;
     }
   }
+  // Flechas en toda la caja (menos en Vender, que tiene las suyas; ahí solo si el foco ya está en el menú).
+  if (/^Arrow(Up|Down|Left|Right)$/.test(e.key) && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !(ui.mk === "pay" && open && ui.pay && !ui.pay.split)
+    && (open || ui.tab !== "venta" || (e.target.closest && e.target.closest("aside.side,#tabNav"))) && !e.target.closest(".help-chat .help-input") && !gnFieldKeeps(e.target, e.key)) {
+    if (gnav(e.key, e.target)) { e.preventDefault(); return; }
+  }
+  // Enter sobre una fila que se abre al tocarla (no es botón): la abre.
+  if (e.key === "Enter" && !field && e.target.matches && e.target.matches("[data-a]:not(button,a,summary)")) { e.preventDefault(); e.target.click(); return; }
+  // Esc sin ventana abierta: vuelve atrás (detalle del proveedor, etc.).
+  if (e.key === "Escape" && !open && ui.tab !== "venta") { const b = $("#view [data-a$=back]"); if (b) { e.preventDefault(); b.click(); return; } }
   if (e.key === "Enter") {
     const id = e.target.id;
     if (id === "q" && !open) {
