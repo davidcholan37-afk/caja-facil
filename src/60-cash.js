@@ -33,8 +33,8 @@ const countTotal = (q) => r2(DENOMS.reduce((a, d) => a + d * (q[d] || 0), 0));
 function openShift(after) {
   const last = DB.shifts.filter((s) => s.t1).sort((a, b) => b.t1 - a.t1)[0];
   openModal(`<div class="qhead"><img class="qimg" src="${IB("dinero")}" alt=""><div><h2>Abrir caja</h2><p class="muted">${esc(me().name)} · ${fmtDT(Date.now())}</p></div></div>
-    <label class="fld"><span>¿Con cuánto efectivo empiezas? (sencillo en el cajón)</span><input class="inp num big" id="shopen" inputmode="decimal" placeholder="0.00" autofocus${last && last.d1 === dkey() ? ` value="${last.counted.toFixed(2)}"` : ""}></label>
-    ${last ? `<p class="muted" style="margin:-4px 0 12px">${last.d1 === dkey() ? `El turno anterior (${esc(last.un)}) dejó ${money(last.counted)} en el cajón.` : `El último cierre (${esc(last.un)}) contó ${money(last.counted)}.`}</p>` : ""}
+    <label class="fld"><span>¿Con cuánto efectivo empiezas? (sencillo en el cajón)</span><input class="inp num big" id="shopen" inputmode="decimal" placeholder="0.00" autofocus></label>
+    ${last ? `<p class="muted" style="margin:-4px 0 12px">El último cierre (${esc(last.un)}) contó ${money(last.counted)}.</p>` : ""}
     <div class="btns h"><button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-enter id="shok">Abrir caja</button></div>`);
   $("#shok").onclick = (e) => {
     e.stopPropagation();
@@ -73,12 +73,6 @@ function closeShiftUI(id) {
     <div class="btns h"><button class="btn sec" data-a="cntcancel">Cancelar</button><button class="btn" data-a="shclose" data-id="${sh.id}" ${any ? "" : "disabled"}>Cerrar caja e imprimir</button></div>`, "wide");
   ui.mk = "count";
 }
-// Tras «Pasar al turno de…»: ¿quién recibe la caja? Sin claves, la abre el mismo usuario con lo contado.
-function turnoSigue(sh) {
-  if (!needLogin()) return openShift();
-  openModal(`<h2>Turno cerrado</h2><p class="muted" style="margin-bottom:14px">${esc(sh.un)} dejó ${money(sh.counted)} en el cajón. ¿Quién recibe la caja?</p>
-    <div class="btns h"><button class="btn sec" data-a="shopen">Sigo yo</button><button class="btn" data-a="turnolock">Entra otro cajero</button></div>`);
-}
 function liqHtml(sh) {
   const S = sh.sum || shiftSummary(sh);
   return `<h3>${esc(DB.biz.name)}</h3><div class="c doc"><b>LIQUIDACIÓN DE CAJA</b></div>
@@ -111,85 +105,40 @@ function zHtml(z) {
 }
 
 /* ---------- pantalla de caja ---------- */
-/* Caja «barra de turno» (opción 2 de David, 26 oct 2026): barra del turno arriba, cuánto debe haber en el cajón, 4 botones grandes y cómo te pagaron. */
-const CJ_IC = {
-  gasto: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/>',
-  retiro: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 9v6M9 12l3 3 3-3"/>',
-  ingreso: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 15V9M9 12l3-3 3 3"/>',
-  yape: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
-  print: '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
-  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  sunset: '<path d="M17 18a5 5 0 0 0-10 0M12 9V2M4.2 10.2l1.4 1.4M1 18h2M21 18h2M18.4 11.6l1.4-1.4M23 22H1M16 5l-4 4-4-4"/>',
-  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
-  swap: '<path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/>',
-  open: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
-  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
-};
-const cjI = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CJ_IC[k]}</svg>`;
-// Turno: por la hora en que empezó (mañana antes de la 1 p. m., tarde antes de las 7 p. m., noche) o el que sigue al último que se cerró antes.
-const CJ_TN = [["Mañana", "sun", "la mañana"], ["Tarde", "sunset", "la tarde"], ["Noche", "moon", "la noche"]];
-const cjHi = (t) => { const h = new Date(t).getHours(); return h < 13 ? 0 : h < 19 ? 1 : 2; };
-function cjIdx(shifts) {
-  const ix = new Map();
-  shifts.forEach((s) => { let i = cjHi(s.t0); shifts.forEach((o) => { if (o !== s && o.t1 && o.t1 <= s.t0 && ix.has(o)) i = Math.max(i, Math.min(2, ix.get(o) + 1)); }); ix.set(s, i); });
-  return ix;
+// «Ventas del día»: total grande, barra con lo que entró por cada medio y cada medio con su logo o ícono.
+function cajaDia(T) {
+  const rows = ["efectivo", "yape", "plin", "bcp", "culqi", "tarjeta", "transferencia", "credito", "puntos"]
+    .filter((m) => T.by[m] || ["efectivo", "yape", "plin"].includes(m))
+    .map((m) => ({ m, amt: (m === "yape" ? T.yapeAll : T.by[m]) || 0 }));
+  const sum = rows.reduce((a, r) => a + r.amt, 0);
+  const pct = (a) => (sum > 0 ? Math.round((a / sum) * 100) : 0);
+  return `<div class="vdtop"><h2>Ventas del día</h2><div class="vdtot"><b class="num">${money(T.sales)}</b><span>${T.n === 1 ? "1 venta" : `${T.n} ventas`}</span></div></div>
+    ${sum > 0 ? `<div class="vdbar" role="img" aria-label="${rows.filter((r) => r.amt > 0).map((r) => `${METHODS[r.m]} ${pct(r.amt)}%`).join(", ")}">${rows.filter((r) => r.amt > 0).map((r) => `<i class="m-${r.m}" style="width:${((r.amt / sum) * 100).toFixed(2)}%"></i>`).join("")}</div>` : ""}
+    <div class="vdrows">${rows.map((r) => `<div class="vdr${r.amt ? "" : " cero"}"><i class="pmi m-${r.m}" aria-hidden="true"></i><span class="vdn">${METHODS[r.m]}${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</span>${sum > 0 && r.amt ? `<span class="vdp">${pct(r.amt)}%</span>` : ""}<b class="num">${money(r.amt)}</b></div>`).join("")}</div>`;
 }
-const cjHora = (h) => `${h % 12 || 12}–${(h + 1) % 12 || 12} ${h < 12 ? "a. m." : "p. m."}`;
-// «Cómo te pagaron»: cada medio del que más entró al que menos (tarjetitas con logo, monto, barra, % y ventas); compra promedio, hora fuerte y fiado.
-function cajaPagos(k, T, today) {
-  const sales = DB.sales.filter((s) => s.date === k && !s.void), cnt = {}, hrs = {};
-  sales.forEach((s) => { new Set(paysOf(s).map((p) => p.m)).forEach((m) => { cnt[m] = (cnt[m] || 0) + 1; }); const h = new Date(s.t).getHours(); hrs[h] = (hrs[h] || 0) + s.total; });
-  const rows = Object.keys(METHODS).map((m) => ({ m, amt: r2((m === "yape" ? T.yapeAll : T.by[m]) || 0), n: cnt[m] || 0 })).filter((r) => r.amt > 0).sort((a, b) => b.amt - a.amt);
-  const sum = rows.reduce((a, r) => a + r.amt, 0), max = rows.length ? rows[0].amt : 0, top = rows.length > 1;
-  const hTop = Object.keys(hrs).sort((a, b) => hrs[b] - hrs[a])[0];
-  return `<h2 class="cjh">Cómo te pagaron ${today ? "hoy" : "este día"}<b class="num">${money(T.sales)}</b></h2>
-    ${rows.length ? `<div class="cjchips" style="--n:${Math.min(rows.length, 5)}">${rows.map((r, i) => `<div class="cjpc"><span class="cjpch"><i class="pmi m-${r.m}" aria-hidden="true"></i>${METHODS[r.m]}</span><b class="num">${money(r.amt)}</b><span class="cjbar"><i style="width:${max ? Math.max(3, (r.amt / max) * 100).toFixed(1) : 0}%"></i></span><small>${Math.round((r.amt / sum) * 100)}%${r.n ? ` · ${r.n} ${r.n === 1 ? "venta" : "ventas"}` : ""}${i === 0 && top ? " · el más usado" : ""}</small>${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</div>`).join("")}</div>`
-      : `<p class="muted cjvac">Todavía no hay ventas ${today ? "hoy" : "este día"}.</p>`}
-    ${T.n ? `<div class="cjmini"><span><b class="num">${money(T.total / T.n)}</b> compra promedio</span><span><b>${hTop !== undefined ? cjHora(+hTop) : "—"}</b> hora fuerte</span><span><b class="num">${money(T.by.credito || 0)}</b> fiado</span></div>` : ""}
-    ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}`;
-}
-// Barra del turno (opción 2 de David, 26 oct 2026): turno actual, Mañana › Tarde › Noche (cada turno se toca para ver su cierre) y a la derecha «Pasar al turno de…» y «Cerrar caja del día».
-function cajaBar(shifts, mine, today) {
-  const ix = cjIdx(shifts);
-  const varios = new Set(shifts.map((s) => s.un)).size > 1;
-  const chip = (s) => { const [tn] = CJ_TN[ix.get(s)], st = s.t1 ? (s.diff === 0 ? " ✓" : s.diff < 0 ? ` · faltó ${money(-s.diff)}` : ` · sobró ${money(s.diff)}`) : ""; return `<button class="cjst${s === mine ? " on" : s.t1 ? " done" : " open"}" data-a="liq" data-id="${s.id}" title="${s.t1 ? "Ver su cierre" : "Caja abierta"} · ${esc(s.un)}">${tn}${varios ? " · " + esc(s.un) : ""}${st}</button>`; };
-  const ni = mine ? Math.max(cjHi(Date.now()), ix.get(mine) + 1) : 0, next = mine && ni <= 2 ? CJ_TN[ni] : null;
-  // Muchos turnos en el día: solo los 2 últimos y «+N antes» (así la barra no ocupa 2 filas).
-  const corto = shifts.length > 3 && !ui.cjSt, vis = corto ? shifts.slice(-2) : shifts;
-  const steps = (corto ? `<button class="cjst more" data-a="cjstall">+${shifts.length - 2} antes</button><i aria-hidden="true">›</i>` : "") + vis.map(chip).join('<i aria-hidden="true">›</i>') + (next ? `<i aria-hidden="true">›</i><span class="cjst wait">${next[0]}</span>` : "");
-  if (!today) return `<div class="cjbar2 past"><span class="cjbi">${cjI("swap")}</span><div class="cjbt"><b>Cajas del día</b><small>${shifts.length ? "Toca una para ver su cierre" : "Nadie abrió caja este día"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}</div>`;
-  if (!mine) return `<div class="cjbar2"><span class="cjbi">${cjI("open")}</span><div class="cjbt"><b>Tu caja está cerrada</b><small>${shifts.length ? "Toca un turno para ver su cierre" : "Nadie abrió caja hoy"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}<div class="cjbb"><button class="cjgo" data-a="shopen">${cjI("open")}Abrir caja</button></div></div>`;
-  const [tn, ic] = CJ_TN[ix.get(mine)], S = shiftSummary(mine);
-  return `<div class="cjbar2"><span class="cjbi">${cjI(ic)}</span><div class="cjbt"><b>Turno ${tn.toLowerCase()} · ${esc(mine.un)}</b><small>Desde ${hhmm(mine.t0)} · ${S.n === 1 ? "1 venta" : S.n + " ventas"}</small></div><div class="cjsteps">${steps}</div>
-    <div class="cjbb">${next ? `<button class="cjgo" data-a="shturno" data-id="${mine.id}">${cjI("swap")}Pasar al turno de ${next[2]}</button>` : `<button class="cjgo" data-a="shturno" data-id="${mine.id}">${cjI("swap")}Pasar la caja</button>`}<button class="cjend" data-a="shcount" data-id="${mine.id}">${cjI("lock")}Cerrar caja del día</button></div></div>`;
-}
+
 VIEWS.caja = function viewCash(v) {
-  const k = ui.date, T = dayTotals(k), mine0 = curShift(), today = k === dkey(), puede = can("caja"), hoy = today && puede, mine = puede ? mine0 : null;
+  const k = ui.date, T = dayTotals(k), mine = curShift(), today = k === dkey();
   const shifts = DB.shifts.filter((s) => s.d0 === k || (!s.t1 && today)).filter((s, i, a) => a.indexOf(s) === i).sort((a, b) => a.t0 - b.t0);
   const moves = DB.moves.filter((m) => m.date === k).sort((a, b) => b.t - a.t);
-  const z = DB.closes.find((x) => x.date === k), MS = mine ? shiftSummary(mine) : null;
-  const datebar = `<div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>`;
-  const ln = (t, a, neg) => `<div><span>${t}</span><b class="num${neg ? " neg" : ""}">${money(a)}</b></div>`;
-  const cash = !hoy ? "" : mine
-    ? `<div class="card cjcash"><small>En el cajón debe haber</small><div class="cjm num">${money(MS.expected)}</div>
-      <div class="cjhow">${ln(`Empezaste con <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button>`, mine.open)}${ln("+ Vendiste en efectivo", MS.by.efectivo || 0)}${MS.abonosCash ? ln("+ Te pagaron deudas", MS.abonosCash) : ""}${MS.ingresos ? ln("+ Metiste plata", MS.ingresos) : ""}${MS.gastos ? ln("− Gastos", MS.gastos, 1) : ""}${MS.prov ? ln("− Proveedores", MS.prov, 1) : ""}${MS.retiros ? ln("− Sacaste", MS.retiros, 1) : ""}${MS.devol || MS.anul ? ln("− Devoluciones", MS.devol + MS.anul, 1) : ""}</div></div>`
-    : `<div class="card cjcash off"><small>Tu caja está cerrada</small><div class="cjm">Ábrela para empezar a vender</div><p class="muted">Toca «Abrir caja» arriba y pon el sencillo del cajón.</p></div>`;
-  const tb = (t, ic, tit, sub, cls, off) => `<button class="cjb ${cls}" data-a="mv" data-t="${t}"${off ? ' disabled title="Primero abre tu caja"' : ""}>${cjI(ic)}<span>${tit}<small>${sub}</small></span></button>`;
-  const btns = !hoy ? "" : `<div class="cjacts"><div class="cjg">${tb("gasto", "gasto", "Anotar un gasto", "Bolsas, pasaje, luz…", "c-gas", !mine)}${tb("retiro", "retiro", "Sacar plata", "Guardar o depositar", "c-sac", !mine)}${tb("ingreso", "ingreso", "Meter plata", "Sencillo, cambio", "c-met", !mine)}${tb("yape", "yape", "Anotar Yapes", "Los que no pasaste", "c-yap")}</div>
-    ${mine ? `<button class="cjpbar" data-a="liqprint" data-id="${mine.id}">${cjI("print")}Imprimir cómo voy <small>(corte sin cerrar)</small></button>` : ""}</div>`;
-  const all = ui.cjAll || moves.length <= 4, ms = all ? moves : moves.slice(0, 3);
-  const mvs = `<h2 class="cjh">${today ? "Lo último" : "Movimientos"}${moves.length > 4 ? `<button class="link" data-a="cjall">${ui.cjAll ? "Ver menos" : `Ver todo (${moves.length}) ›`}</button>` : ""}</h2>
-    ${moves.length ? ms.map((m) => { const sg = (MOVE[m.type] || [0, 0])[1]; return `<div class="cjmv"><span>${MOVE[m.type] ? MOVE[m.type][0] : m.type}${m.m && m.m !== "efectivo" ? ` (${METHODS[m.m]})` : ""}${m.note ? " · " + esc(m.note) : ""}<small>${hhmm(m.t)}${m.u ? " · " + esc(m.u) : ""}</small></span><span class="num ${sg < 0 ? "neg" : sg > 0 ? "pos" : ""}">${sg < 0 ? "−" : "+"} ${money(m.amount)}${can("cierre") && !["abono", "devolucion", "anulacion"].includes(m.type) && !isLocked(m.date) ? ` <button class="link xs" data-a="mvdel" data-id="${m.id}" aria-label="Borrar movimiento">✕</button>` : ""}</span></div>`; }).join("") : `<p class="muted cjvac">Sin gastos, pagos ni ingresos anotados.</p>`}`;
-  const abiertas = shifts.some((s) => !s.t1);
-  const cierre = can("cierre") ? `<details class="cjz"${!today ? " open" : ""}><summary><span>Cierre del día (Z) y del mes</span>${z ? `<span class="tag cjok">Z N° ${pad(z.z, 4)}</span>` : ""}</summary>
-      <div class="cjzb">${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button>`
-        : `<p class="muted">Resume ventas, comprobantes y cajas del día. ${abiertas ? "<b>Primero cierren las cajas abiertas.</b>" : ""}</p><button class="btn" data-a="zclose" ${abiertas || (!T.n && !shifts.length) ? "disabled" : ""}>Hacer cierre del día</button>`}
-      <h3>Cerrar el mes</h3><p class="muted sm">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period">Cerrar un mes</button></div></details>` : "";
-  const others = shifts.filter((s) => !s.t1 && s !== mine);
-  v.innerHTML = `<div class="ph cjph"><h1>Caja</h1>${datebar}</div><div class="cj">
-    ${cajaBar(shifts, mine, today)}${others.length && can("cierre") && today ? `<p class="muted sm cjsup">Como supervisor puedes cerrar una caja ajena tocando su turno.</p>` : ""}
-    ${hoy ? `<div class="cjmid">${cash}${btns}</div>` : ""}
-    <div class="cjbot"><div class="card cjpay">${cajaPagos(k, T, today)}</div><div class="card cjlast">${mvs}${cierre}</div></div></div>`;
+  const z = DB.closes.find((x) => x.date === k), others = shifts.filter((s) => !s.t1 && s.u !== ui.user);
+  const MS = mine ? shiftSummary(mine) : null;
+  v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button><button class="btn sec sm" data-a="cajamas">Más</button></div>` : ""}</div>
+    <div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>
+    ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
+      <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="shcount" data-id="${mine.id}">Cerrar mi caja (arqueo)</button><button class="btn sec" data-a="liqprint" data-id="${mine.id}">${svg("print", "bi")}Corte parcial</button></div>`
+      : `<div class="row sp wrap"><div><h2>Tu caja está cerrada</h2><p class="muted">Ábrela con el sencillo del cajón para empezar a cobrar.</p></div><button class="btn" data-a="shopen">Abrir caja</button></div>`}</div>` : ""}
+    <div class="cols stack"><div class="stack">
+      <div class="card vdia">${cajaDia(T)}
+        ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}</div>
+      <div class="card"><h2>Movimientos</h2>${moves.length ? moves.map((m) => `<div class="kv"><span>${hhmm(m.t)} · ${MOVE[m.type] ? MOVE[m.type][0] : m.type}${m.m && m.m !== "efectivo" ? ` (${METHODS[m.m]})` : ""}${m.note ? " · " + esc(m.note) : ""}<small class="muted"> · ${esc(m.u || "")}</small></span><span class="num">${(MOVE[m.type] || [0, 0])[1] < 0 ? "−" : "+"} ${money(m.amount)}${can("cierre") && !["abono", "devolucion", "anulacion"].includes(m.type) && !isLocked(m.date) ? ` <button class="link xs" data-a="mvdel" data-id="${m.id}" aria-label="Borrar movimiento">✕</button>` : ""}</span></div>`).join("") : `<p class="muted">Sin gastos, pagos ni ingresos anotados.</p>`}</div>
+    </div><div class="stack">
+      <div class="card"><h2>Cajas del día</h2>${shifts.length ? shifts.map((s) => { const S = s.t1 ? null : shiftSummary(s); return `<div class="kv click" data-a="liq" data-id="${s.id}"><span><b>${esc(s.un)}</b><small class="muted"> · ${hhmm(s.t0)}${s.t1 ? "–" + hhmm(s.t1) : " · abierta"}</small></span><span class="num">${s.t1 ? `${money(s.counted)} <span class="tag ${s.diff === 0 ? "" : s.diff < 0 ? "out" : "low"}">${s.diff === 0 ? "cuadra" : (s.diff < 0 ? "falta " : "sobra ") + money(Math.abs(s.diff))}</span>` : `${money(S.expected)} <span class="tag">abierta</span>`}</span></div>`; }).join("") : `<p class="muted">Nadie abrió caja este día.</p>`}
+        ${others.length && can("cierre") ? `<p class="muted sm" style="margin-top:8px">Como supervisor puedes cerrar una caja ajena tocándola.</p>` : ""}</div>
+      ${can("cierre") ? `<div class="card"><h2>Cerrar el día</h2>${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><div class="row wrap" style="margin-top:10px"><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button></div>`
+        : `<p class="muted" style="margin-bottom:10px">Resume ventas, comprobantes y cajas del día. ${shifts.some((s) => !s.t1) ? "<b>Primero cierren las cajas abiertas.</b>" : ""}</p><button class="btn" data-a="zclose" ${shifts.some((s) => !s.t1) || (!T.n && !shifts.length) ? "disabled" : ""}>Hacer cierre del día</button>`}</div>
+      <details class="card dtl"><summary>Cerrar el mes</summary><p class="muted" style="margin:10px 0">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period" style="margin-top:8px">Cerrar un mes</button></details>` : ""}
+    </div></div>`;
 };
 function openMove(type) {
   const T = { yape: ["Anotar Yapes", "Yapes que recibiste y no registraste como venta. Escribe los montos separados por espacio. Ej: 5 10 7.50"], proveedor: ["Pago a proveedor", "Sale del efectivo de la caja."], gasto: ["Gasto", "Sale del efectivo de la caja. Ej: pasaje, bolsas, luz."], ingreso: ["Otro ingreso", "Entra dinero a la caja que no es venta. Ej: sencillo que trajiste."], retiro: ["Retiro de efectivo", "Dinero que sacas de la caja para guardarlo o depositarlo."] }[type];
@@ -214,28 +163,22 @@ act({
       const n = Math.max(0, r2(num(v))); log("Sencillo inicial", `${sh.un}: ${money(sh.open)} → ${money(n)}`); sh.open = n; save(); toast("Guardado"); render();
     });
   },
-  shcount: (el) => { ui.cnt = null; ui.turno = false; closeShiftUI(el.dataset.id); },
-  // Cambio de turno: el mismo arqueo y, al cerrar, se le pasa la caja al que sigue (con lo contado ya puesto como sencillo).
-  shturno: (el) => { ui.cnt = null; ui.turno = true; closeShiftUI(el.dataset.id); },
-  turnolock: () => { closeModal(); lockNow(); },
-  cjall: () => { ui.cjAll = !ui.cjAll; render(); },
-  cjstall: () => { ui.cjSt = true; render(); },
+  shcount: (el) => { ui.cnt = null; closeShiftUI(el.dataset.id); },
   liq: (el) => {
-    const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (!sh) return; ui.turno = false;
+    const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (!sh) return;
     if (!sh.t1 && sh.u !== ui.user) return can("cierre") ? confirmBox(`¿Cerrar la caja de ${sh.un}?`, "Hacer arqueo", () => { ui.cnt = null; closeShiftUI(sh.id); }, false) : toast("Solo un supervisor puede cerrar una caja ajena");
     if (!sh.t1) { ui.cnt = null; return closeShiftUI(sh.id); }
     openModal(`<div class="rcpt">${liqHtml(sh)}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button><button class="btn" data-a="liqprint" data-id="${sh.id}">${svg("print", "bi")}Imprimir</button></div>`);
   },
   liqprint: (el) => { const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (sh) printHtml(liqHtml(sh)); },
   den: (el) => { const c = ui.cnt; if (!c) return; const d = el.dataset.d; c.q[d] = Math.max(0, (c.q[d] || 0) + +el.dataset.v); c.direct = ""; closeShiftUI(c.id); },
-  cntcancel: () => { ui.cnt = null; ui.turno = false; closeModal(); },
+  cntcancel: () => { ui.cnt = null; closeModal(); },
   shclose: (el) => {
     const sh = DB.shifts.find((s) => s.id === el.dataset.id), c = ui.cnt; if (!sh || !c) return;
     const S = shiftSummary(sh), counted = c.direct !== "" ? r2(num(c.direct)) : countTotal(c.q);
     Object.assign(sh, { t1: Date.now(), d1: dkey(), q: c.q, counted, expected: S.expected, diff: r2(counted - S.expected), note: ($("#cntn") || { value: "" }).value.trim(), by: me().name, sum: S });
     log("Cierre de caja", `${sh.un}: esperado ${money(S.expected)}, contado ${money(counted)}`);
     ui.cnt = null; save(sh.d0); closeModal(); printHtml(liqHtml(sh)); toast(sh.diff === 0 ? "Caja cerrada: cuadra" : sh.diff < 0 ? `Caja cerrada: falta ${money(-sh.diff)}` : `Caja cerrada: sobra ${money(sh.diff)}`, true); render();
-    if (ui.turno) { ui.turno = false; turnoSigue(sh); }
   },
   zclose: () => need("cierre", () => {
     const k = ui.date; if (DB.closes.some((x) => x.date === k)) return toast("Este día ya tiene cierre");
@@ -243,6 +186,7 @@ act({
     DB.closes.push(z); log("Cierre del día", `Z ${z.z} · ${dmy(k)}`); save(k); printHtml(zHtml(z)); toast("Cierre del día guardado"); render();
   }, "Cierre del día"),
   zprint: (el) => { const z = DB.closes.find((x) => x.id === el.dataset.id); if (z) printHtml(zHtml(z)); },
+  cajamas: () => openModal(`<h2>Más movimientos de caja</h2><div class="fgrid" style="margin:12px 0"><button class="fb" data-a="tab" data-t="prov">Proveedores</button><button class="fb" data-a="mv" data-t="ingreso">Ingreso de dinero</button><button class="fb" data-a="mv" data-t="retiro">Retiro de dinero</button></div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),
   mv: (el) => need("caja", () => openMove(el.dataset.t)),
   mvsave: (el) => {
     const type = el.dataset.t;

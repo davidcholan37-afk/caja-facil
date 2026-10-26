@@ -3013,8 +3013,8 @@ const countTotal = (q) => r2(DENOMS.reduce((a, d) => a + d * (q[d] || 0), 0));
 function openShift(after) {
   const last = DB.shifts.filter((s) => s.t1).sort((a, b) => b.t1 - a.t1)[0];
   openModal(`<div class="qhead"><img class="qimg" src="${IB("dinero")}" alt=""><div><h2>Abrir caja</h2><p class="muted">${esc(me().name)} · ${fmtDT(Date.now())}</p></div></div>
-    <label class="fld"><span>¿Con cuánto efectivo empiezas? (sencillo en el cajón)</span><input class="inp num big" id="shopen" inputmode="decimal" placeholder="0.00" autofocus${last && last.d1 === dkey() ? ` value="${last.counted.toFixed(2)}"` : ""}></label>
-    ${last ? `<p class="muted" style="margin:-4px 0 12px">${last.d1 === dkey() ? `El turno anterior (${esc(last.un)}) dejó ${money(last.counted)} en el cajón.` : `El último cierre (${esc(last.un)}) contó ${money(last.counted)}.`}</p>` : ""}
+    <label class="fld"><span>¿Con cuánto efectivo empiezas? (sencillo en el cajón)</span><input class="inp num big" id="shopen" inputmode="decimal" placeholder="0.00" autofocus></label>
+    ${last ? `<p class="muted" style="margin:-4px 0 12px">El último cierre (${esc(last.un)}) contó ${money(last.counted)}.</p>` : ""}
     <div class="btns h"><button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-enter id="shok">Abrir caja</button></div>`);
   $("#shok").onclick = (e) => {
     e.stopPropagation();
@@ -3053,12 +3053,6 @@ function closeShiftUI(id) {
     <div class="btns h"><button class="btn sec" data-a="cntcancel">Cancelar</button><button class="btn" data-a="shclose" data-id="${sh.id}" ${any ? "" : "disabled"}>Cerrar caja e imprimir</button></div>`, "wide");
   ui.mk = "count";
 }
-// Tras «Pasar al turno de…»: ¿quién recibe la caja? Sin claves, la abre el mismo usuario con lo contado.
-function turnoSigue(sh) {
-  if (!needLogin()) return openShift();
-  openModal(`<h2>Turno cerrado</h2><p class="muted" style="margin-bottom:14px">${esc(sh.un)} dejó ${money(sh.counted)} en el cajón. ¿Quién recibe la caja?</p>
-    <div class="btns h"><button class="btn sec" data-a="shopen">Sigo yo</button><button class="btn" data-a="turnolock">Entra otro cajero</button></div>`);
-}
 function liqHtml(sh) {
   const S = sh.sum || shiftSummary(sh);
   return `<h3>${esc(DB.biz.name)}</h3><div class="c doc"><b>LIQUIDACIÓN DE CAJA</b></div>
@@ -3091,85 +3085,40 @@ function zHtml(z) {
 }
 
 /* ---------- pantalla de caja ---------- */
-/* Caja «barra de turno» (opción 2 de David, 26 oct 2026): barra del turno arriba, cuánto debe haber en el cajón, 4 botones grandes y cómo te pagaron. */
-const CJ_IC = {
-  gasto: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/>',
-  retiro: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 9v6M9 12l3 3 3-3"/>',
-  ingreso: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 15V9M9 12l3-3 3 3"/>',
-  yape: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
-  print: '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
-  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  sunset: '<path d="M17 18a5 5 0 0 0-10 0M12 9V2M4.2 10.2l1.4 1.4M1 18h2M21 18h2M18.4 11.6l1.4-1.4M23 22H1M16 5l-4 4-4-4"/>',
-  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
-  swap: '<path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/>',
-  open: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
-  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
-};
-const cjI = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CJ_IC[k]}</svg>`;
-// Turno: por la hora en que empezó (mañana antes de la 1 p. m., tarde antes de las 7 p. m., noche) o el que sigue al último que se cerró antes.
-const CJ_TN = [["Mañana", "sun", "la mañana"], ["Tarde", "sunset", "la tarde"], ["Noche", "moon", "la noche"]];
-const cjHi = (t) => { const h = new Date(t).getHours(); return h < 13 ? 0 : h < 19 ? 1 : 2; };
-function cjIdx(shifts) {
-  const ix = new Map();
-  shifts.forEach((s) => { let i = cjHi(s.t0); shifts.forEach((o) => { if (o !== s && o.t1 && o.t1 <= s.t0 && ix.has(o)) i = Math.max(i, Math.min(2, ix.get(o) + 1)); }); ix.set(s, i); });
-  return ix;
+// «Ventas del día»: total grande, barra con lo que entró por cada medio y cada medio con su logo o ícono.
+function cajaDia(T) {
+  const rows = ["efectivo", "yape", "plin", "bcp", "culqi", "tarjeta", "transferencia", "credito", "puntos"]
+    .filter((m) => T.by[m] || ["efectivo", "yape", "plin"].includes(m))
+    .map((m) => ({ m, amt: (m === "yape" ? T.yapeAll : T.by[m]) || 0 }));
+  const sum = rows.reduce((a, r) => a + r.amt, 0);
+  const pct = (a) => (sum > 0 ? Math.round((a / sum) * 100) : 0);
+  return `<div class="vdtop"><h2>Ventas del día</h2><div class="vdtot"><b class="num">${money(T.sales)}</b><span>${T.n === 1 ? "1 venta" : `${T.n} ventas`}</span></div></div>
+    ${sum > 0 ? `<div class="vdbar" role="img" aria-label="${rows.filter((r) => r.amt > 0).map((r) => `${METHODS[r.m]} ${pct(r.amt)}%`).join(", ")}">${rows.filter((r) => r.amt > 0).map((r) => `<i class="m-${r.m}" style="width:${((r.amt / sum) * 100).toFixed(2)}%"></i>`).join("")}</div>` : ""}
+    <div class="vdrows">${rows.map((r) => `<div class="vdr${r.amt ? "" : " cero"}"><i class="pmi m-${r.m}" aria-hidden="true"></i><span class="vdn">${METHODS[r.m]}${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</span>${sum > 0 && r.amt ? `<span class="vdp">${pct(r.amt)}%</span>` : ""}<b class="num">${money(r.amt)}</b></div>`).join("")}</div>`;
 }
-const cjHora = (h) => `${h % 12 || 12}–${(h + 1) % 12 || 12} ${h < 12 ? "a. m." : "p. m."}`;
-// «Cómo te pagaron»: cada medio del que más entró al que menos (tarjetitas con logo, monto, barra, % y ventas); compra promedio, hora fuerte y fiado.
-function cajaPagos(k, T, today) {
-  const sales = DB.sales.filter((s) => s.date === k && !s.void), cnt = {}, hrs = {};
-  sales.forEach((s) => { new Set(paysOf(s).map((p) => p.m)).forEach((m) => { cnt[m] = (cnt[m] || 0) + 1; }); const h = new Date(s.t).getHours(); hrs[h] = (hrs[h] || 0) + s.total; });
-  const rows = Object.keys(METHODS).map((m) => ({ m, amt: r2((m === "yape" ? T.yapeAll : T.by[m]) || 0), n: cnt[m] || 0 })).filter((r) => r.amt > 0).sort((a, b) => b.amt - a.amt);
-  const sum = rows.reduce((a, r) => a + r.amt, 0), max = rows.length ? rows[0].amt : 0, top = rows.length > 1;
-  const hTop = Object.keys(hrs).sort((a, b) => hrs[b] - hrs[a])[0];
-  return `<h2 class="cjh">Cómo te pagaron ${today ? "hoy" : "este día"}<b class="num">${money(T.sales)}</b></h2>
-    ${rows.length ? `<div class="cjchips" style="--n:${Math.min(rows.length, 5)}">${rows.map((r, i) => `<div class="cjpc"><span class="cjpch"><i class="pmi m-${r.m}" aria-hidden="true"></i>${METHODS[r.m]}</span><b class="num">${money(r.amt)}</b><span class="cjbar"><i style="width:${max ? Math.max(3, (r.amt / max) * 100).toFixed(1) : 0}%"></i></span><small>${Math.round((r.amt / sum) * 100)}%${r.n ? ` · ${r.n} ${r.n === 1 ? "venta" : "ventas"}` : ""}${i === 0 && top ? " · el más usado" : ""}</small>${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</div>`).join("")}</div>`
-      : `<p class="muted cjvac">Todavía no hay ventas ${today ? "hoy" : "este día"}.</p>`}
-    ${T.n ? `<div class="cjmini"><span><b class="num">${money(T.total / T.n)}</b> compra promedio</span><span><b>${hTop !== undefined ? cjHora(+hTop) : "—"}</b> hora fuerte</span><span><b class="num">${money(T.by.credito || 0)}</b> fiado</span></div>` : ""}
-    ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}`;
-}
-// Barra del turno (opción 2 de David, 26 oct 2026): turno actual, Mañana › Tarde › Noche (cada turno se toca para ver su cierre) y a la derecha «Pasar al turno de…» y «Cerrar caja del día».
-function cajaBar(shifts, mine, today) {
-  const ix = cjIdx(shifts);
-  const varios = new Set(shifts.map((s) => s.un)).size > 1;
-  const chip = (s) => { const [tn] = CJ_TN[ix.get(s)], st = s.t1 ? (s.diff === 0 ? " ✓" : s.diff < 0 ? ` · faltó ${money(-s.diff)}` : ` · sobró ${money(s.diff)}`) : ""; return `<button class="cjst${s === mine ? " on" : s.t1 ? " done" : " open"}" data-a="liq" data-id="${s.id}" title="${s.t1 ? "Ver su cierre" : "Caja abierta"} · ${esc(s.un)}">${tn}${varios ? " · " + esc(s.un) : ""}${st}</button>`; };
-  const ni = mine ? Math.max(cjHi(Date.now()), ix.get(mine) + 1) : 0, next = mine && ni <= 2 ? CJ_TN[ni] : null;
-  // Muchos turnos en el día: solo los 2 últimos y «+N antes» (así la barra no ocupa 2 filas).
-  const corto = shifts.length > 3 && !ui.cjSt, vis = corto ? shifts.slice(-2) : shifts;
-  const steps = (corto ? `<button class="cjst more" data-a="cjstall">+${shifts.length - 2} antes</button><i aria-hidden="true">›</i>` : "") + vis.map(chip).join('<i aria-hidden="true">›</i>') + (next ? `<i aria-hidden="true">›</i><span class="cjst wait">${next[0]}</span>` : "");
-  if (!today) return `<div class="cjbar2 past"><span class="cjbi">${cjI("swap")}</span><div class="cjbt"><b>Cajas del día</b><small>${shifts.length ? "Toca una para ver su cierre" : "Nadie abrió caja este día"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}</div>`;
-  if (!mine) return `<div class="cjbar2"><span class="cjbi">${cjI("open")}</span><div class="cjbt"><b>Tu caja está cerrada</b><small>${shifts.length ? "Toca un turno para ver su cierre" : "Nadie abrió caja hoy"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}<div class="cjbb"><button class="cjgo" data-a="shopen">${cjI("open")}Abrir caja</button></div></div>`;
-  const [tn, ic] = CJ_TN[ix.get(mine)], S = shiftSummary(mine);
-  return `<div class="cjbar2"><span class="cjbi">${cjI(ic)}</span><div class="cjbt"><b>Turno ${tn.toLowerCase()} · ${esc(mine.un)}</b><small>Desde ${hhmm(mine.t0)} · ${S.n === 1 ? "1 venta" : S.n + " ventas"}</small></div><div class="cjsteps">${steps}</div>
-    <div class="cjbb">${next ? `<button class="cjgo" data-a="shturno" data-id="${mine.id}">${cjI("swap")}Pasar al turno de ${next[2]}</button>` : `<button class="cjgo" data-a="shturno" data-id="${mine.id}">${cjI("swap")}Pasar la caja</button>`}<button class="cjend" data-a="shcount" data-id="${mine.id}">${cjI("lock")}Cerrar caja del día</button></div></div>`;
-}
+
 VIEWS.caja = function viewCash(v) {
-  const k = ui.date, T = dayTotals(k), mine0 = curShift(), today = k === dkey(), puede = can("caja"), hoy = today && puede, mine = puede ? mine0 : null;
+  const k = ui.date, T = dayTotals(k), mine = curShift(), today = k === dkey();
   const shifts = DB.shifts.filter((s) => s.d0 === k || (!s.t1 && today)).filter((s, i, a) => a.indexOf(s) === i).sort((a, b) => a.t0 - b.t0);
   const moves = DB.moves.filter((m) => m.date === k).sort((a, b) => b.t - a.t);
-  const z = DB.closes.find((x) => x.date === k), MS = mine ? shiftSummary(mine) : null;
-  const datebar = `<div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>`;
-  const ln = (t, a, neg) => `<div><span>${t}</span><b class="num${neg ? " neg" : ""}">${money(a)}</b></div>`;
-  const cash = !hoy ? "" : mine
-    ? `<div class="card cjcash"><small>En el cajón debe haber</small><div class="cjm num">${money(MS.expected)}</div>
-      <div class="cjhow">${ln(`Empezaste con <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button>`, mine.open)}${ln("+ Vendiste en efectivo", MS.by.efectivo || 0)}${MS.abonosCash ? ln("+ Te pagaron deudas", MS.abonosCash) : ""}${MS.ingresos ? ln("+ Metiste plata", MS.ingresos) : ""}${MS.gastos ? ln("− Gastos", MS.gastos, 1) : ""}${MS.prov ? ln("− Proveedores", MS.prov, 1) : ""}${MS.retiros ? ln("− Sacaste", MS.retiros, 1) : ""}${MS.devol || MS.anul ? ln("− Devoluciones", MS.devol + MS.anul, 1) : ""}</div></div>`
-    : `<div class="card cjcash off"><small>Tu caja está cerrada</small><div class="cjm">Ábrela para empezar a vender</div><p class="muted">Toca «Abrir caja» arriba y pon el sencillo del cajón.</p></div>`;
-  const tb = (t, ic, tit, sub, cls, off) => `<button class="cjb ${cls}" data-a="mv" data-t="${t}"${off ? ' disabled title="Primero abre tu caja"' : ""}>${cjI(ic)}<span>${tit}<small>${sub}</small></span></button>`;
-  const btns = !hoy ? "" : `<div class="cjacts"><div class="cjg">${tb("gasto", "gasto", "Anotar un gasto", "Bolsas, pasaje, luz…", "c-gas", !mine)}${tb("retiro", "retiro", "Sacar plata", "Guardar o depositar", "c-sac", !mine)}${tb("ingreso", "ingreso", "Meter plata", "Sencillo, cambio", "c-met", !mine)}${tb("yape", "yape", "Anotar Yapes", "Los que no pasaste", "c-yap")}</div>
-    ${mine ? `<button class="cjpbar" data-a="liqprint" data-id="${mine.id}">${cjI("print")}Imprimir cómo voy <small>(corte sin cerrar)</small></button>` : ""}</div>`;
-  const all = ui.cjAll || moves.length <= 4, ms = all ? moves : moves.slice(0, 3);
-  const mvs = `<h2 class="cjh">${today ? "Lo último" : "Movimientos"}${moves.length > 4 ? `<button class="link" data-a="cjall">${ui.cjAll ? "Ver menos" : `Ver todo (${moves.length}) ›`}</button>` : ""}</h2>
-    ${moves.length ? ms.map((m) => { const sg = (MOVE[m.type] || [0, 0])[1]; return `<div class="cjmv"><span>${MOVE[m.type] ? MOVE[m.type][0] : m.type}${m.m && m.m !== "efectivo" ? ` (${METHODS[m.m]})` : ""}${m.note ? " · " + esc(m.note) : ""}<small>${hhmm(m.t)}${m.u ? " · " + esc(m.u) : ""}</small></span><span class="num ${sg < 0 ? "neg" : sg > 0 ? "pos" : ""}">${sg < 0 ? "−" : "+"} ${money(m.amount)}${can("cierre") && !["abono", "devolucion", "anulacion"].includes(m.type) && !isLocked(m.date) ? ` <button class="link xs" data-a="mvdel" data-id="${m.id}" aria-label="Borrar movimiento">✕</button>` : ""}</span></div>`; }).join("") : `<p class="muted cjvac">Sin gastos, pagos ni ingresos anotados.</p>`}`;
-  const abiertas = shifts.some((s) => !s.t1);
-  const cierre = can("cierre") ? `<details class="cjz"${!today ? " open" : ""}><summary><span>Cierre del día (Z) y del mes</span>${z ? `<span class="tag cjok">Z N° ${pad(z.z, 4)}</span>` : ""}</summary>
-      <div class="cjzb">${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button>`
-        : `<p class="muted">Resume ventas, comprobantes y cajas del día. ${abiertas ? "<b>Primero cierren las cajas abiertas.</b>" : ""}</p><button class="btn" data-a="zclose" ${abiertas || (!T.n && !shifts.length) ? "disabled" : ""}>Hacer cierre del día</button>`}
-      <h3>Cerrar el mes</h3><p class="muted sm">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period">Cerrar un mes</button></div></details>` : "";
-  const others = shifts.filter((s) => !s.t1 && s !== mine);
-  v.innerHTML = `<div class="ph cjph"><h1>Caja</h1>${datebar}</div><div class="cj">
-    ${cajaBar(shifts, mine, today)}${others.length && can("cierre") && today ? `<p class="muted sm cjsup">Como supervisor puedes cerrar una caja ajena tocando su turno.</p>` : ""}
-    ${hoy ? `<div class="cjmid">${cash}${btns}</div>` : ""}
-    <div class="cjbot"><div class="card cjpay">${cajaPagos(k, T, today)}</div><div class="card cjlast">${mvs}${cierre}</div></div></div>`;
+  const z = DB.closes.find((x) => x.date === k), others = shifts.filter((s) => !s.t1 && s.u !== ui.user);
+  const MS = mine ? shiftSummary(mine) : null;
+  v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button><button class="btn sec sm" data-a="cajamas">Más</button></div>` : ""}</div>
+    <div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>
+    ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
+      <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="shcount" data-id="${mine.id}">Cerrar mi caja (arqueo)</button><button class="btn sec" data-a="liqprint" data-id="${mine.id}">${svg("print", "bi")}Corte parcial</button></div>`
+      : `<div class="row sp wrap"><div><h2>Tu caja está cerrada</h2><p class="muted">Ábrela con el sencillo del cajón para empezar a cobrar.</p></div><button class="btn" data-a="shopen">Abrir caja</button></div>`}</div>` : ""}
+    <div class="cols stack"><div class="stack">
+      <div class="card vdia">${cajaDia(T)}
+        ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}</div>
+      <div class="card"><h2>Movimientos</h2>${moves.length ? moves.map((m) => `<div class="kv"><span>${hhmm(m.t)} · ${MOVE[m.type] ? MOVE[m.type][0] : m.type}${m.m && m.m !== "efectivo" ? ` (${METHODS[m.m]})` : ""}${m.note ? " · " + esc(m.note) : ""}<small class="muted"> · ${esc(m.u || "")}</small></span><span class="num">${(MOVE[m.type] || [0, 0])[1] < 0 ? "−" : "+"} ${money(m.amount)}${can("cierre") && !["abono", "devolucion", "anulacion"].includes(m.type) && !isLocked(m.date) ? ` <button class="link xs" data-a="mvdel" data-id="${m.id}" aria-label="Borrar movimiento">✕</button>` : ""}</span></div>`).join("") : `<p class="muted">Sin gastos, pagos ni ingresos anotados.</p>`}</div>
+    </div><div class="stack">
+      <div class="card"><h2>Cajas del día</h2>${shifts.length ? shifts.map((s) => { const S = s.t1 ? null : shiftSummary(s); return `<div class="kv click" data-a="liq" data-id="${s.id}"><span><b>${esc(s.un)}</b><small class="muted"> · ${hhmm(s.t0)}${s.t1 ? "–" + hhmm(s.t1) : " · abierta"}</small></span><span class="num">${s.t1 ? `${money(s.counted)} <span class="tag ${s.diff === 0 ? "" : s.diff < 0 ? "out" : "low"}">${s.diff === 0 ? "cuadra" : (s.diff < 0 ? "falta " : "sobra ") + money(Math.abs(s.diff))}</span>` : `${money(S.expected)} <span class="tag">abierta</span>`}</span></div>`; }).join("") : `<p class="muted">Nadie abrió caja este día.</p>`}
+        ${others.length && can("cierre") ? `<p class="muted sm" style="margin-top:8px">Como supervisor puedes cerrar una caja ajena tocándola.</p>` : ""}</div>
+      ${can("cierre") ? `<div class="card"><h2>Cerrar el día</h2>${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><div class="row wrap" style="margin-top:10px"><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button></div>`
+        : `<p class="muted" style="margin-bottom:10px">Resume ventas, comprobantes y cajas del día. ${shifts.some((s) => !s.t1) ? "<b>Primero cierren las cajas abiertas.</b>" : ""}</p><button class="btn" data-a="zclose" ${shifts.some((s) => !s.t1) || (!T.n && !shifts.length) ? "disabled" : ""}>Hacer cierre del día</button>`}</div>
+      <details class="card dtl"><summary>Cerrar el mes</summary><p class="muted" style="margin:10px 0">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period" style="margin-top:8px">Cerrar un mes</button></details>` : ""}
+    </div></div>`;
 };
 function openMove(type) {
   const T = { yape: ["Anotar Yapes", "Yapes que recibiste y no registraste como venta. Escribe los montos separados por espacio. Ej: 5 10 7.50"], proveedor: ["Pago a proveedor", "Sale del efectivo de la caja."], gasto: ["Gasto", "Sale del efectivo de la caja. Ej: pasaje, bolsas, luz."], ingreso: ["Otro ingreso", "Entra dinero a la caja que no es venta. Ej: sencillo que trajiste."], retiro: ["Retiro de efectivo", "Dinero que sacas de la caja para guardarlo o depositarlo."] }[type];
@@ -3194,28 +3143,22 @@ act({
       const n = Math.max(0, r2(num(v))); log("Sencillo inicial", `${sh.un}: ${money(sh.open)} → ${money(n)}`); sh.open = n; save(); toast("Guardado"); render();
     });
   },
-  shcount: (el) => { ui.cnt = null; ui.turno = false; closeShiftUI(el.dataset.id); },
-  // Cambio de turno: el mismo arqueo y, al cerrar, se le pasa la caja al que sigue (con lo contado ya puesto como sencillo).
-  shturno: (el) => { ui.cnt = null; ui.turno = true; closeShiftUI(el.dataset.id); },
-  turnolock: () => { closeModal(); lockNow(); },
-  cjall: () => { ui.cjAll = !ui.cjAll; render(); },
-  cjstall: () => { ui.cjSt = true; render(); },
+  shcount: (el) => { ui.cnt = null; closeShiftUI(el.dataset.id); },
   liq: (el) => {
-    const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (!sh) return; ui.turno = false;
+    const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (!sh) return;
     if (!sh.t1 && sh.u !== ui.user) return can("cierre") ? confirmBox(`¿Cerrar la caja de ${sh.un}?`, "Hacer arqueo", () => { ui.cnt = null; closeShiftUI(sh.id); }, false) : toast("Solo un supervisor puede cerrar una caja ajena");
     if (!sh.t1) { ui.cnt = null; return closeShiftUI(sh.id); }
     openModal(`<div class="rcpt">${liqHtml(sh)}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button><button class="btn" data-a="liqprint" data-id="${sh.id}">${svg("print", "bi")}Imprimir</button></div>`);
   },
   liqprint: (el) => { const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (sh) printHtml(liqHtml(sh)); },
   den: (el) => { const c = ui.cnt; if (!c) return; const d = el.dataset.d; c.q[d] = Math.max(0, (c.q[d] || 0) + +el.dataset.v); c.direct = ""; closeShiftUI(c.id); },
-  cntcancel: () => { ui.cnt = null; ui.turno = false; closeModal(); },
+  cntcancel: () => { ui.cnt = null; closeModal(); },
   shclose: (el) => {
     const sh = DB.shifts.find((s) => s.id === el.dataset.id), c = ui.cnt; if (!sh || !c) return;
     const S = shiftSummary(sh), counted = c.direct !== "" ? r2(num(c.direct)) : countTotal(c.q);
     Object.assign(sh, { t1: Date.now(), d1: dkey(), q: c.q, counted, expected: S.expected, diff: r2(counted - S.expected), note: ($("#cntn") || { value: "" }).value.trim(), by: me().name, sum: S });
     log("Cierre de caja", `${sh.un}: esperado ${money(S.expected)}, contado ${money(counted)}`);
     ui.cnt = null; save(sh.d0); closeModal(); printHtml(liqHtml(sh)); toast(sh.diff === 0 ? "Caja cerrada: cuadra" : sh.diff < 0 ? `Caja cerrada: falta ${money(-sh.diff)}` : `Caja cerrada: sobra ${money(sh.diff)}`, true); render();
-    if (ui.turno) { ui.turno = false; turnoSigue(sh); }
   },
   zclose: () => need("cierre", () => {
     const k = ui.date; if (DB.closes.some((x) => x.date === k)) return toast("Este día ya tiene cierre");
@@ -3223,6 +3166,7 @@ act({
     DB.closes.push(z); log("Cierre del día", `Z ${z.z} · ${dmy(k)}`); save(k); printHtml(zHtml(z)); toast("Cierre del día guardado"); render();
   }, "Cierre del día"),
   zprint: (el) => { const z = DB.closes.find((x) => x.id === el.dataset.id); if (z) printHtml(zHtml(z)); },
+  cajamas: () => openModal(`<h2>Más movimientos de caja</h2><div class="fgrid" style="margin:12px 0"><button class="fb" data-a="tab" data-t="prov">Proveedores</button><button class="fb" data-a="mv" data-t="ingreso">Ingreso de dinero</button><button class="fb" data-a="mv" data-t="retiro">Retiro de dinero</button></div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),
   mv: (el) => need("caja", () => openMove(el.dataset.t)),
   mvsave: (el) => {
     const type = el.dataset.t;
@@ -3277,7 +3221,7 @@ VIEWS.prov = function viewProv(v) {
     return `<div class="card pvrow" data-n="${esc(norm(s.name + " " + (s.phone || "") + " " + (s.note || "")))}" data-b="${b > 0 ? 1 : 0}">
       <button class="pvopen" data-a="psopen" data-id="${s.id}" aria-label="Ver a ${esc(s.name)}"><span class="pvav" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span><span class="pvnm"><b>${esc(s.name)}</b><small>${sub || "Sin movimientos"}</small></span></button>
       <div class="pvsal"><b class="num ${b > 0 ? "debe" : "cero"}">${b > 0 ? money(b) : b < 0 ? money(-b) : "Sin deuda"}</b><small>${b > 0 ? "le debes" : b < 0 ? "a tu favor" : ""}</small></div>
-      <div class="pvacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : ""}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div></div>`;
+      <div class="pvacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb fio" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}</div></div>`;
   };
   v.innerHTML = `<div class="ph"><h1>Proveedores</h1><button class="btn sm" data-a="psnew">${svg("plus", "bi")}Nuevo proveedor</button></div>
     ${list.length ? `<div class="pvsum"><div class="card pvs ${debt > 0 ? "big" : ""}"><small>Debes en total${owing ? ` · ${owing} ${owing === 1 ? "proveedor" : "proveedores"}` : ""}</small><b class="num">${money(debt)}</b></div><div class="card pvs"><small>Pagado hoy</small><b class="num">${money(hoy)}</b></div><div class="card pvs"><small>Te fiaron este mes</small><b class="num">${money(fiado)}</b></div></div>
@@ -3314,8 +3258,8 @@ function provDetail(v, s) {
       <div class="pvchn"><h1>${esc(s.name)}</h1><p>${[s.phone ? esc(s.phone) : "", s.note ? esc(s.note) : ""].filter(Boolean).join(" · ") || "Sin celular ni nota"}</p></div>
       <button class="btn sec sm pved" data-a="psedit" data-id="${s.id}" aria-label="Editar proveedor">${svg("edit", "bi")}<span>Editar</span></button></div>
     <div class="card pvtop"><div class="pvdebe ${b > 0 ? "owe" : b < 0 ? "fav" : "ok"}"><small>${b > 0 ? "Le debes" : b < 0 ? "A tu favor" : "No le debes"}</small><b class="num">${b === 0 ? "S/ 0.00 ✓" : money(Math.abs(b))}</b></div>
-      <div class="pvtacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Pagar</button></div></div>
-    <div class="card pvlist">${list || `<div class="pvvac"><b>Todavía no hay movimientos</b><span>Cuando ${esc(s.name)} te deje mercadería fiada, toca «Pagar» para anotarla. Cuando le pagues, toca «Pagar todo» o «Abonar».</span></div>`}
+      <div class="pvtacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div></div>
+    <div class="card pvlist">${list || `<div class="pvvac"><b>Todavía no hay movimientos</b><span>Cuando ${esc(s.name)} te deje mercadería, toca «Me fiaron». Cuando le pagues, toca «Pagar todo» o «Abonar».</span></div>`}
       ${!all ? `<button class="pvmore" data-a="pvall" data-id="${s.id}">Ver ${rows.length - PV_MAX} movimientos anteriores</button>` : ""}</div>`;
 }
 function suppForm(id) {
@@ -5704,11 +5648,10 @@ const HELP_KB = [
   { k: ["imprim", "whatsapp", "compartir ticket", "enviar ticket", "mandar ticket"], t: "Mandar o imprimir el ticket", go: "ventas", s: ["Entra a Ventas y abre la venta.", "Elige imprimir o enviarlo por WhatsApp."] },
   { k: ["boleta", "factura", "ruc", "dni", "sunat"], t: "Boleta y factura", go: "aj.comp", s: ["Para factura, elige un cliente con RUC válido (F1).", "Las boletas desde S/ 700 piden el DNI del cliente.", "Los datos de comprobantes están en Ajustes › Comprobantes."] },
   { k: ["anular", "devol", "me equivoque", "cancelar venta", "error en la venta"], t: "Anular o devolver una venta", go: "ventas", s: ["Entra a Ventas.", "Abre la venta equivocada.", "Elige anular o devolver. Necesitas permiso para hacerlo."] },
-  { k: ["abrir caja", "cerrar caja", "cierro mi caja", "arqueo", "cierre", "contar"], t: "Abrir y cerrar la caja", go: "caja", s: ["En Caja toca «Abrir caja» y pon el sencillo inicial.", "En la noche toca «Cerrar caja del día» (arriba a la derecha) y cuenta el dinero.", "Cierra con «Cerrar caja e imprimir»."] },
+  { k: ["abrir caja", "cerrar caja", "cierro mi caja", "arqueo", "cierre", "turno", "contar"], t: "Abrir y cerrar la caja", go: "caja", s: ["En Caja toca «Abrir caja» y pon el sencillo inicial.", "Al terminar toca «Cerrar mi caja (arqueo)» y cuenta el dinero.", "Cierra con «Cerrar caja e imprimir»."] },
   { k: ["flechas", "teclado", "sin mouse", "sin el mouse", "moverme"], t: "Usar la caja con las flechas", s: ["Fuera de Vender, las flechas ↑ ↓ ← → mueven el borde verde al botón de al lado, también al menú de la izquierda.", "Enter aprieta lo marcado; Esc cierra la ventana o vuelve atrás.", "En Vender las flechas siguen igual: tickets, líneas del ticket, resultados y cobro."] },
-  { k: ["turno", "cambio de turno", "turno de la tarde", "turno de la noche", "pasar la caja", "otro cajero"], t: "Cambio de turno", go: "caja", s: ["En Caja, en la barra del turno de arriba, toca el botón verde «Pasar al turno de la tarde» (o «Pasar la caja»).", "Cuenta el dinero y toca «Cerrar caja e imprimir».", "El que sigue abre la caja: ya sale lo que se contó como sencillo."] },
-  { k: ["gasto", "retiro", "ingreso de dinero", "sale dinero", "saque plata", "sacar plata", "meter plata"], t: "Anotar un gasto, meter o sacar plata", go: "caja", s: ["Entra a Caja.", "Toca «Anotar un gasto», «Sacar plata» o «Meter plata».", "Escribe el monto y el motivo, y guarda."] },
-  { k: ["proveedor", "me fiaron", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores.", "En la fila del proveedor toca «Pagar» (paga todo lo que le debes) o «Abonar» (una parte).", "Para anotar lo que te fiaron, toca «Me fiaron» en la fila, o «Pagar» dentro del proveedor (al lado de «Pagar todo» y «Abonar»)."] },
+  { k: ["gasto", "retiro", "ingreso de dinero", "sale dinero", "saque plata"], t: "Anotar un gasto, ingreso o retiro", go: "caja", s: ["Entra a Caja.", "Toca Gasto, Ingreso de dinero o Retiro de dinero.", "Escribe el monto y el motivo, y guarda."] },
+  { k: ["proveedor", "me fiaron", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores.", "En la fila del proveedor toca «Pagar» (si le debes, ya sale todo lo que le debes) o «Abonar» (una parte).", "Para anotar lo que te fiaron, toca el nombre del proveedor y luego «Me fiaron»."] },
   { k: ["report", "ganancia", "cuanto vendi", "resumen", "utilidad"], t: "Ver ventas y ganancia", go: "rep", s: ["Entra a Reportes y elige el periodo.", "Si tienes la voz activa, también puedes escribirme: «cuánto vendí hoy»."] },
   { k: ["balanza", "kilo", "peso", "gramos", "fruta", "verdura"], t: "Vender por peso", go: "venta", s: ["Pon el producto como «por kilo» en Productos.", "En Vender escribe el peso o usa la balanza si la conectaste.", "Configura la balanza en Ajustes › Balanza."] },
   { k: ["usuario", "pin", "cajero", "permiso", "clave"], t: "Cajeros y PIN", go: "aj.usuarios", s: ["Entra a Ajustes › Usuarios y permisos.", "Crea al cajero y elige qué puede hacer.", "Cada uno entra con su PIN. No compartas tu PIN."] },
@@ -5961,11 +5904,10 @@ function repSales(from, to, scope) {
   return local.concat(remote);
 }
 function aggregate(list) {
-  const ok = list.filter((s) => !s.void), A = { n: ok.length, gross: 0, ret: 0, net: 0, cost: 0, by: {}, byN: {}, day: {}, hour: {}, cat: {}, prod: {}, user: {}, doc: {}, store: {}, voids: list.length - ok.length };
+  const ok = list.filter((s) => !s.void), A = { n: ok.length, gross: 0, ret: 0, net: 0, cost: 0, by: {}, day: {}, hour: {}, cat: {}, prod: {}, user: {}, doc: {}, store: {}, voids: list.length - ok.length };
   ok.forEach((s) => {
     A.gross = r2(A.gross + s.total); A.ret = r2(A.ret + (s.ret || 0));
     s.pays.forEach((p) => { A.by[p.m] = r2((A.by[p.m] || 0) + p.amt); });
-    new Set(s.pays.map((p) => p.m)).forEach((m) => { A.byN[m] = (A.byN[m] || 0) + 1; });
     A.day[s.date] = r2((A.day[s.date] || 0) + s.total - (s.ret || 0));
     const h = new Date(s.t).getHours(); A.hour[h] = r2((A.hour[h] || 0) + s.total);
     const ratio = s.total && s.items.length ? s.total / s.items.reduce((a, i) => a + i.price * i.qty, 0) || 1 : 1;
@@ -5983,92 +5925,34 @@ function aggregate(list) {
   return A;
 }
 const hbars = (obj, fmt = money, max = 8, label = (k) => esc(k)) => { const e = Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, max), m = e.length ? e[0][1] || 1 : 1; return e.map(([k, n]) => `<div class="hb"><div class="row sp"><span>${label(k)}</span><b class="num">${fmt(n)}</b></div><div class="hbar"><i style="width:${Math.max(2, (n / m) * 100)}%"></i></div></div>`).join("") || `<p class="muted">Sin datos en este periodo.</p>`; };
-/* Reportes «te lo cuenta en palabras» (opción 3 de David, 26 oct 2026): frase del periodo, los 5 números de siempre,
-   «Cómo te pagaron» ordenado por medio y tarjetas con lo importante (mejor hora, mejor día, estrella, a pérdida, fiado…). El detalle sigue abajo. */
-const RP_IC = {
-  hora: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M19 3l3 3"/>', dia: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
-  star: '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/>', warn: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
-  fiado: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/>', cat: '<path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>', ret: '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>'
-};
-const rpI = (k) => `<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RP_IC[k]}</svg>`;
-const rpSuf = (h) => (h % 24 < 12 ? "a. m." : "p. m."), rpHora = (h) => (rpSuf(h) === rpSuf(h + 1) ? `${h % 12 || 12} a ${(h + 1) % 12 || 12} ${rpSuf(h)}` : `${h % 12 || 12} ${rpSuf(h)} a ${(h + 1) % 12 || 12} ${rpSuf(h + 1)}`);
-// Barras con punta redondeada; la más alta resaltada con su monto. Cada barra dice su valor al pasar el mouse.
-function rpBars(vals, labels, tips) {
-  const n = vals.length, W = Math.max(440, n * 34), H = 120, mx = Math.max(1, ...vals), hi = vals.indexOf(Math.max(...vals)), bw = W / n, ww = Math.min(34, bw * 0.64);
-  return `<svg class="rpbars" viewBox="0 0 ${W} ${H + 22}" role="img" aria-label="${esc(tips[hi] || "")}">${vals.map((v, i) => {
-    const bh = v > 0 ? Math.max(3, (v / mx) * (H - 22)) : 2, x = i * bw + (bw - ww) / 2, y = H - bh, r = Math.min(4, bh / 2);
-    return `<g><title>${esc(tips[i])}</title><rect x="${x - (bw - ww) / 2}" y="0" width="${bw}" height="${H}" fill="transparent" stroke="none"/><path d="M${x},${H} V${y + r} Q${x},${y} ${x + r},${y} H${x + ww - r} Q${x + ww},${y} ${x + ww},${y + r} V${H} Z" class="${i === hi && v > 0 ? "hi" : ""}"/>${n <= 24 ? `<text x="${x + ww / 2}" y="${H + 16}" text-anchor="middle">${labels[i]}</text>` : ""}</g>`;
-  }).join("")}<line x1="0" x2="${W}" y1="${H}" y2="${H}" class="base"/></svg>`;
-}
 VIEWS.rep = function viewReports(v) {
   const [from, to] = rangeKeys(ui.range, ui.from, ui.to), scope = Object.keys(DB.stores).length ? ui.rscope : "local";
   const list = repSales(from, to, scope), A = aggregate(list), costs = can("costos");
   const keys = []; for (let k = from; k <= to && keys.length < 62; k = addD(k, 1)) keys.push(k);
-  const hk = Object.keys(A.hour).map(Number), h0 = Math.min(7, ...hk), h1 = Math.max(21, ...hk), hours = Array.from({ length: h1 - h0 + 1 }, (_, i) => i + h0);
+  const maxD = Math.max(1, ...keys.map((k) => A.day[k] || 0)), hk = Object.keys(A.hour).map(Number), h0 = Math.min(6, ...hk), h1 = Math.max(22, ...hk), hours = Array.from({ length: h1 - h0 + 1 }, (_, i) => i + h0), maxH = Math.max(1, ...hours.map((h) => A.hour[h] || 0));
   const moves = scope === "local" ? DB.moves.filter((m) => m.date >= from && m.date <= to) : [];
   const mv = (t) => r2(moves.filter((m) => m.type === t).reduce((a, m) => a + m.amount, 0));
-  const credit = A.by.credito || 0, abonos = mv("abono"), yapeMan = mv("yape"), net = r2(A.net + yapeMan);
+  const credit = A.by.credito || 0, abonos = mv("abono"), yapeMan = mv("yape");
   const shifts = scope === "local" ? DB.shifts.filter((s) => s.d0 >= from && s.d0 <= to).sort((a, b) => a.t0 - b.t0) : [];
   const top = Object.entries(A.prod).sort((a, b) => b[1].m - a[1].m).slice(0, 12);
   ui.repData = { from, to, A, shifts, scope, top };
-  // Periodo anterior del mismo largo, para decir «12% más que ayer».
-  const len = keys.length, pf = addD(from, -len), pt = addD(from, -1);
-  const P = aggregate(repSales(pf, pt, scope)), pYape = scope === "local" ? r2(DB.moves.filter((m) => m.type === "yape" && m.date >= pf && m.date <= pt).reduce((a, m) => a + m.amount, 0)) : 0, pNet = r2(P.net + pYape);
-  const delta = pNet > 0 ? Math.round(((net - pNet) / pNet) * 100) : null, mucho = delta !== null && delta >= 200;
-  const lab = { hoy: "Hoy", ayer: "Ayer", "7d": "En estos 7 días", mes: "Este mes", mesant: "El mes pasado" }[ui.range] || (from === to ? `El ${fmtDate(from).toLowerCase()}` : `Del ${dmy(from)} al ${dmy(to)}`);
-  const plab = { hoy: "ayer", ayer: "anteayer", "7d": "los 7 días anteriores", mes: "el mismo tramo del mes anterior", mesant: "el mes anterior" }[ui.range] || "el periodo anterior";
-  const lead = A.n || yapeMan ? `${lab} vendiste <b class="num">${money(net)}</b> en <b>${A.n === 1 ? "1 venta" : A.n + " ventas"}</b>${delta !== null && delta !== 0 ? `, <b>${mucho ? `mucho más que ${plab} (${money(pNet)})` : `${Math.abs(delta)}% ${delta > 0 ? "más" : "menos"} que ${plab}`}</b>` : ""}.${costs && A.n ? ` Te quedaron <b class="num">${money(A.profit)}</b> de ganancia` : ""}${credit ? `${costs && A.n ? " y" : ""} fiaste <b class="num">${money(credit)}</b>` : ""}${(costs && A.n) || credit ? "." : ""}`
-    : `${lab} todavía no hay ventas.`;
-  // Cómo te pagaron: cada medio del que más entró al que menos; los Yapes anotados a mano van junto a Yape.
-  const pays = Object.keys(METHODS).map((m) => ({ m, amt: r2((A.by[m] || 0) + (m === "yape" ? yapeMan : 0)), n: A.byN[m] || 0, man: m === "yape" ? yapeMan : 0 })).filter((x) => x.amt > 0).sort((a, b) => b.amt - a.amt);
-  const psum = pays.reduce((a, x) => a + x.amt, 0), pmax = pays.length ? pays[0].amt : 1;
-  const raro = yapeMan > 1000 && yapeMan > (A.net || 0) * 0.6;
-  const payCard = `<div class="card rppay"><h2>Cómo te pagaron <b class="num">${money(psum)}</b></h2>
-    ${pays.length ? `<div class="rpms" style="--c:${Math.min(6, pays.length)};--c2:${pays.length > 4 ? Math.ceil(pays.length / 2) : pays.length}">${pays.map((x, i) => `<div class="rpm"><span class="rpmh"><i class="pmi m-${x.m}" aria-hidden="true"></i>${METHODS[x.m]}</span><b class="num">${money(x.amt)}</b>
-      <span class="rpbar"><i style="width:${Math.max(3, (x.amt / pmax) * 100).toFixed(1)}%"></i></span><small>${Math.round((x.amt / psum) * 100)}%${x.n ? ` · ${x.n} ${x.n === 1 ? "venta" : "ventas"}` : ""}</small>
-      ${x.man ? `<small class="${raro ? "rpraro" : ""}">${money(x.man)} anotados a mano${raro ? " · ¿está bien? Revísalo en Caja" : ""}</small>` : ""}</div>`).join("")}</div>`
-      : `<p class="muted">Sin ventas en este periodo.</p>`}</div>`;
-  // Tarjetas con lo importante (solo las que tienen algo que decir).
-  const cards = [];
-  if (A.n) {
-    const hb = hours.reduce((a, h) => ((A.hour[h] || 0) > (A.hour[a] || 0) ? h : a), hours[0]), hlow = hours.filter((h) => h >= 8 && h <= 20).reduce((a, h) => ((A.hour[h] || 0) < (A.hour[a] || 0) ? h : a), 8);
-    cards.push(["hora", "g", `Tu mejor hora fue de ${rpHora(hb)}`, `Vendiste ${money(A.hour[hb] || 0)} en esa hora.${(A.hour[hlow] || 0) < (A.hour[hb] || 0) * 0.25 ? ` De ${rpHora(hlow)} casi no entra nadie.` : ""}`, rpBars(hours.map((h) => A.hour[h] || 0), hours.map((h) => h), hours.map((h) => `${h}:00 · ${money(A.hour[h] || 0)}`))]);
-  }
-  if (keys.length > 1 && A.n) {
-    const bd = keys.reduce((a, k) => ((A.day[k] || 0) > (A.day[a] || 0) ? k : a), keys[0]);
-    cards.push(["dia", "b", `Tu mejor día fue el ${fmtDate(bd).toLowerCase() === "hoy" || fmtDate(bd) === "Ayer" ? fmtDate(bd).toLowerCase() : PV_DOW[pk(bd).getDay()] + " " + pk(bd).getDate()}`, `Vendiste ${money(A.day[bd] || 0)}. En promedio vendes ${money(A.net / keys.length)} por día.`, rpBars(keys.map((k) => A.day[k] || 0), keys.map((k) => (keys.length > 10 ? pk(k).getDate() : ["D", "L", "M", "M", "J", "V", "S"][pk(k).getDay()])), keys.map((k) => `${dmy(k)} · ${money(A.day[k] || 0)}`))]);
-  }
-  if (top.length) {
-    const [n, o] = top[0];
-    cards.push(["star", "g", `${esc(n)} fue tu estrella`, `${fmtQ(o.q)}${o.unit === "kg" ? " kg" : ""} vendidos, ${money(o.m)}${costs && o.c ? ` y ${money(o.m - o.c)} de ganancia` : ""}.`, `<div class="rptop">${top.slice(1, 5).map(([n2, o2]) => `<div><span>${esc(n2)}</span><b class="num">${money(o2.m)}</b></div>`).join("")}</div>`]);
-  }
-  const loss = costs ? Object.entries(A.prod).filter(([, o]) => o.c > 0 && o.m - o.c < -0.009).sort((a, b) => (a[1].m - a[1].c) - (b[1].m - b[1].c)) : [];
-  if (loss.length) cards.push(["warn", "w", loss.length === 1 ? `${esc(loss[0][0])}: lo vendes a pérdida` : `${loss.length} productos los vendes a pérdida`, `Te cuestan más de lo que los vendes. Revisa su precio en Productos.`, `<div class="rptop">${loss.slice(0, 4).map(([n, o]) => `<div><span>${esc(n)}</span><b class="num rpo">− ${money(o.c - o.m)}</b></div>`).join("")}</div>`]);
-  const cats = Object.entries(A.cat).sort((a, b) => b[1] - a[1]);
-  if (cats.length > 1) cards.push(["cat", "b", `Lo que más se vende: ${esc(cats[0][0])}`, `${Math.round((cats[0][1] / (A.net || 1)) * 100)}% de lo vendido.`, hbars(A.cat, money, 4)]);
-  if (credit || abonos) {
-    const debe = DB.clients.reduce((a, c) => a + balanceOf(c), 0);
-    cards.push(["fiado", "o", credit ? `Fiaste ${money(credit)}` : `Te pagaron deudas`, `${abonos ? `Te pagaron ${money(abonos)} de deudas.` : "Nadie pagó deudas en este periodo."}${debe ? ` Tus clientes te deben ${money(debe)} en total.` : ""}`, ""]);
-  }
-  if (A.ret || A.voids) cards.push(["ret", "n", `Devoluciones y anuladas`, `${A.ret ? `Devolviste ${money(A.ret)}.` : ""}${A.voids ? ` ${A.voids === 1 ? "Se anuló 1 venta" : `Se anularon ${A.voids} ventas`}.` : ""}`, ""]);
   v.innerHTML = `<div class="ph"><h1>Reportes</h1><div class="row wrap"><button class="btn sec sm" data-a="repprint">${svg("print", "bi")}Imprimir</button><button class="btn sec sm" data-a="vcsv">Exportar ventas</button></div></div>
     ${Object.keys(DB.stores).length ? `<div class="seg tabs2"><button class="${scope === "local" ? "on" : ""}" data-a="rscope" data-s="local">Esta tienda</button><button class="${scope === "todas" ? "on" : ""}" data-a="rscope" data-s="todas">Todas las tiendas (${Object.keys(DB.stores).length + 1})</button></div>` : ""}
     ${rangeBar()}
-    <div class="card rplead"><p>${lead}</p></div>
     <div class="kpis">
-      <div class="kpi main"><span>Ventas netas</span><b class="num">${money(net)}</b><small>${from === to ? fmtDate(from) : dmy(from) + " – " + dmy(to)}${delta !== null && delta !== 0 ? ` · <span class="${delta > 0 ? "rpup" : "rpdn"}">${delta > 0 ? "▲" : "▼"} ${mucho ? `${plab}: ${money(pNet)}` : `${Math.abs(delta)}% vs ${plab}`}</span>` : ""}</small></div>
+      <div class="kpi main"><span>Ventas netas</span><b class="num">${money(A.net + yapeMan)}</b><small>${from === to ? fmtDate(from) : dmy(from) + " – " + dmy(to)}</small></div>
       <div class="kpi"><span>Ventas</span><b class="num">${A.n}</b><small>Ticket promedio ${money(A.avg)}</small></div>
       ${costs ? `<div class="kpi"><span>Ganancia estimada</span><b class="num">${money(A.profit)}</b><small>Margen ${A.net ? Math.round((A.profit / A.net) * 100) : 0}%</small></div>` : ""}
       <div class="kpi"><span>Al crédito</span><b class="num">${money(credit)}</b><small>Cobrado de deudas ${money(abonos)}</small></div>
       <div class="kpi"><span>Devoluciones</span><b class="num">${money(A.ret)}</b><small>${A.voids} anuladas</small></div></div>
-    ${payCard}
-    ${cards.length ? `<div class="rpins">${cards.map(([ic, tone, t, d, extra]) => `<div class="card rpin t-${tone}"><span class="rpic">${rpI(ic)}</span><h3>${t}</h3><p>${d}</p>${extra}</div>`).join("")}</div>` : ""}
-    <h2 class="rpsec">Más detalle</h2>
     <div class="cols stack"><div class="stack">
-      <div class="card"><h2>Productos más vendidos</h2>${top.length ? `<div class="tablewrap"><table class="tbl"><thead><tr><th>Producto</th><th class="r">Cant.</th><th class="r">Vendido</th>${costs ? `<th class="r">Ganancia</th>` : ""}</tr></thead><tbody>${top.map(([n, o]) => `<tr><td>${esc(n)}</td><td class="r num">${fmtQ(o.q)}${o.unit === "kg" ? " kg" : ""}</td><td class="r num">${money(o.m)}</td>${costs ? `<td class="r num ${o.m - o.c < 0 ? "loss" : ""}">${money(o.m - o.c)}</td>` : ""}</tr>`).join("")}</tbody></table></div>` : `<p class="muted">Sin ventas en este periodo.</p>`}</div>
+      ${keys.length > 1 ? `<div class="card"><h2>Ventas por día</h2><div class="bars">${keys.map((k) => `<div class="bar ${k === dkey() ? "t" : ""}" title="${dmy(k)}: ${money(A.day[k] || 0)}"><i style="height:${Math.max(2, ((A.day[k] || 0) / maxD) * 100)}%"></i><span>${keys.length > 10 ? pk(k).getDate() : ["D", "L", "M", "M", "J", "V", "S"][pk(k).getDay()]}</span></div>`).join("")}</div></div>` : ""}
+      <div class="card"><h2>Horas con más ventas</h2><div class="bars hours">${hours.map((h) => `<div class="bar" title="${h}:00 · ${money(A.hour[h] || 0)}"><i style="height:${Math.max(2, ((A.hour[h] || 0) / maxH) * 100)}%"></i><span>${h}</span></div>`).join("")}</div></div>
+      <div class="card"><h2>Por medio de pago</h2>${hbars(Object.assign({}, A.by, yapeMan ? { "yape (anotados)": yapeMan } : {}), money, 9, (k) => esc(METHODS[k] || k))}</div>
       <div class="card"><h2>Por categoría</h2>${hbars(A.cat)}</div>
-      <div class="card"><h2>Por cajero o vendedor</h2>${Object.keys(A.user).length ? `<table class="tbl"><thead><tr><th>Usuario</th><th class="r">Ventas</th><th class="r">Total</th><th class="r">Promedio</th></tr></thead><tbody>${Object.entries(A.user).sort((a, b) => b[1].m - a[1].m).map(([u, o]) => `<tr><td>${esc(u)}</td><td class="r num">${o.n}</td><td class="r num">${money(o.m)}</td><td class="r num">${money(o.m / o.n)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Sin datos.</p>`}</div>
     </div><div class="stack">
+      <div class="card"><h2>Productos más vendidos</h2>${top.length ? `<div class="tablewrap"><table class="tbl"><thead><tr><th>Producto</th><th class="r">Cant.</th><th class="r">Vendido</th>${costs ? `<th class="r">Ganancia</th>` : ""}</tr></thead><tbody>${top.map(([n, o]) => `<tr><td>${esc(n)}</td><td class="r num">${fmtQ(o.q)}${o.unit === "kg" ? " kg" : ""}</td><td class="r num">${money(o.m)}</td>${costs ? `<td class="r num">${money(o.m - o.c)}</td>` : ""}</tr>`).join("")}</tbody></table></div>` : `<p class="muted">Sin ventas en este periodo.</p>`}</div>
+      <div class="card"><h2>Por cajero o vendedor</h2>${Object.keys(A.user).length ? `<table class="tbl"><thead><tr><th>Usuario</th><th class="r">Ventas</th><th class="r">Total</th><th class="r">Promedio</th></tr></thead><tbody>${Object.entries(A.user).sort((a, b) => b[1].m - a[1].m).map(([u, o]) => `<tr><td>${esc(u)}</td><td class="r num">${o.n}</td><td class="r num">${money(o.m)}</td><td class="r num">${money(o.m / o.n)}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Sin datos.</p>`}</div>
       <div class="card"><h2>Comprobantes e IGV</h2><table class="tbl"><thead><tr><th>Tipo</th><th class="r">Cant.</th><th class="r">Op. gravada</th><th class="r">IGV</th><th class="r">Total</th></tr></thead><tbody>${Object.entries(A.doc).map(([d, o]) => `<tr><td>${DOCS[d] || d}</td><td class="r num">${o.n}</td><td class="r num">${money(o.grav)}</td><td class="r num">${money(o.igv)}</td><td class="r num">${money(o.m)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Sin comprobantes.</td></tr>`}</tbody></table><p class="muted sm" style="margin-top:6px">Útil para tu declaración mensual. Las notas de venta no son comprobantes de pago.</p></div>
       ${shifts.length ? `<div class="card"><h2>Liquidaciones por cajero</h2><div class="tablewrap"><table class="tbl"><thead><tr><th>Cajero</th><th>Fecha</th><th class="r">Esperado</th><th class="r">Contado</th><th class="r">Diferencia</th></tr></thead><tbody>${shifts.map((s) => { const e = s.t1 ? s.expected : shiftSummary(s).expected; return `<tr class="click" data-a="liq" data-id="${s.id}"><td>${esc(s.un)}</td><td>${dmy(s.d0)} ${hhmm(s.t0)}</td><td class="r num">${money(e)}</td><td class="r num">${s.t1 ? money(s.counted) : "abierta"}</td><td class="r num ${s.diff < 0 ? "loss" : s.diff > 0 ? "gain" : ""}">${s.t1 ? money(s.diff) : ""}</td></tr>`; }).join("")}</tbody></table></div></div>` : ""}
       ${scope === "todas" ? `<div class="card"><h2>Por tienda</h2><table class="tbl"><thead><tr><th>Tienda</th><th class="r">Ventas</th><th class="r">Neto</th></tr></thead><tbody>${Object.entries(A.store).map(([s, o]) => `<tr><td>${esc(s)}</td><td class="r num">${o.n}</td><td class="r num">${money(o.m)}</td></tr>`).join("")}</tbody></table><p class="muted sm" style="margin-top:6px">${Object.values(DB.stores).map((s) => `${esc(s.name)}: datos hasta ${s.to ? dmy(s.to) : "—"}`).join(" · ")}</p></div>` : ""}
