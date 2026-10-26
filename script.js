@@ -3392,19 +3392,24 @@ async function remSalir() {
   location.reload();
 }
 function remGo(neg, sid, name) {
+  const copia = sid === DB.biz.sid && !cloudLoad().ver;
   confirmBox(`¿Manejar la caja de ${name} desde aquí?`, "Manejar", () => {
+    if (copia) { cloud.st.ver = true; cloudStore(); } // este equipo era una copia: deja de ser caja (no sube ni recibe como ella)
     try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); if (cloudLoad().ver) localStorage.setItem(REM_FIJO, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
     location.reload();
-  }, false, "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender y la caja se ven solo allá.");
+  }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender y la caja se ven solo allá.");
 }
 function remPickHtml(neg, tiendas) {
   return `<h2>¿Qué caja quieres manejar?</h2><p class="muted" style="margin-bottom:12px">Cambia sus productos, precios, clientes, proveedores, usuarios, ajustes y vitrina desde aquí.</p>
-    <div class="list">${tiendas.map((t) => `<button class="it" data-a="remone" data-n="${esc(neg)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}</small></div></button>`).join("")}</div>
+    <div class="list">${tiendas.map((t) => `<button class="it" data-a="remone" data-n="${esc(neg)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}</small></div></button>`).join("")}</div>
     <div class="btns"><button class="btn sec" data-a="close">Cancelar</button></div>`;
 }
 async function remPick() {
   try {
-    const t = (await cloudTiendas()).filter((x) => x.tienda !== DB.biz.sid);
+    const dev = cloudLoad().dev, ver = cloudLoad().ver;
+    // La tienda de este equipo no se ofrece… salvo que en la nube la escriba OTRO equipo: entonces este es solo una
+    // copia (p. ej. un celular donde se usó «Recuperar una tienda» de la caja de la tienda) y sí se puede manejar.
+    const t = (await cloudTiendas()).filter((x) => ver || x.tienda !== DB.biz.sid || (x.dispositivo && x.dispositivo !== dev));
     if (!t.length) return toast("No hay otra caja de tu negocio en la nube");
     openModal(remPickHtml(cloudLoad().neg, t));
   } catch (e) { toast("Sin conexión con la nube", true); }
@@ -3455,6 +3460,12 @@ async function remPull() {
   remState.pull = true;
   try {
     const s = cloudLoad();
+    // Si en la nube esta tienda la escribe OTRO equipo, este es una copia: no recibe (los cambios son para la caja de verdad).
+    if (!remState.dueno || Date.now() - remState.dueno.t > 6e5) {
+      const c = await sb(`registros?select=dispositivo&negocio_id=eq.${s.neg}&tienda=eq.${encodeURIComponent(DB.biz.sid)}&tipo=eq.config&limit=1`);
+      remState.dueno = { t: Date.now(), dev: c[0] && c[0].dispositivo };
+    }
+    if (remState.dueno.dev && remState.dueno.dev !== s.dev) return;
     const l = await sb(`cambios?select=id,datos,resumen,autor&negocio_id=eq.${s.neg}&tienda=eq.${encodeURIComponent(DB.biz.sid)}&aplicado=is.null&order=id.asc&limit=40`);
     if (!l.length) return;
     const ok = remOkList(), nuevos = l.filter((c) => !ok.includes(c.id));
@@ -3658,7 +3669,7 @@ async function cloudStart() {
 async function cloudTiendas() {
   await cloudEnsureNegocio(); // por si la primera conexión no llegó a crear el negocio
   const s = cloudLoad();
-  const rows = await sb(`registros?select=tienda,actualizado,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${s.neg}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`);
+  const rows = await sb(`registros?select=tienda,actualizado,dispositivo,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${s.neg}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`);
   return rows;
 }
 // Nombre de una tienda en las listas de la nube: el del negocio (todas suelen llamarse «Tienda principal»).

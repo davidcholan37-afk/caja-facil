@@ -163,7 +163,7 @@ async function cloudStart() {
 async function cloudTiendas() {
   await cloudEnsureNegocio(); // por si la primera conexión no llegó a crear el negocio
   const s = cloudLoad();
-  const rows = await sb(`registros?select=tienda,actualizado,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${s.neg}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`);
+  const rows = await sb(`registros?select=tienda,actualizado,dispositivo,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${s.neg}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`);
   return rows;
 }
 // Nombre de una tienda en las listas de la nube: el del negocio (todas suelen llamarse «Tienda principal»).
