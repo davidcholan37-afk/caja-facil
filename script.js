@@ -3091,7 +3091,7 @@ function zHtml(z) {
 }
 
 /* ---------- pantalla de caja ---------- */
-/* Caja «botones grandes» (opción D de David, 26 oct 2026): cuánto debe haber en el cajón, 4 botones grandes, cambio de turno resaltado y cómo te pagaron. */
+/* Caja «barra de turno» (opción 2 de David, 26 oct 2026): barra del turno arriba, cuánto debe haber en el cajón, 4 botones grandes y cómo te pagaron. */
 const CJ_IC = {
   gasto: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/>',
   retiro: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 9v6M9 12l3 3 3-3"/>',
@@ -3102,7 +3102,8 @@ const CJ_IC = {
   sunset: '<path d="M17 18a5 5 0 0 0-10 0M12 9V2M4.2 10.2l1.4 1.4M1 18h2M21 18h2M18.4 11.6l1.4-1.4M23 22H1M16 5l-4 4-4-4"/>',
   moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
   swap: '<path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/>',
-  open: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>'
+  open: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
 };
 const cjI = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CJ_IC[k]}</svg>`;
 // Turno: por la hora en que empezó (mañana antes de la 1 p. m., tarde antes de las 7 p. m., noche) o el que sigue al último que se cerró antes.
@@ -3114,60 +3115,58 @@ function cjIdx(shifts) {
   return ix;
 }
 const cjHora = (h) => `${h % 12 || 12}–${(h + 1) % 12 || 12} ${h < 12 ? "a. m." : "p. m."}`;
-// «Cómo te pagaron»: cada medio del que más entró al que menos, con su barra, % y cuántas ventas; compra promedio, hora fuerte y fiado.
+// «Cómo te pagaron»: cada medio del que más entró al que menos (tarjetitas con logo, monto, barra, % y ventas); compra promedio, hora fuerte y fiado.
 function cajaPagos(k, T, today) {
   const sales = DB.sales.filter((s) => s.date === k && !s.void), cnt = {}, hrs = {};
   sales.forEach((s) => { new Set(paysOf(s).map((p) => p.m)).forEach((m) => { cnt[m] = (cnt[m] || 0) + 1; }); const h = new Date(s.t).getHours(); hrs[h] = (hrs[h] || 0) + s.total; });
   const rows = Object.keys(METHODS).map((m) => ({ m, amt: r2((m === "yape" ? T.yapeAll : T.by[m]) || 0), n: cnt[m] || 0 })).filter((r) => r.amt > 0).sort((a, b) => b.amt - a.amt);
   const sum = rows.reduce((a, r) => a + r.amt, 0), max = rows.length ? rows[0].amt : 0, top = rows.length > 1;
   const hTop = Object.keys(hrs).sort((a, b) => hrs[b] - hrs[a])[0];
-  return `<h2 class="cjh">Cómo te pagaron ${today ? "hoy" : "este día"}</h2><div class="cjtot"><b class="num">${money(T.sales)}</b><span>${T.n === 1 ? "1 venta" : `${T.n} ventas`}</span></div>
-    ${rows.length ? `<div class="cjpr">${rows.map((r, i) => `<div class="cjr${i === 0 && top ? " top" : ""}"><span class="cjn">${i + 1}</span><i class="pmi m-${r.m}" aria-hidden="true"></i><div class="cjnm"><span>${METHODS[r.m]}${i === 0 && top ? "<em>El más usado</em>" : ""}${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</span><div class="cjbar"><i class="m-${r.m}" style="width:${max ? Math.max(2, (r.amt / max) * 100).toFixed(1) : 0}%"></i></div></div><div class="cjv num">${money(r.amt)}<small>${Math.round((r.amt / sum) * 100)}%${r.n ? ` · ${r.n === 1 ? "1 venta" : r.n + " ventas"}` : ""}</small></div></div>`).join("")}</div>`
+  return `<h2 class="cjh">Cómo te pagaron ${today ? "hoy" : "este día"}<b class="num">${money(T.sales)}</b></h2>
+    ${rows.length ? `<div class="cjchips" style="--n:${Math.min(rows.length, 5)}">${rows.map((r, i) => `<div class="cjpc${i === 0 && top ? " best" : ""}"><span class="cjpch"><i class="pmi m-${r.m}" aria-hidden="true"></i>${METHODS[r.m]}</span><b class="num">${money(r.amt)}</b><span class="cjbar"><i class="m-${r.m}" style="width:${max ? Math.max(3, (r.amt / max) * 100).toFixed(1) : 0}%"></i></span><small>${Math.round((r.amt / sum) * 100)}%${r.n ? ` · ${r.n} ${r.n === 1 ? "venta" : "ventas"}` : ""}${i === 0 && top ? " · el más usado" : ""}</small>${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</div>`).join("")}</div>`
       : `<p class="muted cjvac">Todavía no hay ventas ${today ? "hoy" : "este día"}.</p>`}
-    ${T.n ? `<div class="cjmini"><div><b class="num">${money(T.total / T.n)}</b>Compra promedio</div><div><b>${hTop !== undefined ? cjHora(+hTop) : "—"}</b>Hora que más vendes</div><div><b class="num">${money(T.by.credito || 0)}</b>Fiado ${today ? "hoy" : "ese día"}</div></div>` : ""}
+    ${T.n ? `<div class="cjmini"><span><b class="num">${money(T.total / T.n)}</b> compra promedio</span><span><b>${hTop !== undefined ? cjHora(+hTop) : "—"}</b> hora fuerte</span><span><b class="num">${money(T.by.credito || 0)}</b> fiado</span></div>` : ""}
     ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}`;
 }
-// Turnos del día y el botón resaltado «Pasar al turno de la tarde/noche».
-function cajaTurnos(shifts, mine, today) {
+// Barra del turno (opción 2 de David, 26 oct 2026): turno actual, Mañana › Tarde › Noche (cada turno se toca para ver su cierre) y a la derecha «Pasar al turno de…» y «Cerrar caja del día».
+function cajaBar(shifts, mine, today) {
   const ix = cjIdx(shifts);
-  const rows = shifts.map((s) => {
-    const [tn, ic] = CJ_TN[ix.get(s)], S = s.t1 ? null : shiftSummary(s);
-    const tag = s.t1 ? `<span class="tag ${s.diff === 0 ? "cjok" : s.diff < 0 ? "out" : "low"}">${s.diff === 0 ? "Cuadró ✓" : (s.diff < 0 ? "Faltó " : "Sobró ") + money(Math.abs(s.diff))}</span>` : `<span class="tag cjon">Abierta</span>`;
-    return `<button class="cjtr" data-a="liq" data-id="${s.id}"><span class="cjic ${ic}">${cjI(ic)}</span><span class="cjtx"><b>${tn} · ${esc(s.un)}</b><small>${s.t1 ? `${hhmm(s.t0)}–${hhmm(s.t1)} · contó ${money(s.counted)}` : `Desde ${hhmm(s.t0)} · ${S.n === 1 ? "1 venta" : S.n + " ventas"}${s === mine ? " · tú" : ""}`}</small></span>${tag}</button>`;
-  }).join("");
-  if (!today) return `<div class="card cjturn"><h2 class="cjth">Cajas del día</h2><div class="cjtl">${rows || `<p class="muted cjvac">Nadie abrió caja este día.</p>`}</div></div>`;
-  const others = shifts.filter((s) => !s.t1 && s !== mine);
-  const ni = mine ? Math.max(cjHi(Date.now()), ix.get(mine) + 1) : 0, next = ni > 2 ? null : [CJ_TN[ni][2], CJ_TN[ni][1]];
-  return `<div class="card cjturn${mine ? " on" : ""}"><h2 class="cjth">${cjI("swap")}${mine ? "Cambio de turno" : "Turnos de hoy"}</h2>
-    <div class="cjtl">${rows}${mine && next ? `<div class="cjtr cjwait"><span class="cjic ${next[1]}">${cjI(next[1])}</span><span class="cjtx"><b>Turno de ${next[0]}</b><small>Le toca a quien reciba la caja</small></span><span class="tag">Sigue</span></div>` : rows ? "" : `<p class="muted cjvac">Nadie abrió caja hoy.</p>`}</div>
-    ${mine ? `<button class="cjtbtn" data-a="shturno" data-id="${mine.id}">${cjI("swap")}${next ? `Pasar al turno de ${next[0]}` : "Pasar la caja a otro cajero"}</button><button class="cjtlink" data-a="shcount" data-id="${mine.id}">Cerrar la caja por hoy</button>` : ""}
-    ${others.length && can("cierre") ? `<p class="muted sm cjsup">Como supervisor puedes cerrar una caja ajena tocándola.</p>` : ""}</div>`;
+  const chip = (s) => { const [tn] = CJ_TN[ix.get(s)], st = s.t1 ? (s.diff === 0 ? " ✓" : s.diff < 0 ? ` · faltó ${money(-s.diff)}` : ` · sobró ${money(s.diff)}`) : ""; return `<button class="cjst${s === mine ? " on" : s.t1 ? " done" : " open"}" data-a="liq" data-id="${s.id}" title="${s.t1 ? "Ver su cierre" : "Caja abierta"}">${tn} · ${esc(s.un)}${st}</button>`; };
+  const ni = mine ? Math.max(cjHi(Date.now()), ix.get(mine) + 1) : 0, next = mine && ni <= 2 ? CJ_TN[ni] : null;
+  const steps = shifts.map(chip).join('<i aria-hidden="true">›</i>') + (next ? `<i aria-hidden="true">›</i><span class="cjst wait">${next[0]}</span>` : "");
+  if (!today) return `<div class="cjbar2 past"><span class="cjbi">${cjI("swap")}</span><div class="cjbt"><b>Cajas del día</b><small>${shifts.length ? "Toca una para ver su cierre" : "Nadie abrió caja este día"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}</div>`;
+  if (!mine) return `<div class="cjbar2"><span class="cjbi">${cjI("open")}</span><div class="cjbt"><b>Tu caja está cerrada</b><small>${shifts.length ? "Toca un turno para ver su cierre" : "Nadie abrió caja hoy"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}<div class="cjbb"><button class="cjgo" data-a="shopen">${cjI("open")}Abrir caja</button></div></div>`;
+  const [tn, ic] = CJ_TN[ix.get(mine)], S = shiftSummary(mine);
+  return `<div class="cjbar2"><span class="cjbi">${cjI(ic)}</span><div class="cjbt"><b>Turno ${tn.toLowerCase()} · ${esc(mine.un)}</b><small>Desde ${hhmm(mine.t0)} · ${S.n === 1 ? "1 venta" : S.n + " ventas"}</small></div><div class="cjsteps">${steps}</div>
+    <div class="cjbb">${next ? `<button class="cjgo" data-a="shturno" data-id="${mine.id}">${cjI("swap")}Pasar al turno de ${next[2]}</button>` : `<button class="cjgo" data-a="shturno" data-id="${mine.id}">${cjI("swap")}Pasar la caja</button>`}<button class="cjend" data-a="shcount" data-id="${mine.id}">${cjI("lock")}Cerrar caja del día</button></div></div>`;
 }
 VIEWS.caja = function viewCash(v) {
-  const k = ui.date, T = dayTotals(k), mine = curShift(), today = k === dkey(), puede = can("caja"), hoy = today && puede;
+  const k = ui.date, T = dayTotals(k), mine0 = curShift(), today = k === dkey(), puede = can("caja"), hoy = today && puede, mine = puede ? mine0 : null;
   const shifts = DB.shifts.filter((s) => s.d0 === k || (!s.t1 && today)).filter((s, i, a) => a.indexOf(s) === i).sort((a, b) => a.t0 - b.t0);
   const moves = DB.moves.filter((m) => m.date === k).sort((a, b) => b.t - a.t);
   const z = DB.closes.find((x) => x.date === k), MS = mine ? shiftSummary(mine) : null;
   const datebar = `<div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>`;
-  const ln = (t, a, neg) => `<span>${t}</span><b class="num${neg ? " neg" : ""}">${money(a)}</b>`;
+  const ln = (t, a, neg) => `<div><span>${t}</span><b class="num${neg ? " neg" : ""}">${money(a)}</b></div>`;
   const cash = !hoy ? "" : mine
     ? `<div class="card cjcash"><small>En el cajón debe haber</small><div class="cjm num">${money(MS.expected)}</div>
       <div class="cjhow">${ln(`Empezaste con <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button>`, mine.open)}${ln("+ Vendiste en efectivo", MS.by.efectivo || 0)}${MS.abonosCash ? ln("+ Te pagaron deudas", MS.abonosCash) : ""}${MS.ingresos ? ln("+ Metiste plata", MS.ingresos) : ""}${MS.gastos ? ln("− Gastos", MS.gastos, 1) : ""}${MS.prov ? ln("− Proveedores", MS.prov, 1) : ""}${MS.retiros ? ln("− Sacaste", MS.retiros, 1) : ""}${MS.devol || MS.anul ? ln("− Devoluciones", MS.devol + MS.anul, 1) : ""}</div></div>`
-    : `<div class="card cjcash off"><small>Tu caja está cerrada</small><div class="cjm">Ábrela para empezar a vender</div><button class="cjopen" data-a="shopen">${cjI("open")}<span>Abrir caja<small>Con el sencillo del cajón</small></span></button></div>`;
+    : `<div class="card cjcash off"><small>Tu caja está cerrada</small><div class="cjm">Ábrela para empezar a vender</div><p class="muted">Toca «Abrir caja» arriba y pon el sencillo del cajón.</p></div>`;
   const tb = (t, ic, tit, sub, cls, off) => `<button class="cjb ${cls}" data-a="mv" data-t="${t}"${off ? ' disabled title="Primero abre tu caja"' : ""}>${cjI(ic)}<span>${tit}<small>${sub}</small></span></button>`;
-  const btns = !hoy ? "" : `<div class="cjg">${tb("gasto", "gasto", "Anotar un gasto", "Bolsas, pasaje, luz…", "c-gas", !mine)}${tb("retiro", "retiro", "Sacar plata", "Guardar o depositar", "c-sac", !mine)}${tb("ingreso", "ingreso", "Meter plata", "Sencillo, cambio", "c-met", !mine)}${tb("yape", "yape", "Anotar Yapes", "Los que no pasaste", "c-yap")}</div>
-    ${mine ? `<button class="cjpbar" data-a="liqprint" data-id="${mine.id}">${cjI("print")}Imprimir cómo voy <small>(corte sin cerrar)</small></button>` : ""}`;
+  const btns = !hoy ? "" : `<div class="cjacts"><div class="cjg">${tb("gasto", "gasto", "Anotar un gasto", "Bolsas, pasaje, luz…", "c-gas", !mine)}${tb("retiro", "retiro", "Sacar plata", "Guardar o depositar", "c-sac", !mine)}${tb("ingreso", "ingreso", "Meter plata", "Sencillo, cambio", "c-met", !mine)}${tb("yape", "yape", "Anotar Yapes", "Los que no pasaste", "c-yap")}</div>
+    ${mine ? `<button class="cjpbar" data-a="liqprint" data-id="${mine.id}">${cjI("print")}Imprimir cómo voy <small>(corte sin cerrar)</small></button>` : ""}</div>`;
   const all = ui.cjAll || moves.length <= 4, ms = all ? moves : moves.slice(0, 3);
-  const mvs = `<div class="card cjlast"><h2 class="cjh">${today ? "Lo último de hoy" : "Movimientos"}${moves.length > 4 ? `<button class="link" data-a="cjall">${ui.cjAll ? "Ver menos" : `Ver todo (${moves.length}) ›`}</button>` : ""}</h2>
-    ${moves.length ? ms.map((m) => { const sg = (MOVE[m.type] || [0, 0])[1]; return `<div class="cjmv"><span>${MOVE[m.type] ? MOVE[m.type][0] : m.type}${m.m && m.m !== "efectivo" ? ` (${METHODS[m.m]})` : ""}${m.note ? " · " + esc(m.note) : ""}<small>${hhmm(m.t)}${m.u ? " · " + esc(m.u) : ""}</small></span><span class="num ${sg < 0 ? "neg" : sg > 0 ? "pos" : ""}">${sg < 0 ? "−" : "+"} ${money(m.amount)}${can("cierre") && !["abono", "devolucion", "anulacion"].includes(m.type) && !isLocked(m.date) ? ` <button class="link xs" data-a="mvdel" data-id="${m.id}" aria-label="Borrar movimiento">✕</button>` : ""}</span></div>`; }).join("") : `<p class="muted cjvac">Sin gastos, pagos ni ingresos anotados.</p>`}</div>`;
+  const mvs = `<h2 class="cjh">${today ? "Lo último" : "Movimientos"}${moves.length > 4 ? `<button class="link" data-a="cjall">${ui.cjAll ? "Ver menos" : `Ver todo (${moves.length}) ›`}</button>` : ""}</h2>
+    ${moves.length ? ms.map((m) => { const sg = (MOVE[m.type] || [0, 0])[1]; return `<div class="cjmv"><span>${MOVE[m.type] ? MOVE[m.type][0] : m.type}${m.m && m.m !== "efectivo" ? ` (${METHODS[m.m]})` : ""}${m.note ? " · " + esc(m.note) : ""}<small>${hhmm(m.t)}${m.u ? " · " + esc(m.u) : ""}</small></span><span class="num ${sg < 0 ? "neg" : sg > 0 ? "pos" : ""}">${sg < 0 ? "−" : "+"} ${money(m.amount)}${can("cierre") && !["abono", "devolucion", "anulacion"].includes(m.type) && !isLocked(m.date) ? ` <button class="link xs" data-a="mvdel" data-id="${m.id}" aria-label="Borrar movimiento">✕</button>` : ""}</span></div>`; }).join("") : `<p class="muted cjvac">Sin gastos, pagos ni ingresos anotados.</p>`}`;
   const abiertas = shifts.some((s) => !s.t1);
-  const cierre = can("cierre") ? `<details class="card cjz"${!today ? " open" : ""}><summary><span>Cierre del día (Z) y del mes</span>${z ? `<span class="tag cjok">Z N° ${pad(z.z, 4)}</span>` : ""}</summary>
+  const cierre = can("cierre") ? `<details class="cjz"${!today ? " open" : ""}><summary><span>Cierre del día (Z) y del mes</span>${z ? `<span class="tag cjok">Z N° ${pad(z.z, 4)}</span>` : ""}</summary>
       <div class="cjzb">${z ? `<p>Cerrado por ${esc(z.un)} a las ${hhmm(z.t)} · Z N° ${pad(z.z, 4)}</p><button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button>`
         : `<p class="muted">Resume ventas, comprobantes y cajas del día. ${abiertas ? "<b>Primero cierren las cajas abiertas.</b>" : ""}</p><button class="btn" data-a="zclose" ${abiertas || (!T.n && !shifts.length) ? "disabled" : ""}>Hacer cierre del día</button>`}
       <h3>Cerrar el mes</h3><p class="muted sm">Al cerrar un mes, sus ventas ya no se pueden anular ni devolver.</p>${DB.periods.slice(-4).reverse().map((p) => `<div class="kv"><span>${esc(p.label)}</span><span class="num">${money(p.total)} <small class="muted">· ${p.n} ventas</small></span></div>`).join("")}<button class="btn sec sm" data-a="period">Cerrar un mes</button></div></details>` : "";
-  const pagos = `<div class="card cjpay">${cajaPagos(k, T, today)}</div>`, turnos = cajaTurnos(shifts, puede ? mine : null, today);
-  v.innerHTML = `<div class="ph cjph"><h1>Caja</h1>${datebar}</div>
-    <div class="cj"><div class="cjcol">${hoy ? cash + btns + mvs : pagos + mvs}</div><div class="cjcol">${hoy ? turnos + pagos : turnos}${cierre}</div></div>`;
+  const others = shifts.filter((s) => !s.t1 && s !== mine);
+  v.innerHTML = `<div class="ph cjph"><h1>Caja</h1>${datebar}</div><div class="cj">
+    ${cajaBar(shifts, mine, today)}${others.length && can("cierre") && today ? `<p class="muted sm cjsup">Como supervisor puedes cerrar una caja ajena tocando su turno.</p>` : ""}
+    ${hoy ? `<div class="cjmid">${cash}${btns}</div>` : ""}
+    <div class="cjbot"><div class="card cjpay">${cajaPagos(k, T, today)}</div><div class="card cjlast">${mvs}${cierre}</div></div></div>`;
 };
 function openMove(type) {
   const T = { yape: ["Anotar Yapes", "Yapes que recibiste y no registraste como venta. Escribe los montos separados por espacio. Ej: 5 10 7.50"], proveedor: ["Pago a proveedor", "Sale del efectivo de la caja."], gasto: ["Gasto", "Sale del efectivo de la caja. Ej: pasaje, bolsas, luz."], ingreso: ["Otro ingreso", "Entra dinero a la caja que no es venta. Ej: sencillo que trajiste."], retiro: ["Retiro de efectivo", "Dinero que sacas de la caja para guardarlo o depositarlo."] }[type];
@@ -5652,8 +5651,8 @@ const HELP_KB = [
   { k: ["imprim", "whatsapp", "compartir ticket", "enviar ticket", "mandar ticket"], t: "Mandar o imprimir el ticket", go: "ventas", s: ["Entra a Ventas y abre la venta.", "Elige imprimir o enviarlo por WhatsApp."] },
   { k: ["boleta", "factura", "ruc", "dni", "sunat"], t: "Boleta y factura", go: "aj.comp", s: ["Para factura, elige un cliente con RUC válido (F1).", "Las boletas desde S/ 700 piden el DNI del cliente.", "Los datos de comprobantes están en Ajustes › Comprobantes."] },
   { k: ["anular", "devol", "me equivoque", "cancelar venta", "error en la venta"], t: "Anular o devolver una venta", go: "ventas", s: ["Entra a Ventas.", "Abre la venta equivocada.", "Elige anular o devolver. Necesitas permiso para hacerlo."] },
-  { k: ["abrir caja", "cerrar caja", "cierro mi caja", "arqueo", "cierre", "contar"], t: "Abrir y cerrar la caja", go: "caja", s: ["En Caja toca «Abrir caja» y pon el sencillo inicial.", "En la noche toca «Cerrar la caja por hoy» y cuenta el dinero.", "Cierra con «Cerrar caja e imprimir»."] },
-  { k: ["turno", "cambio de turno", "turno de la tarde", "turno de la noche", "pasar la caja", "otro cajero"], t: "Cambio de turno", go: "caja", s: ["En Caja, en el cuadro naranja «Cambio de turno», toca «Pasar al turno de la tarde».", "Cuenta el dinero y toca «Cerrar caja e imprimir».", "El que sigue abre la caja: ya sale lo que se contó como sencillo."] },
+  { k: ["abrir caja", "cerrar caja", "cierro mi caja", "arqueo", "cierre", "contar"], t: "Abrir y cerrar la caja", go: "caja", s: ["En Caja toca «Abrir caja» y pon el sencillo inicial.", "En la noche toca «Cerrar caja del día» (arriba a la derecha) y cuenta el dinero.", "Cierra con «Cerrar caja e imprimir»."] },
+  { k: ["turno", "cambio de turno", "turno de la tarde", "turno de la noche", "pasar la caja", "otro cajero"], t: "Cambio de turno", go: "caja", s: ["En Caja, en la barra azul de arriba, toca el botón amarillo «Pasar al turno de la tarde».", "Cuenta el dinero y toca «Cerrar caja e imprimir».", "El que sigue abre la caja: ya sale lo que se contó como sencillo."] },
   { k: ["gasto", "retiro", "ingreso de dinero", "sale dinero", "saque plata", "sacar plata", "meter plata"], t: "Anotar un gasto, meter o sacar plata", go: "caja", s: ["Entra a Caja.", "Toca «Anotar un gasto», «Sacar plata» o «Meter plata».", "Escribe el monto y el motivo, y guarda."] },
   { k: ["proveedor", "me fiaron", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores y abre al proveedor.", "Toca «Pagar o abonar» (o «Pagar todo»).", "Para lo que te fiaron, toca «Anotar lo que me fiaron»."] },
   { k: ["report", "ganancia", "cuanto vendi", "resumen", "utilidad"], t: "Ver ventas y ganancia", go: "rep", s: ["Entra a Reportes y elige el periodo.", "Si tienes la voz activa, también puedes escribirme: «cuánto vendí hoy»."] },
