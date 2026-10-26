@@ -40,13 +40,33 @@ VIEWS.prov = function viewProv(v) {
 };
 const dkeyOf = (t) => { const d = new Date(t), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
 
+// Día de un movimiento como lo dice la gente: «Hoy», «Ayer», «Hace 3 días · jueves 23 de octubre» (hasta 30 días) y luego «lunes 19 de octubre».
+const PV_DOW = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+function pvDia(k) {
+  const t = dkey(), n = Math.round((pk(t) - pk(k)) / 864e5), d = pk(k), dia = `${PV_DOW[d.getDay()]} ${d.getDate()}`;
+  if (n <= 0) return "Hoy";
+  if (n === 1) return "Ayer";
+  if (n < 31) return `Hace ${n} días · ${dia} de ${MONTHS[d.getMonth()]}`;
+  return `${dia} de ${MONTHS[d.getMonth()]}${k.slice(0, 4) !== t.slice(0, 4) ? " de " + k.slice(0, 4) : ""}`;
+}
+// Detalle del proveedor (26 oct 2026): deuda grande con Pagar todo / Abonar / Me fiaron, totales y movimientos por día.
 function provDetail(v, s) {
   const b = suppBal(s), rows = DB.sm.filter((x) => x.sid === s.id).sort((x, y) => y.t - x.t);
   let run = b; const withBal = rows.map((x) => { const r = { x, bal: run }; run = r2(run - (x.type === "deuda" ? x.amt : -x.amt)); return r; });
-  v.innerHTML = `<div class="ph"><div><button class="link" data-a="psback">‹ Proveedores</button><h1>${esc(s.name)}</h1>${s.phone ? `<p class="muted">${esc(s.phone)}</p>` : ""}${s.note ? `<p class="muted sm">${esc(s.note)}</p>` : ""}</div><button class="btn sec sm" data-a="psedit" data-id="${s.id}">${svg("edit", "bi")}Editar</button></div>
-    <div class="sumrow two"><div class="sum ${b > 0 ? "warn" : ""}"><b class="num">${money(Math.abs(b))}</b><span>${b > 0 ? "Le debes" : b < 0 ? "Saldo a favor" : "Sin deuda"}</span></div></div>
-    <div class="row wrap pvdacts" style="margin-bottom:14px">${b > 0 ? `<button class="btn" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button>` : ""}<button class="btn ${b > 0 ? "sec" : ""}" data-a="pspay" data-id="${s.id}">${pvI("abono")}${b > 0 ? "Abonar" : "Pagar"}</button><button class="btn sec" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div>
-    <div class="card"><h2>Movimientos</h2>${withBal.length ? `<div class="tablewrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Detalle</th><th class="r">Deuda</th><th class="r">Pago</th><th class="r">Saldo</th><th></th></tr></thead><tbody>${withBal.map(({ x, bal }) => `<tr><td>${dmy(x.date)}</td><td>${x.type === "pago" ? "Pago" + (x.m && x.m !== "efectivo" ? " (" + METHODS[x.m] + ")" : " (efectivo)") : "Me fiaron"}${x.note ? " · " + esc(x.note) : ""}<small class="muted"> · ${esc(x.un || "")}</small></td><td class="r num">${x.type === "deuda" ? money(x.amt) : ""}</td><td class="r num">${x.type === "pago" ? money(x.amt) : ""}</td><td class="r num">${money(bal)}</td><td><button class="link xs" data-a="psdel" data-id="${x.id}" aria-label="Borrar movimiento">✕</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Todavía no hay movimientos.</p>`}</div>`;
+  const fio = r2(rows.filter((x) => x.type === "deuda").reduce((a, x) => a + x.amt, 0)), pago = r2(rows.filter((x) => x.type === "pago").reduce((a, x) => a + x.amt, 0)), ult = rows.find((x) => x.type === "pago");
+  let dAnt = "";
+  const mov = withBal.map(({ x, bal }) => {
+    const pg = x.type === "pago", head = x.date !== dAnt ? `<h3 class="pvday">${pvDia(x.date)}</h3>` : ""; dAnt = x.date;
+    return `${head}<div class="pvmv"><span class="pvk ${pg ? "p" : "d"}">${pvI(pg ? "pay" : "box")}</span><div class="pvmt"><b>${pg ? `Le pagaste${x.m ? " con " + (METHODS[x.m] || x.m) : ""}` : "Te fió"}</b><small>${x.note ? esc(x.note) + " · " : ""}${hhmm(x.t)}${x.un ? " · " + esc(x.un) : ""}</small></div>
+      <div class="pvma"><b class="num ${pg ? "p" : "d"}">${pg ? "−" : "+"} ${money(x.amt)}</b><small class="num">${bal > 0 ? "quedó " + money(bal) : bal < 0 ? "a favor " + money(-bal) : "quedó en cero"}</small></div>
+      <button class="pvdel" data-a="psdel" data-id="${x.id}" aria-label="Borrar este movimiento" title="Borrar">✕</button></div>`;
+  }).join("");
+  v.innerHTML = `<button class="link pvback" data-a="psback">‹ Proveedores</button>
+    <div class="pvdh"><span class="pvav big" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span><div class="pvdn"><h1>${esc(s.name)}</h1><p>${[s.phone ? esc(s.phone) : "", s.note ? esc(s.note) : ""].filter(Boolean).join(" · ") || "Sin celular ni nota"}</p></div><button class="btn sec sm" data-a="psedit" data-id="${s.id}">${svg("edit", "bi")}Editar</button></div>
+    <div class="card pvbal ${b > 0 ? "owe" : b < 0 ? "fav" : "ok"}"><div><small>${b > 0 ? "Le debes" : b < 0 ? "Saldo a tu favor" : "No le debes nada"}</small><b class="num">${b === 0 ? "S/ 0.00 ✓" : money(Math.abs(b))}</b></div>
+      <div class="pvacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div></div>
+    ${rows.length ? `<div class="pvst"><div><small>Te fió en total</small><b class="num">${money(fio)}</b></div><div><small>Le pagaste en total</small><b class="num">${money(pago)}</b></div><div><small>Último pago</small><b>${ult ? pvDia(ult.date).split(" · ")[0] : "Todavía no"}</b></div></div>` : ""}
+    <div class="card pvmvs"><h2>Movimientos</h2>${mov || `<p class="muted">Todavía no hay movimientos. Toca «Me fiaron» cuando te deje mercadería.</p>`}</div>`;
 }
 function suppForm(id) {
   const s = id ? supp(id) : { name: "", phone: "", note: "" };
