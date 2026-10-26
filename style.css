@@ -3427,3 +3427,39 @@ html[data-theme=dark] .rpbars path{fill:#2A5A3E}html[data-theme=dark] .rpbars pa
 @media (max-width:1099px){.rpms{grid-template-columns:repeat(var(--c2,3),minmax(0,1fr))}.rpmh em{display:none}}
 @media (max-width:1099px) and (min-width:760px){.kpis{grid-template-columns:repeat(4,1fr)!important}.kpis .kpi.main{grid-column:1/-1!important}}
 @media (max-width:759px){.rplead p{font-size:19px}.rpms{grid-template-columns:1fr 1fr}.rpm>b{font-size:18px}.rpins{grid-template-columns:1fr}}
+
+/* ===== Caja y Reportes más simples (pedido de David, 26 oct 2026: «algunos se pueden marear con muchos colores»):
+   un solo color de acento (el verde del menú), fondos blancos, logos de pago chicos y nada más de color. ===== */
+.cjbar2{background:var(--s1);color:var(--t1);border:1px solid var(--hl);padding:10px 12px}
+.cjbi{background:var(--s2);color:var(--fv,#0F4D32)}
+html[data-theme=dark] .cjbi{color:#7BE0A0}
+.cjbt small{color:var(--t2)}
+.cjsteps>i{color:var(--t3);opacity:1}
+.cjst{background:var(--s2);color:var(--t1);min-height:34px;font-size:13px}
+.cjst.on{background:var(--fv,#0F4D32);color:#fff}
+.cjst.done{background:var(--s2);color:var(--t2)}
+.cjst.wait{background:none;box-shadow:inset 0 0 0 1.5px var(--hl2);color:var(--t3)}
+.cjst.more{background:none;box-shadow:inset 0 0 0 1.5px var(--hl2);color:var(--t2)}
+.cjgo{background:#15A048;color:#fff;box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
+.cjend,html[data-theme=dark] .cjend{background:var(--s1);color:var(--t1);box-shadow:inset 0 0 0 1.5px var(--hl2)}
+html[data-input=kbd] .cjbar2 :is(button):focus-visible{outline-color:#15A048!important;box-shadow:0 0 0 6px rgba(21,160,72,.22)!important}
+.cjb,.cjb.c-gas,.cjb.c-sac,.cjb.c-met,.cjb.c-yap{background:var(--s1);color:var(--t1);border:1px solid var(--hl);box-shadow:none;min-height:76px;font-size:17px}
+.cjb small{color:var(--t2);opacity:1}
+.cjb svg{background:var(--s2);color:var(--fv,#0F4D32)}
+html[data-theme=dark] .cjb svg{color:#7BE0A0}
+@media (hover:hover) and (pointer:fine){.cjb:not(:disabled):hover{border-color:var(--hl2);background:color-mix(in srgb,var(--s2) 45%,var(--s1))}}
+.cjb:disabled{opacity:.45;filter:none}
+.cjpc.best{background:var(--s2);box-shadow:none}
+.cjbar i{background:#15A048}
+.cjmv .neg{color:var(--t1)}
+/* el turno: los turnos del día van en su propia fila cuando no entra todo (NCR y laptops) */
+@media (max-width:1279px) and (min-width:760px){.cjsteps{order:5;flex-basis:100%}}
+@media (max-width:759px){.cjsteps{display:flex;order:5;flex-basis:100%}.cjst{min-height:32px}}
+/* Reportes */
+.rplead p{font-size:22px}
+.rpbar i{background:#15A048}
+.rpin .rpic,.rpin.t-g .rpic,.rpin.t-b .rpic,.rpin.t-o .rpic,.rpin.t-n .rpic{background:var(--s2);color:var(--t2)}
+.rpin.t-w{background:var(--s1);box-shadow:none}.rpin.t-w .rpic{background:#FDE8E0;color:#B5461A}
+html[data-theme=dark] .rpin.t-w{background:var(--s1);border-color:var(--hl)}html[data-theme=dark] .rpin.t-w .rpic{background:var(--s2);color:#FF8A5B}
+@media (max-width:1099px) and (min-width:760px){.rplead p{font-size:19px}.rpins{grid-template-columns:1fr 1fr}}
+@media (max-width:759px){.rplead p{font-size:18px}}

@@ -61,19 +61,18 @@ VIEWS.rep = function viewReports(v) {
   // Periodo anterior del mismo largo, para decir «12% más que ayer».
   const len = keys.length, pf = addD(from, -len), pt = addD(from, -1);
   const P = aggregate(repSales(pf, pt, scope)), pYape = scope === "local" ? r2(DB.moves.filter((m) => m.type === "yape" && m.date >= pf && m.date <= pt).reduce((a, m) => a + m.amount, 0)) : 0, pNet = r2(P.net + pYape);
-  const delta = pNet > 0 ? Math.round(((net - pNet) / pNet) * 100) : null;
+  const delta = pNet > 0 ? Math.round(((net - pNet) / pNet) * 100) : null, mucho = delta !== null && delta >= 200;
   const lab = { hoy: "Hoy", ayer: "Ayer", "7d": "En estos 7 días", mes: "Este mes", mesant: "El mes pasado" }[ui.range] || (from === to ? `El ${fmtDate(from).toLowerCase()}` : `Del ${dmy(from)} al ${dmy(to)}`);
   const plab = { hoy: "ayer", ayer: "anteayer", "7d": "los 7 días anteriores", mes: "el mismo tramo del mes anterior", mesant: "el mes anterior" }[ui.range] || "el periodo anterior";
-  const lead = A.n || yapeMan ? `${lab} vendiste <b class="rpg num">${money(net)}</b> en <b>${A.n === 1 ? "1 venta" : A.n + " ventas"}</b>${delta !== null && delta !== 0 ? `, <b class="${delta > 0 ? "rpg" : "rpo"}">${Math.abs(delta)}% ${delta > 0 ? "más" : "menos"} que ${plab}</b>` : ""}.${costs && A.n ? ` Te quedaron <b class="num">${money(A.profit)}</b> de ganancia` : ""}${credit ? `${costs && A.n ? " y" : ""} fiaste <b class="rpo num">${money(credit)}</b>` : ""}${(costs && A.n) || credit ? "." : ""}`
+  const lead = A.n || yapeMan ? `${lab} vendiste <b class="num">${money(net)}</b> en <b>${A.n === 1 ? "1 venta" : A.n + " ventas"}</b>${delta !== null && delta !== 0 ? `, <b>${mucho ? `mucho más que ${plab} (${money(pNet)})` : `${Math.abs(delta)}% ${delta > 0 ? "más" : "menos"} que ${plab}`}</b>` : ""}.${costs && A.n ? ` Te quedaron <b class="num">${money(A.profit)}</b> de ganancia` : ""}${credit ? `${costs && A.n ? " y" : ""} fiaste <b class="num">${money(credit)}</b>` : ""}${(costs && A.n) || credit ? "." : ""}`
     : `${lab} todavía no hay ventas.`;
   // Cómo te pagaron: cada medio del que más entró al que menos; los Yapes anotados a mano van junto a Yape.
   const pays = Object.keys(METHODS).map((m) => ({ m, amt: r2((A.by[m] || 0) + (m === "yape" ? yapeMan : 0)), n: A.byN[m] || 0, man: m === "yape" ? yapeMan : 0 })).filter((x) => x.amt > 0).sort((a, b) => b.amt - a.amt);
   const psum = pays.reduce((a, x) => a + x.amt, 0), pmax = pays.length ? pays[0].amt : 1;
   const raro = yapeMan > 1000 && yapeMan > (A.net || 0) * 0.6;
   const payCard = `<div class="card rppay"><h2>Cómo te pagaron <b class="num">${money(psum)}</b></h2>
-    ${pays.length ? `<div class="rpstk" role="img" aria-label="${pays.map((x) => `${METHODS[x.m]} ${Math.round((x.amt / psum) * 100)}%`).join(", ")}">${pays.map((x) => `<i class="m-${x.m}" style="flex:${x.amt}" title="${METHODS[x.m]}: ${money(x.amt)}"></i>`).join("")}</div>
-    <div class="rpms" style="--c:${Math.min(6, pays.length)};--c2:${pays.length > 4 ? Math.ceil(pays.length / 2) : pays.length}">${pays.map((x, i) => `<div class="rpm${i === 0 && pays.length > 1 ? " best" : ""}"><span class="rpmh"><i class="pmi m-${x.m}" aria-hidden="true"></i>${METHODS[x.m]}${i === 0 && pays.length > 1 ? `<em>El más usado</em>` : ""}</span><b class="num">${money(x.amt)}</b>
-      <span class="rpbar"><i class="m-${x.m}" style="width:${Math.max(3, (x.amt / pmax) * 100).toFixed(1)}%"></i></span><small>${Math.round((x.amt / psum) * 100)}%${x.n ? ` · ${x.n} ${x.n === 1 ? "venta" : "ventas"}` : ""}</small>
+    ${pays.length ? `<div class="rpms" style="--c:${Math.min(6, pays.length)};--c2:${pays.length > 4 ? Math.ceil(pays.length / 2) : pays.length}">${pays.map((x, i) => `<div class="rpm"><span class="rpmh"><i class="pmi m-${x.m}" aria-hidden="true"></i>${METHODS[x.m]}</span><b class="num">${money(x.amt)}</b>
+      <span class="rpbar"><i style="width:${Math.max(3, (x.amt / pmax) * 100).toFixed(1)}%"></i></span><small>${Math.round((x.amt / psum) * 100)}%${x.n ? ` · ${x.n} ${x.n === 1 ? "venta" : "ventas"}` : ""}</small>
       ${x.man ? `<small class="${raro ? "rpraro" : ""}">${money(x.man)} anotados a mano${raro ? " · ¿está bien? Revísalo en Caja" : ""}</small>` : ""}</div>`).join("")}</div>`
       : `<p class="muted">Sin ventas en este periodo.</p>`}</div>`;
   // Tarjetas con lo importante (solo las que tienen algo que decir).
@@ -104,7 +103,7 @@ VIEWS.rep = function viewReports(v) {
     ${rangeBar()}
     <div class="card rplead"><p>${lead}</p></div>
     <div class="kpis">
-      <div class="kpi main"><span>Ventas netas</span><b class="num">${money(net)}</b><small>${from === to ? fmtDate(from) : dmy(from) + " – " + dmy(to)}${delta !== null && delta !== 0 ? ` · <span class="${delta > 0 ? "rpup" : "rpdn"}">${delta > 0 ? "▲" : "▼"} ${Math.abs(delta)}% vs ${plab}</span>` : ""}</small></div>
+      <div class="kpi main"><span>Ventas netas</span><b class="num">${money(net)}</b><small>${from === to ? fmtDate(from) : dmy(from) + " – " + dmy(to)}${delta !== null && delta !== 0 ? ` · <span class="${delta > 0 ? "rpup" : "rpdn"}">${delta > 0 ? "▲" : "▼"} ${mucho ? `${plab}: ${money(pNet)}` : `${Math.abs(delta)}% vs ${plab}`}</span>` : ""}</small></div>
       <div class="kpi"><span>Ventas</span><b class="num">${A.n}</b><small>Ticket promedio ${money(A.avg)}</small></div>
       ${costs ? `<div class="kpi"><span>Ganancia estimada</span><b class="num">${money(A.profit)}</b><small>Margen ${A.net ? Math.round((A.profit / A.net) * 100) : 0}%</small></div>` : ""}
       <div class="kpi"><span>Al crédito</span><b class="num">${money(credit)}</b><small>Cobrado de deudas ${money(abonos)}</small></div>

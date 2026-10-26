@@ -143,7 +143,7 @@ function cajaPagos(k, T, today) {
   const sum = rows.reduce((a, r) => a + r.amt, 0), max = rows.length ? rows[0].amt : 0, top = rows.length > 1;
   const hTop = Object.keys(hrs).sort((a, b) => hrs[b] - hrs[a])[0];
   return `<h2 class="cjh">Cómo te pagaron ${today ? "hoy" : "este día"}<b class="num">${money(T.sales)}</b></h2>
-    ${rows.length ? `<div class="cjchips" style="--n:${Math.min(rows.length, 5)}">${rows.map((r, i) => `<div class="cjpc${i === 0 && top ? " best" : ""}"><span class="cjpch"><i class="pmi m-${r.m}" aria-hidden="true"></i>${METHODS[r.m]}</span><b class="num">${money(r.amt)}</b><span class="cjbar"><i class="m-${r.m}" style="width:${max ? Math.max(3, (r.amt / max) * 100).toFixed(1) : 0}%"></i></span><small>${Math.round((r.amt / sum) * 100)}%${r.n ? ` · ${r.n} ${r.n === 1 ? "venta" : "ventas"}` : ""}${i === 0 && top ? " · el más usado" : ""}</small>${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</div>`).join("")}</div>`
+    ${rows.length ? `<div class="cjchips" style="--n:${Math.min(rows.length, 5)}">${rows.map((r, i) => `<div class="cjpc"><span class="cjpch"><i class="pmi m-${r.m}" aria-hidden="true"></i>${METHODS[r.m]}</span><b class="num">${money(r.amt)}</b><span class="cjbar"><i style="width:${max ? Math.max(3, (r.amt / max) * 100).toFixed(1) : 0}%"></i></span><small>${Math.round((r.amt / sum) * 100)}%${r.n ? ` · ${r.n} ${r.n === 1 ? "venta" : "ventas"}` : ""}${i === 0 && top ? " · el más usado" : ""}</small>${r.m === "yape" && T.yapeMan ? `<small>${money(T.yapeMan)} anotados a mano</small>` : ""}</div>`).join("")}</div>`
       : `<p class="muted cjvac">Todavía no hay ventas ${today ? "hoy" : "este día"}.</p>`}
     ${T.n ? `<div class="cjmini"><span><b class="num">${money(T.total / T.n)}</b> compra promedio</span><span><b>${hTop !== undefined ? cjHora(+hTop) : "—"}</b> hora fuerte</span><span><b class="num">${money(T.by.credito || 0)}</b> fiado</span></div>` : ""}
     ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}`;
@@ -151,9 +151,12 @@ function cajaPagos(k, T, today) {
 // Barra del turno (opción 2 de David, 26 oct 2026): turno actual, Mañana › Tarde › Noche (cada turno se toca para ver su cierre) y a la derecha «Pasar al turno de…» y «Cerrar caja del día».
 function cajaBar(shifts, mine, today) {
   const ix = cjIdx(shifts);
-  const chip = (s) => { const [tn] = CJ_TN[ix.get(s)], st = s.t1 ? (s.diff === 0 ? " ✓" : s.diff < 0 ? ` · faltó ${money(-s.diff)}` : ` · sobró ${money(s.diff)}`) : ""; return `<button class="cjst${s === mine ? " on" : s.t1 ? " done" : " open"}" data-a="liq" data-id="${s.id}" title="${s.t1 ? "Ver su cierre" : "Caja abierta"}">${tn} · ${esc(s.un)}${st}</button>`; };
+  const varios = new Set(shifts.map((s) => s.un)).size > 1;
+  const chip = (s) => { const [tn] = CJ_TN[ix.get(s)], st = s.t1 ? (s.diff === 0 ? " ✓" : s.diff < 0 ? ` · faltó ${money(-s.diff)}` : ` · sobró ${money(s.diff)}`) : ""; return `<button class="cjst${s === mine ? " on" : s.t1 ? " done" : " open"}" data-a="liq" data-id="${s.id}" title="${s.t1 ? "Ver su cierre" : "Caja abierta"} · ${esc(s.un)}">${tn}${varios ? " · " + esc(s.un) : ""}${st}</button>`; };
   const ni = mine ? Math.max(cjHi(Date.now()), ix.get(mine) + 1) : 0, next = mine && ni <= 2 ? CJ_TN[ni] : null;
-  const steps = shifts.map(chip).join('<i aria-hidden="true">›</i>') + (next ? `<i aria-hidden="true">›</i><span class="cjst wait">${next[0]}</span>` : "");
+  // Muchos turnos en el día: solo los 2 últimos y «+N antes» (así la barra no ocupa 2 filas).
+  const corto = shifts.length > 3 && !ui.cjSt, vis = corto ? shifts.slice(-2) : shifts;
+  const steps = (corto ? `<button class="cjst more" data-a="cjstall">+${shifts.length - 2} antes</button><i aria-hidden="true">›</i>` : "") + vis.map(chip).join('<i aria-hidden="true">›</i>') + (next ? `<i aria-hidden="true">›</i><span class="cjst wait">${next[0]}</span>` : "");
   if (!today) return `<div class="cjbar2 past"><span class="cjbi">${cjI("swap")}</span><div class="cjbt"><b>Cajas del día</b><small>${shifts.length ? "Toca una para ver su cierre" : "Nadie abrió caja este día"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}</div>`;
   if (!mine) return `<div class="cjbar2"><span class="cjbi">${cjI("open")}</span><div class="cjbt"><b>Tu caja está cerrada</b><small>${shifts.length ? "Toca un turno para ver su cierre" : "Nadie abrió caja hoy"}</small></div>${shifts.length ? `<div class="cjsteps">${steps}</div>` : ""}<div class="cjbb"><button class="cjgo" data-a="shopen">${cjI("open")}Abrir caja</button></div></div>`;
   const [tn, ic] = CJ_TN[ix.get(mine)], S = shiftSummary(mine);
@@ -216,6 +219,7 @@ act({
   shturno: (el) => { ui.cnt = null; ui.turno = true; closeShiftUI(el.dataset.id); },
   turnolock: () => { closeModal(); lockNow(); },
   cjall: () => { ui.cjAll = !ui.cjAll; render(); },
+  cjstall: () => { ui.cjSt = true; render(); },
   liq: (el) => {
     const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (!sh) return; ui.turno = false;
     if (!sh.t1 && sh.u !== ui.user) return can("cierre") ? confirmBox(`¿Cerrar la caja de ${sh.un}?`, "Hacer arqueo", () => { ui.cnt = null; closeShiftUI(sh.id); }, false) : toast("Solo un supervisor puede cerrar una caja ajena");
