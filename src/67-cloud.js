@@ -169,7 +169,8 @@ async function cloudTiendas() {
 // Nombre de una tienda en las listas de la nube: el del negocio (todas suelen llamarse «Tienda principal»).
 const tiendaNom = (t) => t.negocio || t.nombre || t.tienda;
 function openRecover(tiendas) {
-  openModal(`<h2>Recuperar una tienda</h2><p class="muted" style="margin-bottom:12px">Trae a este equipo todos los datos de una tienda guardada en la nube: productos, ventas, clientes, caja y proveedores.</p>
+  openModal(`<div class="remfresh"><b>¿Estás de viaje o en tu celular?</b><p>Cambia precios, productos, stock y ajustes de tu caja desde aquí. Le llegan solos.</p><button class="btn" data-a="remfresh">Manejar mi caja desde aquí</button></div>
+    <h2>Recuperar una tienda</h2><p class="muted" style="margin-bottom:12px">Trae a este equipo todos los datos de una tienda guardada en la nube: productos, ventas, clientes, caja y proveedores.</p>
     <div class="list">${tiendas.map((t) => `<button class="it" data-a="cloudrec" data-s="${esc(t.tienda)}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid ? " · este equipo" : ""}</small></div></button>`).join("")}</div>
     <p class="muted sm" style="margin-top:10px">Usa una tienda en un solo equipo a la vez. Para otra caja, deja esta como tienda nueva.</p>
     <div class="btns h"><button class="btn sec" data-a="cloudview">Solo ver mis tiendas</button><button class="btn sec" data-a="cloudnew">Usar como tienda nueva</button></div>`);

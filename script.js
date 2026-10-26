@@ -3225,6 +3225,10 @@ act({
 // Los datos propios de este equipo no se tocan (mientras dura, no se guarda nada aquí) y las ventas,
 // la caja y los cobros solo se hacen en la caja de la tienda.
 const REM_KEY = "cf-remoto"; // sessionStorage: { neg, sid, name } de la caja que se está manejando
+// En un equipo que no es caja (celular del dueño de viaje: «solo ver mis tiendas») se recuerda también en localStorage,
+// así al volver a abrir entra directo a manejar su caja (pedido de David, 25 oct 2026).
+const REM_FIJO = "cf-remoto-fijo";
+const remFijoGet = () => { try { return cloudLoad().ver ? JSON.parse(localStorage.getItem(REM_FIJO) || "null") : null; } catch (e) { return null; } };
 const REM_T = ["products", "clients", "supp", "sm", "users"]; // registros que viajan por su clave (como en la nube)
 const REM_CFG_NO = { lastBackup: 1, avisoDia: 1, series: 1 }; // ajustes que cambian solos o llevan el correlativo
 // Acciones que mueven dinero o datos de toda la tienda: solo en la caja de la tienda.
@@ -3327,6 +3331,7 @@ function remApply(d, quiet, meta) {
 /* ---------- en la laptop: abrir, enviar y salir ---------- */
 async function remLoad() {
   let o = null; try { o = JSON.parse(sessionStorage.getItem(REM_KEY) || "null"); } catch (e) {}
+  if (!o) o = remFijoGet();
   if (!o || !o.neg || !o.sid) return false;
   try {
     const rows = []; let from = 0;
@@ -3346,7 +3351,7 @@ async function remLoad() {
     const a = DB.users.find((u) => u.on && u.role === "admin") || DB.users[0]; ui.user = a.id; ui.tab = "prod";
     return true;
   } catch (e) {
-    try { sessionStorage.removeItem(REM_KEY); } catch (er) {}
+    try { sessionStorage.removeItem(REM_KEY); if (e && e.message === "sin tienda") localStorage.removeItem(REM_FIJO); } catch (er) {}
     REM = null; setTimeout(() => toast("No se pudo abrir esa caja. Revisa tu internet e inténtalo otra vez.", true), 600);
     return false;
   }
@@ -3383,12 +3388,12 @@ async function remWatch() {
 async function remSalir() {
   if (remState.busy) { toast("Enviando tus cambios…"); return setTimeout(remSalir, 1200); }
   if (REM && remDiff().n) { await remSend(); if (remState.err) return toast("Aún no se envían tus cambios. Revisa tu internet antes de salir.", true); }
-  try { sessionStorage.removeItem(REM_KEY); } catch (e) {}
+  try { sessionStorage.removeItem(REM_KEY); localStorage.removeItem(REM_FIJO); } catch (e) {}
   location.reload();
 }
 function remGo(neg, sid, name) {
   confirmBox(`¿Manejar la caja de ${name} desde aquí?`, "Manejar", () => {
-    try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
+    try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); if (cloudLoad().ver) localStorage.setItem(REM_FIJO, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
     location.reload();
   }, false, "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender y la caja se ven solo allá.");
 }
@@ -3474,6 +3479,16 @@ act({
   remver: () => { if (modalOpen()) closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); },
   remsalir: () => remSalir(),
   rempick: () => remPick(),
+  // Equipo nuevo (celular del dueño): no se vuelve caja, solo maneja la suya. Si hay una sola tienda va directo.
+  remfresh: async () => {
+    closeModal(); cloud.st.ver = true; cloudStore(); ui.tab = "aj"; ui.atab = "nube"; render();
+    try {
+      const t = await cloudTiendas();
+      if (!t.length) return toast("Aún no hay cajas de tu negocio en la nube");
+      if (t.length === 1) return remGo(cloudLoad().neg, t[0].tienda, tiendaNom(t[0]));
+      openModal(remPickHtml(cloudLoad().neg, t));
+    } catch (e) { toast("Sin conexión con la nube", true); }
+  },
   remcli: (el) => remCliente(el.dataset.id),
   remone: (el) => { closeModal(); remGo(el.dataset.n, el.dataset.s, el.dataset.name); }
 });
@@ -3649,7 +3664,8 @@ async function cloudTiendas() {
 // Nombre de una tienda en las listas de la nube: el del negocio (todas suelen llamarse «Tienda principal»).
 const tiendaNom = (t) => t.negocio || t.nombre || t.tienda;
 function openRecover(tiendas) {
-  openModal(`<h2>Recuperar una tienda</h2><p class="muted" style="margin-bottom:12px">Trae a este equipo todos los datos de una tienda guardada en la nube: productos, ventas, clientes, caja y proveedores.</p>
+  openModal(`<div class="remfresh"><b>¿Estás de viaje o en tu celular?</b><p>Cambia precios, productos, stock y ajustes de tu caja desde aquí. Le llegan solos.</p><button class="btn" data-a="remfresh">Manejar mi caja desde aquí</button></div>
+    <h2>Recuperar una tienda</h2><p class="muted" style="margin-bottom:12px">Trae a este equipo todos los datos de una tienda guardada en la nube: productos, ventas, clientes, caja y proveedores.</p>
     <div class="list">${tiendas.map((t) => `<button class="it" data-a="cloudrec" data-s="${esc(t.tienda)}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid ? " · este equipo" : ""}</small></div></button>`).join("")}</div>
     <p class="muted sm" style="margin-top:10px">Usa una tienda en un solo equipo a la vez. Para otra caja, deja esta como tienda nueva.</p>
     <div class="btns h"><button class="btn sec" data-a="cloudview">Solo ver mis tiendas</button><button class="btn sec" data-a="cloudnew">Usar como tienda nueva</button></div>`);
@@ -5529,6 +5545,7 @@ const HELP_KB = [
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
   { k: ["manejar otra caja", "cambiar desde mi laptop", "cambiar a distancia", "otra caja", "desde otra computadora", "remoto", "cambios a distancia"], t: "Manejar otra caja desde aquí", s: ["Ve a Ajustes › Nube › «Manejar otra caja» y toca «Elegir caja».", "Elige la caja y toca «Manejar». Arriba sale la barra «Manejando: …».", "Cambia productos, precios, stock, clientes, proveedores, usuarios, ajustes o la vitrina como siempre: se envía solo.", "Su caja lo aplica en un minuto si está prendida y con internet. En «Ver» sale si ya lo aplicó.", "Para terminar toca «Salir»: vuelves a tus datos de este equipo, que no se tocaron."] },
+  { k: ["celular", "de viaje", "desde mi celular", "desde el celular", "fuera de la tienda", "no estoy en la tienda", "precios desde"], t: "Cambiar precios desde el celular (de viaje)", s: ["En el celular abre la página de Caja Fácil en Chrome (la misma dirección de siempre).", "Toca «Continuar con Google» y entra con la cuenta de Google del dueño (la misma de la caja).", "Sale una ventana: toca «Manejar mi caja desde aquí» y luego «Manejar».", "Cambia precios, productos, stock o ajustes como siempre: le llegan solos a la caja en un minuto si está prendida y con internet.", "El celular lo recuerda: la próxima vez entra directo. Para dejar de manejarla toca «Salir» arriba."] },
   { k: ["pantalla completa", "f11", "barra de windows", "barra de tareas", "maximizar"], t: "Pantalla completa", s: ["Toca «Completa» en el menú de la izquierda (abajo, junto a «Ocultar»): la caja ocupa toda la pantalla, sin la barra de Windows.", "Para volver, toca «Normal» o mantén apretada la tecla Esc.", "La caja lo recuerda en ese equipo: al abrirla otra vez entra sola en pantalla completa con el primer clic o el primer producto que escanees."] },
   { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "aj.cobros", s: ["La caja redondea el total sola a los 10 céntimos más cercanos: S/ 1.92 → S/ 1.90 y S/ 1.95 → S/ 2.00.", "En el ticket y en el comprobante sale como «Redondeo».", "Se apaga o se prende en Ajustes › Cobros y puntos › Redondeo."] },
   { k: ["vitrina", "afiche", "oferta", "promocion", "anuncio", "aviso", "imagen", "publicidad", "cartel", "dibuja", "2x1", "combo", "lista de precios", "pizarra", "estilo", "ideas"], t: "Afiches para la vitrina", go: "aj.venta", s: ["Pídemelo aquí: «haz una oferta de Inca Kola a 2.90 hasta el domingo», «2x1 en yogur», «lleva 3 paga 2 en atún», «lista de precios de frutas», «oferta de papaya 3.50, mango 5 y plátano 2» o «aviso: hoy cerramos a las 9 pm».", "Elige el estilo con un toque: Clásico, A mano, Súper, Pizarra, Encarte, Verde, Fiestas Patrias, Navidad o Día de la Madre. También puedes decirlo: «… estilo pizarra».", "Si la oferta baja el precio, marca «Cobrar … en la caja» y la caja cobra ese precio hasta la fecha del afiche.", "Escribe «¿qué oferta hago?» y te propongo afiches con lo que vence pronto o no se vende.", "En Ajustes › Pantalla de venta ves todas: ocultar, ordenar, editar y cada cuántos segundos cambian. «Dibuja …» hace un dibujo con IA (necesita internet y el extra de IA)."] },

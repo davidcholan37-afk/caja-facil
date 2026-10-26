@@ -3189,3 +3189,9 @@ html body #modal .sheet.spl #pamt{min-height:56px;font-size:24px}
 .sheet.spl .spfoot{margin-top:16px}
 html body #modal .sheet.spl .spfoot #payok{min-height:56px;font-size:17px}
 @media (max-width:640px){.sheet.spl .spm{grid-template-columns:repeat(2,minmax(0,1fr))}.sheet.spl .sptot b{font-size:24px}}
+
+/* ===== «Manejar mi caja desde aquí» al entrar con Google en un equipo nuevo (celular del dueño de viaje) ===== */
+.sheet .remfresh{margin:0 0 18px;padding:16px;border-radius:16px;background:var(--ac-t,#E3F4E9);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ac,#1D8A4E) 35%,transparent)}
+.sheet .remfresh b{display:block;font:750 17px var(--f);color:var(--t1)}
+.sheet .remfresh p{margin:4px 0 12px;color:var(--t2);font-size:14px}
+.sheet .remfresh .btn{width:100%;min-height:52px}

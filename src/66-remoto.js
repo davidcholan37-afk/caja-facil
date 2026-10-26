@@ -5,6 +5,10 @@
 // Los datos propios de este equipo no se tocan (mientras dura, no se guarda nada aquí) y las ventas,
 // la caja y los cobros solo se hacen en la caja de la tienda.
 const REM_KEY = "cf-remoto"; // sessionStorage: { neg, sid, name } de la caja que se está manejando
+// En un equipo que no es caja (celular del dueño de viaje: «solo ver mis tiendas») se recuerda también en localStorage,
+// así al volver a abrir entra directo a manejar su caja (pedido de David, 25 oct 2026).
+const REM_FIJO = "cf-remoto-fijo";
+const remFijoGet = () => { try { return cloudLoad().ver ? JSON.parse(localStorage.getItem(REM_FIJO) || "null") : null; } catch (e) { return null; } };
 const REM_T = ["products", "clients", "supp", "sm", "users"]; // registros que viajan por su clave (como en la nube)
 const REM_CFG_NO = { lastBackup: 1, avisoDia: 1, series: 1 }; // ajustes que cambian solos o llevan el correlativo
 // Acciones que mueven dinero o datos de toda la tienda: solo en la caja de la tienda.
@@ -107,6 +111,7 @@ function remApply(d, quiet, meta) {
 /* ---------- en la laptop: abrir, enviar y salir ---------- */
 async function remLoad() {
   let o = null; try { o = JSON.parse(sessionStorage.getItem(REM_KEY) || "null"); } catch (e) {}
+  if (!o) o = remFijoGet();
   if (!o || !o.neg || !o.sid) return false;
   try {
     const rows = []; let from = 0;
@@ -126,7 +131,7 @@ async function remLoad() {
     const a = DB.users.find((u) => u.on && u.role === "admin") || DB.users[0]; ui.user = a.id; ui.tab = "prod";
     return true;
   } catch (e) {
-    try { sessionStorage.removeItem(REM_KEY); } catch (er) {}
+    try { sessionStorage.removeItem(REM_KEY); if (e && e.message === "sin tienda") localStorage.removeItem(REM_FIJO); } catch (er) {}
     REM = null; setTimeout(() => toast("No se pudo abrir esa caja. Revisa tu internet e inténtalo otra vez.", true), 600);
     return false;
   }
@@ -163,12 +168,12 @@ async function remWatch() {
 async function remSalir() {
   if (remState.busy) { toast("Enviando tus cambios…"); return setTimeout(remSalir, 1200); }
   if (REM && remDiff().n) { await remSend(); if (remState.err) return toast("Aún no se envían tus cambios. Revisa tu internet antes de salir.", true); }
-  try { sessionStorage.removeItem(REM_KEY); } catch (e) {}
+  try { sessionStorage.removeItem(REM_KEY); localStorage.removeItem(REM_FIJO); } catch (e) {}
   location.reload();
 }
 function remGo(neg, sid, name) {
   confirmBox(`¿Manejar la caja de ${name} desde aquí?`, "Manejar", () => {
-    try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
+    try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); if (cloudLoad().ver) localStorage.setItem(REM_FIJO, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
     location.reload();
   }, false, "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender y la caja se ven solo allá.");
 }
@@ -254,6 +259,16 @@ act({
   remver: () => { if (modalOpen()) closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); },
   remsalir: () => remSalir(),
   rempick: () => remPick(),
+  // Equipo nuevo (celular del dueño): no se vuelve caja, solo maneja la suya. Si hay una sola tienda va directo.
+  remfresh: async () => {
+    closeModal(); cloud.st.ver = true; cloudStore(); ui.tab = "aj"; ui.atab = "nube"; render();
+    try {
+      const t = await cloudTiendas();
+      if (!t.length) return toast("Aún no hay cajas de tu negocio en la nube");
+      if (t.length === 1) return remGo(cloudLoad().neg, t[0].tienda, tiendaNom(t[0]));
+      openModal(remPickHtml(cloudLoad().neg, t));
+    } catch (e) { toast("Sin conexión con la nube", true); }
+  },
   remcli: (el) => remCliente(el.dataset.id),
   remone: (el) => { closeModal(); remGo(el.dataset.n, el.dataset.s, el.dataset.name); }
 });
