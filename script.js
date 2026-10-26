@@ -461,20 +461,30 @@ function libsLater() {
   const falta = [["img.js", "CF_IMG"], ["fotos.js", "CF_FOTO"]].filter(([, g]) => !window[g]);
   if (!falta.length) return;
   let n = falta.length;
-  const fin = () => { if (!--n) calentar(DB.products.slice(), 0); };
+  // Al llegar se repinta UNA vez (sin rehacer toda la pantalla de venta) y las fotos de los productos se preparan después,
+  // en ratos libres, sin volver a pintar al final (antes, con 6 600 productos, la NCR repintaba todo justo al cobrar).
+  const fin = () => { if (!--n) { imgRefresh(0); calentar(DB.products.slice(), 0); } };
   const bajar = () => falta.forEach(([f]) => { const s = document.createElement("script"); s.src = libUrl(f); s.async = true; s.onload = fin; s.onerror = fin; document.head.appendChild(s); });
   if (window.requestIdleCallback) requestIdleCallback(bajar, { timeout: 2500 }); else setTimeout(bajar, 600);
 }
 // Convierte las imágenes de los productos en tandas chicas (así la primera pintada con fotos no se traba en equipos lentos).
 function calentar(l, i) {
-  const fin = Math.min(l.length, i + 6);
-  for (; i < fin; i++) try { imgSrc(l[i]); } catch (e) {}
-  if (i < l.length) setTimeout(() => calentar(l, i), 0); else imgRefresh(0);
+  const t0 = performance.now();
+  for (; i < l.length && performance.now() - t0 < 8; i++) try { imgSrc(l[i]); } catch (e) {}
+  if (i < l.length) (window.requestIdleCallback ? requestIdleCallback(() => calentar(l, i), { timeout: 1000 }) : setTimeout(() => calentar(l, i), 30));
 }
+// Volver a pintar porque llegaron imágenes o cambios de otro equipo. En Vender NO se rehace la pantalla: solo cambian el
+// ticket, las categorías y las fichas/vitrina si de verdad son distintas (así no pestañea ni se cierra lo que estás haciendo).
 function imgRefresh(tries) {
+  if (ui.tab === "venta" && $("#grid") && !ui.locked) { softSale(); return; }
   const a = document.activeElement, lk = $("#lock"), escribiendo = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.value;
   if (ui.locked || (lk && !lk.hidden) || escribiendo || modalOpen()) { if (tries < 24) setTimeout(() => imgRefresh(tries + 1), 1500); return; }
   render();
+}
+function softSale() {
+  document.body.dataset.tienda = DB.biz.name || "";
+  const br = $(".brandrow > b"); if (br && br.textContent !== (DB.biz.name || "Caja Fácil")) br.textContent = DB.biz.name || "Caja Fácil";
+  paintSale(); paintNav();
 }
 // Cartulinas fosforescentes de mercado: el color del precio de cada producto.
 const CARDS = ["#FFE53D", "#9BEA5A", "#FF9A3D", "#6FD3FF", "#FF6FB0", "#FFFFFF"];
@@ -963,12 +973,18 @@ function topIdsCalc() {
 }
 function paintCats() {
   const el = $("#cats"); if (!el) return;
+  if (catMemo.el === el && catMemo.k === catKey()) return; // nada cambió: ni siquiera se recalcula (6 600 productos en la NCR)
   const cats = [...new Set(DB.products.map((p) => p.cat).filter(Boolean))].sort((a, b) => cmpEs(a, b));
   if (!cats.length && !DB.products.length) { el.innerHTML = ""; return; }
   const im = (c) => { const s = catImg(c); return s ? `<img src="${s}" alt="">` : ""; };
   const chip = (c, label, img = true) => `<button class="chip ${ui.cat === c ? "on" : ""}" data-a="cat" data-c="${esc(c)}">${img ? im(c) : ""}${label}</button>`;
-  el.innerHTML = chip("", "Todo", false) + (DB.products.some((p) => p.fav) ? chip("__fav", "★ Favoritos", false) : "") + chip("__top", "Más vendidos", false) + cats.map((c) => chip(c, esc(c))).join("");
+  const h = chip("", "Todo", false) + (DB.products.some((p) => p.fav) ? chip("__fav", "★ Favoritos", false) : "") + chip("__top", "Más vendidos", false) + cats.map((c) => chip(c, esc(c))).join("");
+  if (el._gh !== h) { el.innerHTML = h; el._gh = h; } // igual que antes: no se rehace (las fotos de las categorías no parpadean)
+  catMemo = { k: catKey(), el };
 }
+// Las categorías solo cambian si cambian los productos (DBV), la elegida o si llegaron las imágenes.
+let catMemo = { k: "", el: null };
+const catKey = () => DBV + "|" + ui.cat + "|" + !!window.CF_IMG + !!window.CF_FOTO;
 // Ficha de producto: foto real (o ilustración) con su precio en cartulina, como en el mercado.
 function tileHtml(p, qn) {
   const kg = p.unit === "kg", u = kg ? " kg" : "";
@@ -990,11 +1006,15 @@ function rowHtml(p, qn) {
 // «Vitrina (prueba)»: mosaico de fotos cuando no buscas; al escribir salen los productos con foto y una vista previa (↑ ↓ elige, Enter agrega).
 const vit = () => DB.cfg.view === "vit";
 const VIT_FOTOS = ["tomate", "palta", "limon", "platano", "zanahoria", "mango", "papa", "naranja", "camote", "cebolla", "manzana", "mandarina"];
+let quickMemo = { k: "", v: [] };
 function vitHome() {
   const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
   const tops = topIds();
-  const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
-    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 10);
+  // Los accesos «sin código» solo cambian si cambian los productos o las ventas: antes se ordenaban los 6 600 productos de la NCR en cada venta.
+  const qk = DBV + "|" + topMemo.k;
+  if (quickMemo.k !== qk) quickMemo = { k: qk, v: DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 10) };
+  const quick = quickMemo.v;
 
   const tiles = VIT_FOTOS.map((k) => { const s = FB(k); return `<i${s ? ` style="background-image:url('${s}')"` : ""}></i>`; }).join("");
   const sl = vitSlidesHtml(); if (sl) return sl;
@@ -1007,11 +1027,13 @@ function vitResults(list, key) {
   return `<div class="vres"><div class="vlist" role="listbox">${list.map((p, i) => `<button class="vr ${i === ui.vsel ? "on" : ""} ${p.stock != null && p.stock <= 0 ? "out" : ""}" role="option" aria-selected="${i === ui.vsel}" data-a="add" data-id="${p.id}"><span class="vth">${pimg(p)}</span><b>${hit(p.name)}</b><span class="num">${money(p.price)}${kg(p)}</span></button>`).join("")}</div>
     <div class="vpv"><div class="vbig">${pimg(sel)}</div><h3>${esc(sel.name)}</h3><div class="vpp num">${money(sel.price)}${kg(sel)}</div><div class="vch">${st(sel) ? `<span>${st(sel)}</span>` : ""}<span>${sel.code ? "Cód. " + esc(sel.code) : "Sin código"}</span>${sel.cat ? `<span>${esc(sel.cat)}</span>` : ""}</div><button class="vbtn" data-a="add" data-id="${sel.id}">Agregar al ticket<span class="kbd">Enter</span></button></div></div>`;
 }
+let quickMemoS = { k: "", v: [] };
 function scanHome() {
   const lines = cartLines(), cur = lines.find(({ l }) => lineKey(l.id, l.pres) === ui.sel) || lines[lines.length - 1];
-  const tops = topIds();
-  const quick = DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
-    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 18);
+  const tops = topIds(), qk = "s|" + DBV + "|" + topMemo.k;
+  if (quickMemoS.k !== qk) quickMemoS = { k: qk, v: DB.products.filter((p) => p.on !== false && (!p.code || p.code.length <= 5))
+    .sort((a, b) => ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) || ((tops.indexOf(a.id) + 1 || 999) - (tops.indexOf(b.id) + 1 || 999)) || cmpEs(a.name, b.name)).slice(0, 18) };
+  const quick = quickMemoS.v;
   const last = cur ? `<div class="lastp ${ui.bump ? "fresh" : ""}"><small>Último</small><b class="ln1">${esc(cur.r.name)}</b><span class="ln2 num">${fmtQ(cur.l.qty)}${unitTxt(cur.r)} × ${money(cur.r.price)}</span><b class="ln3 num">${money(r2(cur.r.price * cur.l.qty))}</b></div>`
     : `<div class="lastp idle">${svg("scan")}<b class="ln1">Escanea un producto</b></div>`;
   return `${last}${quick.length ? `<div class="quick"><h3>Sin código</h3><div class="qgrid">${quick.map((p) => `<button class="qk" data-a="add" data-id="${p.id}">${p.code ? `<i class="num">${esc(p.code)}</i>` : ""}<b>${esc(p.name)}</b><span class="num">${money(p.price)}${p.unit === "kg" ? "/kg" : ""}</span></button>`).join("")}</div></div>` : ""}`;
@@ -1036,6 +1058,15 @@ function gMove(d, rows) {
   if (rows) { const top = its[0].offsetTop; step = Math.max(1, its.filter((x) => x.offsetTop === top).length); }
   ui.gsel = Math.max(0, Math.min(its.length - 1, (ui.gsel || 0) + d * step)); gMark(true);
 }
+// Inicio de la vitrina / escáner: al buscar se cambia por la lista y al agregar vuelve. Se guardan sus elementos y se
+// vuelven a poner tal cual (las fotos no se recargan ni parpadean); solo se rehace si su contenido cambió.
+function homePut(el, h) {
+  if (el._gh === h) return;
+  const c = el._home;
+  if (c && c.h === h && c.nodes.length) el.replaceChildren(...c.nodes);
+  else { el.innerHTML = h; el._home = { h, nodes: [...el.childNodes] }; }
+  el._gh = h;
+}
 function paintGrid() {
   const el = $("#grid"); if (!el) return;
   if (!DB.products.length) {
@@ -1045,15 +1076,15 @@ function paintGrid() {
   const sm = scanMode(); document.body.classList.toggle("scanmode", sm); el.classList.toggle("scanlist", sm);
   document.body.classList.toggle("vit", sm && vit());
   document.body.classList.add("vtk"); // el ticket y los botones de pago se ven como en Vitrina en todos los modos (pedido de David)
-  if (sm && vit() && !ui.q.trim() && !ui.cat) { { const h = vitHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; ui.vlist = []; return; }
-  if (sm && !ui.q.trim() && !ui.cat) { { const h = scanHome(); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; return; }
+  if (sm && vit() && !ui.q.trim() && !ui.cat) { homePut(el, vitHome()); ui.bump = null; ui.vlist = []; return; }
+  if (sm && !ui.q.trim() && !ui.cat) { homePut(el, scanHome()); ui.bump = null; return; }
   const raw = ui.q.trim(), mm = raw.match(/^[\d.,\/]+\s*(?:k?g|gr)?\s*[*xX]\s*(.*)$/i), key = mm ? mm[1].trim() : raw, q = norm(key);
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
   let list = DB.products.filter((p) => p.on !== false && catOk(p) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
   list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : saleCmp(key, q, !ui.cat));
   if (!list.length) { el._gh = null; el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
-  if (sm && vit() && q) { ui.vq = key; ui.vlist = list.slice(0, 12).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); el._gh = null; el.innerHTML = vitResults(list.slice(0, 12), key); ui.bump = null; return; }
+  if (sm && vit() && q) { ui.vq = key; ui.vlist = list.slice(0, 12).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); { const h = vitResults(list.slice(0, 12), key); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; return; }
   // Resultados de la búsqueda (Escáner y Fichas): uno marcado que se mueve con las flechas y Enter agrega (gMark).
   if (q) { if (ui.graw !== raw) ui.gsel = 0; ui.graw = raw; ui.gq = key; ui.glist = list.slice(0, 120).map((p) => p.id); } else { ui.gq = null; ui.glist = []; }
   const inCart = {}; DB.cart.items.forEach((i) => { const r = resolveLine(i); if (r && !i.quick) inCart[i.id] = r3((inCart[i.id] || 0) + i.qty * r.f); });
@@ -1087,13 +1118,13 @@ function paintCart() {
   // Tras cobrar, si la caja pasó a un ticket en espera, «¡Vendido!» se sigue viendo hasta que se escanea algo o se sigue.
   if (lines.length && !(ui.doneTk === t && t.items.length === ui.doneN)) ui.done = null;
   const bar = $("#cartbar");
-  if (ui.done && saleById(ui.done)) { el.innerHTML = doneHtml(saleById(ui.done)); if (bar) bar.hidden = true; return; }
+  if (ui.done && saleById(ui.done)) { const h = doneHtml(saleById(ui.done)); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } if (bar) bar.hidden = true; return; }
   ui.done = null;
   if (!lines.length) document.body.classList.remove("cart-open");
   if (!lines.some((x) => lineKey(x.l.id, x.l.pres) === ui.sel)) ui.sel = lines.length ? lineKey(lines[lines.length - 1].l.id, lines[lines.length - 1].l.pres) : null;
   const debt = c ? balanceOf(c) : 0, pts = c && DB.cfg.pts.on ? pointsOf(c) : 0, dis = lines.length ? "" : "disabled";
   const fresh = ui.fresh; ui.fresh = null;
-  el.innerHTML = `<div class="cart-in">
+  const html = `<div class="cart-in">
     <div class="paper">
       <div class="rhead">
         <div class="rtop"><span class="rtime num">${hhmm(Date.now())}</span><button class="cart-x" data-a="closecart" aria-label="Cerrar ticket">${svg("close")}</button></div>
@@ -1121,6 +1152,7 @@ function paintCart() {
       ${cobra ? `<div class="paymini pay4"><button class="pm efectivo" data-a="pay" data-m="efectivo" ${dis}>Efectivo<span class="pmx num">${lines.length ? money(T.total) : "<small>Agrega un producto</small>"}</span><span class="kbd">F2</span></button><button class="pm yape" data-a="pay" data-m="yape" ${dis}>Yape</button><button class="pm plin" data-a="pay" data-m="plin" ${dis}>Plin</button><button class="pm bcp" data-a="pay" data-m="bcp" ${dis}>BCP</button><button class="pm" data-a="paymas" ${dis}>Más</button></div>`
       : `<button class="cobrar" data-a="prevsave" ${dis}><span>Guardar preventa</span><span class="kbd">F2</span></button><p class="phint">El cliente paga en caja con el número de preventa.</p>`}
     </div></div>`;
+  if (el._gh !== html) { el.innerHTML = html; el._gh = html; } // si el ticket no cambió, no se rehace (sin parpadeo)
   paintTickets();
   const sel = $(".ln.sel"); if (sel && sel.scrollIntoViewIfNeeded) sel.scrollIntoViewIfNeeded(false); else if (sel) sel.scrollIntoView({ block: "nearest" });
   if (bar) {
@@ -1506,7 +1538,11 @@ act({
   partdel: (el) => { ui.pay.parts.splice(+el.dataset.i, 1); paintPay(); },
   gosettings: () => { closeModal(); ui.atab = "cobros"; go("aj"); },
   focusq: () => { const q = $("#q"); if (q) { q.focus(); q.select(); } },
-  newsale: () => { if (modalOpen()) closeModal(); ui.done = null; ui.doneTk = null; ui.q = ""; document.body.classList.remove("cart-open"); render(); },
+  // Siguiente venta: en Vender solo se repinta el ticket (antes se rehacía toda la pantalla y la vitrina pestañeaba).
+  newsale: () => {
+    if (modalOpen()) closeModal(); ui.done = null; ui.doneTk = null; ui.q = ""; document.body.classList.remove("cart-open");
+    if (ui.tab === "venta" && $("#grid")) { const q = $("#q"); if (q) q.value = ""; paintSale(); focusQ(); } else render();
+  },
   payother: () => { if (ui.pay) { ui.pay.other = true; paintPay(); } },
   cashgo: (el) => { if (!ui.pay) return; ui.pay.recv = String(el.dataset.v); confirmPay(); },
   showdisc: () => { if (!can("descuento")) return need("descuento", () => { ui.showDisc = true; paintCart(); const d = $("#disc"); if (d) d.focus(); }, "Descuento"); ui.showDisc = true; paintCart(); const d = $("#disc"); if (d) d.focus(); },

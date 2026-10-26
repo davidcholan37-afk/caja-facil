@@ -107,20 +107,30 @@ function libsLater() {
   const falta = [["img.js", "CF_IMG"], ["fotos.js", "CF_FOTO"]].filter(([, g]) => !window[g]);
   if (!falta.length) return;
   let n = falta.length;
-  const fin = () => { if (!--n) calentar(DB.products.slice(), 0); };
+  // Al llegar se repinta UNA vez (sin rehacer toda la pantalla de venta) y las fotos de los productos se preparan después,
+  // en ratos libres, sin volver a pintar al final (antes, con 6 600 productos, la NCR repintaba todo justo al cobrar).
+  const fin = () => { if (!--n) { imgRefresh(0); calentar(DB.products.slice(), 0); } };
   const bajar = () => falta.forEach(([f]) => { const s = document.createElement("script"); s.src = libUrl(f); s.async = true; s.onload = fin; s.onerror = fin; document.head.appendChild(s); });
   if (window.requestIdleCallback) requestIdleCallback(bajar, { timeout: 2500 }); else setTimeout(bajar, 600);
 }
 // Convierte las imágenes de los productos en tandas chicas (así la primera pintada con fotos no se traba en equipos lentos).
 function calentar(l, i) {
-  const fin = Math.min(l.length, i + 6);
-  for (; i < fin; i++) try { imgSrc(l[i]); } catch (e) {}
-  if (i < l.length) setTimeout(() => calentar(l, i), 0); else imgRefresh(0);
+  const t0 = performance.now();
+  for (; i < l.length && performance.now() - t0 < 8; i++) try { imgSrc(l[i]); } catch (e) {}
+  if (i < l.length) (window.requestIdleCallback ? requestIdleCallback(() => calentar(l, i), { timeout: 1000 }) : setTimeout(() => calentar(l, i), 30));
 }
+// Volver a pintar porque llegaron imágenes o cambios de otro equipo. En Vender NO se rehace la pantalla: solo cambian el
+// ticket, las categorías y las fichas/vitrina si de verdad son distintas (así no pestañea ni se cierra lo que estás haciendo).
 function imgRefresh(tries) {
+  if (ui.tab === "venta" && $("#grid") && !ui.locked) { softSale(); return; }
   const a = document.activeElement, lk = $("#lock"), escribiendo = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.value;
   if (ui.locked || (lk && !lk.hidden) || escribiendo || modalOpen()) { if (tries < 24) setTimeout(() => imgRefresh(tries + 1), 1500); return; }
   render();
+}
+function softSale() {
+  document.body.dataset.tienda = DB.biz.name || "";
+  const br = $(".brandrow > b"); if (br && br.textContent !== (DB.biz.name || "Caja Fácil")) br.textContent = DB.biz.name || "Caja Fácil";
+  paintSale(); paintNav();
 }
 // Cartulinas fosforescentes de mercado: el color del precio de cada producto.
 const CARDS = ["#FFE53D", "#9BEA5A", "#FF9A3D", "#6FD3FF", "#FF6FB0", "#FFFFFF"];
