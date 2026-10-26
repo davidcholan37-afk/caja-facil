@@ -1040,6 +1040,14 @@ function scanHome() {
 }
 // Orden de la búsqueda en Vender: el código exacto primero; al buscar por nombre, primero lo que se vende por kilo
 // (lo que no tiene código de barras se busca escribiendo; pedido de David); luego lo que empieza igual, favoritos y A-Z.
+// Igual que saleCmp pero rápido con miles de productos: cada clave se calcula una sola vez (antes nameRank se llamaba en
+// cada comparación: con un código «775…» que coincide con 6 000 productos tardaba ~0,5 s en una PC lenta).
+function saleSort(list, key, q, favs) {
+  const kg = !!q && !/^\d+$/.test(key);
+  const d = list.map((p) => [p, p.code === key ? 0 : 1, kg && p.unit === "kg" ? 0 : 1, q ? nameRank(p.name, q) : 0, favs && p.fav ? 0 : 1, norm(p.name)]);
+  d.sort((a, b) => a[1] - b[1] || a[2] - b[2] || a[3] - b[3] || a[4] - b[4] || (a[5] < b[5] ? -1 : a[5] > b[5] ? 1 : 0));
+  return d.map((x) => x[0]);
+}
 function saleCmp(key, q, favs) {
   const kg = !!q && !/^\d+$/.test(key);
   return (a, b) => ((b.code === key) - (a.code === key)) || (kg ? (b.unit === "kg") - (a.unit === "kg") : 0) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || ((b.fav ? 1 : 0) - (a.fav ? 1 : 0)) * (favs ? 1 : 0) || cmpEs(a.name, b.name);
@@ -1082,7 +1090,8 @@ function paintGrid() {
   const tops = ui.cat === "__top" ? topIds() : [];
   const catOk = (p) => !ui.cat || (ui.cat === "__top" ? tops.includes(p.id) : ui.cat === "__fav" ? p.fav : p.cat === ui.cat);
   let list = DB.products.filter((p) => p.on !== false && catOk(p) && (!q || nameHit(p.name, q) || (p.code || "") === key || (p.code || "").startsWith(key) || (p.pres || []).some((x) => x.code === key)));
-  list.sort(ui.cat === "__top" && !q ? (a, b) => tops.indexOf(a.id) - tops.indexOf(b.id) : saleCmp(key, q, !ui.cat));
+  if (ui.cat === "__top" && !q) list.sort((a, b) => tops.indexOf(a.id) - tops.indexOf(b.id));
+  else list = saleSort(list, key, q, !ui.cat);
   if (!list.length) { el._gh = null; el.innerHTML = ui.cat === "__top" && !q ? `<div class="empty" style="grid-column:1/-1"><h2>Aún no hay más vendidos</h2><p>Aparecerán aquí con tus primeras ventas.</p></div>` : `<div class="empty" style="grid-column:1/-1"><h2>No encontré «${esc(raw)}»${ui.cat && !ui.cat.startsWith("__") ? ` en ${esc(ui.cat)}` : ""}</h2><p>${ui.cat ? "Toca «Todo» para buscar en todos los productos." : "Prueba con otro nombre o código, o usa «Monto» para cobrar un importe suelto."}</p></div>`; return; }
   if (sm && vit() && q) { ui.vq = key; ui.vlist = list.slice(0, 12).map((p) => p.id); ui.vsel = Math.min(ui.vsel || 0, ui.vlist.length - 1); { const h = vitResults(list.slice(0, 12), key); if (el._gh !== h) { el.innerHTML = h; el._gh = h; } } ui.bump = null; return; }
   // Resultados de la búsqueda (Escáner y Fichas): uno marcado que se mueve con las flechas y Enter agrega (gMark).
@@ -1154,7 +1163,8 @@ function paintCart() {
     </div></div>`;
   if (el._gh !== html) { el.innerHTML = html; el._gh = html; } // si el ticket no cambió, no se rehace (sin parpadeo)
   paintTickets();
-  const sel = $(".ln.sel"); if (sel && sel.scrollIntoViewIfNeeded) sel.scrollIntoViewIfNeeded(false); else if (sel) sel.scrollIntoView({ block: "nearest" });
+  // Mostrar la línea elegida en el siguiente cuadro (antes medía la pantalla en medio de pintar: lento en la NCR).
+  cancelAnimationFrame(paintCart.raf); paintCart.raf = requestAnimationFrame(() => { const sel = $(".ln.sel"); if (sel && sel.scrollIntoViewIfNeeded) sel.scrollIntoViewIfNeeded(false); else if (sel) sel.scrollIntoView({ block: "nearest" }); });
   if (bar) {
     bar.hidden = !lines.length;
     bar.innerHTML = `<button class="cb-open ${fresh ? "bump" : ""}" data-a="opencart"><span class="cbn num">${T.count}</span><span class="cbt">Ver ticket<b class="num">${money(T.total)}</b></span></button>${cobra ? `<button class="cb-pay" data-a="pay" data-m="efectivo">Cobrar</button>` : `<button class="cb-pay" data-a="prevsave">Guardar</button>`}`;
@@ -1450,6 +1460,19 @@ function learnOpen(code) {
   ui.mk = "learn"; setTimeout(() => { const i = $("#wq"); if (i) i.focus(); }, 30);
 }
 // Código escrito o escaneado: "6", "3*6", "P15" (preventa), etiqueta de balanza (2xxxxx...), código de presentación.
+// Códigos → producto en un mapa (se rehace solo cuando cambian los datos, DBV). Mismo orden de antes: código del
+// producto, código de una presentación y por último los códigos de barras aprendidos (p.bar).
+let codeIdx = { v: -1, m: null };
+function codeFind(code) {
+  if (codeIdx.v !== DBV || !codeIdx.m) {
+    const m = new Map();
+    for (const x of DB.products) if (x.code && !m.has(x.code)) m.set(x.code, [x, ""]);
+    for (const x of DB.products) for (const y of x.pres || []) if (y.code && !m.has(y.code)) m.set(y.code, [x, y.id]);
+    for (const x of DB.products) for (const b of x.bar || []) if (b && !m.has(b)) m.set(b, [x, ""]);
+    codeIdx = { v: DBV, m };
+  }
+  return codeIdx.m.get(code);
+}
 function submitCode(raw) {
   raw = raw.trim(); if (!raw) return;
   const clear = () => { ui.q = ""; ui.vsel = 0; const qi = $("#q"); if (qi) qi.value = ""; };
@@ -1458,11 +1481,11 @@ function submitCode(raw) {
   let qty = null, code = raw;
   const m = raw.match(/^([\d.,\/]+\s*(?:k?g|gr)?)\s*[*xX]\s*(.+)$/i);
   if (m) { qty = r3(parseQty(m[1])); code = m[2].trim(); if (!(qty > 0)) { toast("Cantidad no válida"); beep(false); return; } }
-  let p = DB.products.find((x) => x.code && x.code === code), pres = "";
+  const hit = codeFind(code); // código del producto, de una presentación o de barras aprendido
+  let p = hit && !hit[1] && hit[0].code === code ? hit[0] : null, pres = "";
   const lab = !p && qty == null ? parseLabel(code) : null;
   if (lab) { clear(); addToCart(lab.p, lab.qty); paintGrid(); return; }
-  if (!p) { for (const x of DB.products) { const ps = (x.pres || []).find((y) => y.code && y.code === code); if (ps) { p = x; pres = ps.id; break; } } }
-  if (!p) p = DB.products.find((x) => (x.bar || []).includes(code)); // código de barras enlazado (aprendido al escanear)
+  if (!p && hit) { p = hit[0]; pres = hit[1]; }
   const exact = !!p;
   if (!p) { const k = norm(code), list = DB.products.filter((x) => nameHit(x.name, k)); if (list.length === 1) p = list[0]; else if (list.length > 1) { list.sort(saleCmp(code, k, true)); const kgs = list.filter((x) => x.unit === "kg");
       // En Vitrina, Enter toma el marcado de la lista (si la lista es de esta misma búsqueda; si no, el primero). Con peso «0.250*…» y un solo producto por kilo, ese.
@@ -6128,7 +6151,13 @@ function keepFocus(id, fn) {
 let lqT, qT;
 document.addEventListener("input", (e) => {
   const t = e.target, id = t.id;
-  if (id === "q") { ui.q = t.value; ui.vsel = 0; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
+  // Buscar mientras se escribe. Si son solo números largos (el lector de barras está escribiendo un código), se espera más:
+  // el lector termina con Enter y la lista no hace falta (antes se buscaba y ordenaba todo con cada número).
+  if (id === "q") {
+    ui.q = t.value; ui.vsel = 0; clearTimeout(qT);
+    const v = ui.q.trim(), now = performance.now(), rapido = now - (ui.qT0 || 0) < 45; ui.qT0 = now; // el lector escribe una tecla cada pocos ms
+    qT = setTimeout(paintGrid, rapido || /^\d{5,}$/.test(v) ? 350 : /^\d+$/.test(v) ? 120 : v.length > 1 ? 70 : 0); // un número suelto también espera: puede ser el lector empezando
+  }
   else if (id === "pq") { ui.pq = t.value; clearTimeout(qT); qT = setTimeout(paintPList, 70); }
   else if (id === "cq") { ui.cq = t.value; paintCList(); }
   else if (id === "vq") { ui.vq = t.value; const [f, to] = rangeKeys(ui.range, ui.from, ui.to); paintVList(f, to); }
@@ -6306,7 +6335,7 @@ document.addEventListener("keydown", (e) => {
     const id = e.target.id;
     if (id === "q" && !open) {
       e.preventDefault();
-      if (e.target.value.trim()) submitCode(e.target.value);
+      if (e.target.value.trim()) { clearTimeout(qT); submitCode(e.target.value); }
       else if (ui.done) A.newsale();
       else if (cartLines().length) { if (can("cobrar")) startPay("efectivo"); else savePrev(); }
     }

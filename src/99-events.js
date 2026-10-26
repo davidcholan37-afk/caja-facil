@@ -22,7 +22,13 @@ function keepFocus(id, fn) {
 let lqT, qT;
 document.addEventListener("input", (e) => {
   const t = e.target, id = t.id;
-  if (id === "q") { ui.q = t.value; ui.vsel = 0; clearTimeout(qT); qT = setTimeout(paintGrid, ui.q.length > 1 ? 70 : 0); }
+  // Buscar mientras se escribe. Si son solo números largos (el lector de barras está escribiendo un código), se espera más:
+  // el lector termina con Enter y la lista no hace falta (antes se buscaba y ordenaba todo con cada número).
+  if (id === "q") {
+    ui.q = t.value; ui.vsel = 0; clearTimeout(qT);
+    const v = ui.q.trim(), now = performance.now(), rapido = now - (ui.qT0 || 0) < 45; ui.qT0 = now; // el lector escribe una tecla cada pocos ms
+    qT = setTimeout(paintGrid, rapido || /^\d{5,}$/.test(v) ? 350 : /^\d+$/.test(v) ? 120 : v.length > 1 ? 70 : 0); // un número suelto también espera: puede ser el lector empezando
+  }
   else if (id === "pq") { ui.pq = t.value; clearTimeout(qT); qT = setTimeout(paintPList, 70); }
   else if (id === "cq") { ui.cq = t.value; paintCList(); }
   else if (id === "vq") { ui.vq = t.value; const [f, to] = rangeKeys(ui.range, ui.from, ui.to); paintVList(f, to); }
@@ -200,7 +206,7 @@ document.addEventListener("keydown", (e) => {
     const id = e.target.id;
     if (id === "q" && !open) {
       e.preventDefault();
-      if (e.target.value.trim()) submitCode(e.target.value);
+      if (e.target.value.trim()) { clearTimeout(qT); submitCode(e.target.value); }
       else if (ui.done) A.newsale();
       else if (cartLines().length) { if (can("cobrar")) startPay("efectivo"); else savePrev(); }
     }
