@@ -66,8 +66,8 @@ function provDetail(v, s) {
       <div class="pvchn"><h1>${esc(s.name)}</h1><p>${[s.phone ? esc(s.phone) : "", s.note ? esc(s.note) : ""].filter(Boolean).join(" · ") || "Sin celular ni nota"}</p></div>
       <button class="btn sec sm pved" data-a="psedit" data-id="${s.id}" aria-label="Editar proveedor">${svg("edit", "bi")}<span>Editar</span></button></div>
     <div class="card pvtop"><div class="pvdebe ${b > 0 ? "owe" : b < 0 ? "fav" : "ok"}"><small>${b > 0 ? "Le debes" : b < 0 ? "A tu favor" : "No le debes"}</small><b class="num">${b === 0 ? "S/ 0.00 ✓" : money(Math.abs(b))}</b></div>
-      <div class="pvtacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div></div>
-    <div class="card pvlist">${list || `<div class="pvvac"><b>Todavía no hay movimientos</b><span>Cuando ${esc(s.name)} te deje mercadería, toca «Me fiaron». Cuando le pagues, toca «Pagar todo» o «Abonar».</span></div>`}
+      <div class="pvtacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Pagar</button></div></div>
+    <div class="card pvlist">${list || `<div class="pvvac"><b>Todavía no hay movimientos</b><span>Cuando ${esc(s.name)} te deje mercadería fiada, toca «Pagar» para anotarla. Cuando le pagues, toca «Pagar todo» o «Abonar».</span></div>`}
       ${!all ? `<button class="pvmore" data-a="pvall" data-id="${s.id}">Ver ${rows.length - PV_MAX} movimientos anteriores</button>` : ""}</div>`;
 }
 function suppForm(id) {
