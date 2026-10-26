@@ -112,7 +112,13 @@ function moveSel(d) {
 }
 // Teclado: lector de códigos de barras (escribe el código + Enter) y atajos para PC.
 // Si la acción vino del teclado, las ventanas abren sin animación (se usan cientos de veces al día).
-const setInput = (k) => { if (document.documentElement.dataset.input !== k) document.documentElement.dataset.input = k; };
+// Al pasar del teclado/lector al dedo o mouse, lo que ya está en pantalla NO vuelve a hacer su animación de entrada
+// (antes el cobro y el «¡Vendido!» se ponían invisibles y volvían a aparecer: el «pestañeo» de la NCR). Se marca con .na.
+const setInput = (k) => {
+  const h = document.documentElement; if (h.dataset.input === k) return;
+  if (h.dataset.input === "kbd") $$("#modal:not([hidden]), .paper.done, .stamp, .help-chat, .help-message, .gate-form > *").forEach((e) => e.classList.add("na"));
+  h.dataset.input = k;
+};
 document.addEventListener("pointerdown", () => setInput("ptr"), true);
 document.addEventListener("keydown", (e) => {
   if (e.key.length > 1 || e.ctrlKey || e.altKey) setInput("kbd");

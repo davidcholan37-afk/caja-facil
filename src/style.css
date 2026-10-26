@@ -3195,3 +3195,6 @@ html body #modal .sheet.spl .spfoot #payok{min-height:56px;font-size:17px}
 .sheet .remfresh b{display:block;font:750 17px var(--f);color:var(--t1)}
 .sheet .remfresh p{margin:4px 0 12px;color:var(--t2);font-size:14px}
 .sheet .remfresh .btn{width:100%;min-height:52px}
+
+/* ===== Sin pestañeo al pasar del teclado al dedo (26 oct 2026): lo que ya estaba en pantalla no repite su animación de entrada (setInput pone .na) ===== */
+.na,#modal.na .sheet{animation:none!important}

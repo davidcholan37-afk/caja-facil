@@ -202,7 +202,7 @@ function modalGhost(m) {
   setTimeout(() => g.remove(), 260);
 }
 function closeModal() {
-  const m = $("#modal"); modalGhost(m); m.hidden = true; $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
+  const m = $("#modal"); modalGhost(m); m.hidden = true; m.classList.remove("na"); $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
   ui.pay = null; ui.mk = ""; stopScaleRead(); stopCam(); stopVoz();
   const b = modalBack; modalBack = null; if (b) return b();
   focusQ();
