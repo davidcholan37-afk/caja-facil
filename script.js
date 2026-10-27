@@ -4028,6 +4028,15 @@ async function cloudStart() {
     const tiendas = await cloudTiendas();
     const mine = tiendas.find((t) => t.tienda === DB.biz.sid);
     if (!mine && tiendas.length && !DB.sales.length && !DB.products.length) { cloudPaint(); openRecover(tiendas); return; }
+    // Candado (26 oct 2026): la laptop de David tenía una copia vieja de la tienda TVH4Z3 y, al entrar con la cuenta de
+    // su amigo, la subió entera encima de la nube de la NCR. Si esta tienda ya la sube OTRO equipo en esta cuenta,
+    // este es solo una copia: queda en «solo ver» y no sube nada (para volverlo caja: «Usar este equipo como caja»).
+    if (mine && mine.dispositivo && mine.dispositivo !== cloudLoad().dev && !cloudLoad().ver) {
+      cloud.st.ver = true; cloudStore(); cloudPaint();
+      openModal(`<h2>Esta tienda ya es la caja de otro equipo</h2><p style="margin:8px 0 12px">${esc(tiendaNom(mine))} (código ${esc(mine.tienda)}) se usa en otro equipo. Para no mezclar sus datos, este equipo queda en «solo ver» y no sube nada.</p><p class="muted sm" style="margin-bottom:12px">Para cambiar sus precios o cerrar su caja desde aquí, usa «Manejar esa caja».</p>
+        <div class="btns h"><button class="btn sec" data-a="close">Entendido</button><button class="btn" data-a="remone" data-n="${esc(cloudLoad().neg)}" data-s="${esc(mine.tienda)}" data-name="${esc(tiendaNom(mine))}">Manejar esa caja</button></div>`);
+      return;
+    }
     await cloudPush(true); toast("Listo: esta caja ya se respalda en la nube");
   } catch (e) { cloud.err = "No se pudo conectar con la nube. Revisa tu internet."; }
   applySusp(); cloudPaint();
