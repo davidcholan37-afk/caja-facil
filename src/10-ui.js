@@ -203,7 +203,7 @@ function modalGhost(m) {
 }
 function closeModal() {
   const m = $("#modal"); modalGhost(m); m.hidden = true; m.classList.remove("na"); $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
-  ui.pay = null; ui.mk = ""; stopScaleRead(); stopCam(); stopVoz();
+  ui.pay = null; ui.mk = ""; ui.ll = null; stopScaleRead(); stopCam(); stopVoz();
   const b = modalBack; modalBack = null; if (b) return b();
   focusQ();
 }

@@ -3311,3 +3311,33 @@ html[data-input=kbd] .pvq input:focus-visible{outline:0!important}
 @media (prefers-reduced-motion:reduce){.arqhow summary::after,.arqden summary::after,.arqst button{transition:none}}
 .arqfin+.btns{flex-wrap:wrap}.arqfin+.btns .btn[data-a=close]{flex-basis:100%}
 .remh{margin:10px 2px 6px;font-size:14.5px;font-weight:800}
+
+/* ===== «Llegó un proveedor» (opción 1 elegida por David, 26 oct 2026): en una ventana lo que dejó y lo que se le paga ===== */
+.pvllego{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;padding:0 18px;margin-bottom:12px;border:0;border-radius:16px;background:var(--fv,#0F4D32);color:#fff;font:800 18.5px var(--f,inherit);text-align:left;cursor:pointer;transition:transform .14s var(--ease-out,ease-out)}
+.pvllego svg{width:26px;height:26px;flex:none}.pvllego small{margin-left:auto;font-size:14px;font-weight:550;opacity:.85}
+.pvllego:active{transform:scale(.98)}
+@media (max-width:759px){.pvllego{flex-wrap:wrap;gap:2px 10px;padding:10px 16px}.pvllego small{margin-left:36px;flex-basis:100%;font-size:13px}}
+.llsrch{margin-bottom:8px}
+.llpick{display:grid;gap:6px;max-height:min(52vh,420px);overflow:auto;padding:2px}
+.llp{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:12px;min-height:56px;padding:6px 10px;border:0;border-radius:12px;background:var(--s2);color:var(--t1);text-align:left;cursor:pointer}
+.llp[hidden]{display:none}.llp .pvav{width:40px;height:40px}.llp b{font-size:16px;font-weight:750}.llp small{font-size:13.5px;color:var(--t3);font-weight:650}.llp small.debe{color:#B45309}
+.llp:active{transform:scale(.98)}
+.llwho{display:flex;align-items:center;gap:10px;margin:8px 0 10px;padding:8px 10px;border-radius:12px;background:var(--s2)}
+.llwho .pvav{width:40px;height:40px}.llwho b{font-size:16px;font-weight:750}.llwho small{display:block;color:var(--t2);font-size:13.5px}.llwho small b{font-size:13.5px;color:#B45309}.llwho .link{margin-left:auto;font-weight:700}
+.llq1{display:block;margin-top:8px}.llq1>span:first-child{display:block;margin-bottom:6px;font-size:15px;font-weight:750;color:var(--t1)}
+.llbox{display:flex;align-items:center;gap:8px;min-height:58px;padding:0 14px;border-radius:13px;background:var(--s1);box-shadow:inset 0 0 0 2px var(--hl2)}
+.llbox:focus-within{box-shadow:inset 0 0 0 2.5px var(--ac)}.llbox.sm{min-height:50px;margin-top:8px}
+.llbox i{font-style:normal;font-size:20px;font-weight:700;color:var(--t3)}
+.llbox input{flex:1;min-width:0;border:0;outline:0!important;background:none;color:var(--t1);font:850 28px var(--f,inherit)}.llbox.sm input{font-size:22px}
+html[data-input=kbd] .llbox input:focus-visible{outline:0!important;box-shadow:none!important}
+.llch{display:flex;flex-wrap:wrap;gap:6px}.llm{margin-top:8px}
+.llc{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 13px;border:0;border-radius:11px;background:var(--s1);box-shadow:inset 0 0 0 1.5px var(--hl2);color:var(--t1);font:700 14.5px var(--f,inherit);cursor:pointer;transition:transform .12s var(--ease-out,ease-out)}
+.llc.on{background:#E3F4E9;box-shadow:inset 0 0 0 2px #15A048;color:#0E6B32}html[data-theme=dark] .llc.on{background:rgba(80,200,120,.16);color:#8FE3AE}
+.llc:active{transform:scale(.97)}.llc .pmi{width:22px;height:22px;border-radius:7px;background-size:13px}.llc .pmi:is(.m-yape,.m-bcp){background-size:cover}
+.llq1 .muted.sm{margin-top:4px}
+.llnota{margin-top:10px}
+.llres{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px;padding:11px 14px;border-radius:12px;font-size:15px;font-weight:700}
+.llres b{font-size:19px;font-weight:850}.llres span b{font-size:15px}
+.llres.debe{background:#FFF4E5;color:#8A4B0A}.llres.ok{background:#DDF5E6;color:#0E6B32}.llres.fav{background:#E3EAF7;color:#1E4E8C}
+html[data-theme=dark] .llres.debe{background:rgba(255,170,80,.14);color:#FFC27A}html[data-theme=dark] .llres.ok{background:rgba(80,200,120,.16);color:#8FE3AE}html[data-theme=dark] .llres.fav{background:rgba(110,150,230,.16);color:#A9C3F2}
+@media (prefers-reduced-motion:reduce){.pvllego,.llc{transition:none}}

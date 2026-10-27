@@ -557,7 +557,7 @@ function modalGhost(m) {
 }
 function closeModal() {
   const m = $("#modal"); modalGhost(m); m.hidden = true; m.classList.remove("na"); $(".sheet", m).innerHTML = ""; document.body.classList.remove("noscroll");
-  ui.pay = null; ui.mk = ""; stopScaleRead(); stopCam(); stopVoz();
+  ui.pay = null; ui.mk = ""; ui.ll = null; stopScaleRead(); stopCam(); stopVoz();
   const b = modalBack; modalBack = null; if (b) return b();
   focusQ();
 }
@@ -3262,7 +3262,7 @@ const suppLast = (s) => DB.sm.filter((x) => x.sid === s.id).reduce((a, x) => Mat
 const PV_COL = ["#0E7490", "#B45309", "#7C3AED", "#15803D", "#BE123C", "#1E4E8C"];
 const pvIni = (n) => (String(n || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("") || "?").toUpperCase();
 const pvCol = (n) => PV_COL[[...String(n || "")].reduce((a, c) => a + c.charCodeAt(0), 0) % PV_COL.length];
-const PV_IC = { pay: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>', abono: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', box: '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>', srch: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>' };
+const PV_IC = { pay: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>', abono: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', box: '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>', srch: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>', truck: '<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>' };
 const pvI = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PV_IC[k]}</svg>`;
 function pvFilter() {
   const q = norm(ui.psq || ""), f = ui.pf || "all"; let n = 0;
@@ -3285,7 +3285,7 @@ VIEWS.prov = function viewProv(v) {
       <div class="pvacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb fio" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}</div></div>`;
   };
   v.innerHTML = `<div class="ph"><h1>Proveedores</h1><button class="btn sm" data-a="psnew">${svg("plus", "bi")}Nuevo proveedor</button></div>
-    ${list.length ? `<div class="pvsum"><div class="card pvs ${debt > 0 ? "big" : ""}"><small>Debes en total${owing ? ` · ${owing} ${owing === 1 ? "proveedor" : "proveedores"}` : ""}</small><b class="num">${money(debt)}</b></div><div class="card pvs"><small>Pagado hoy</small><b class="num">${money(hoy)}</b></div><div class="card pvs"><small>Te fiaron este mes</small><b class="num">${money(fiado)}</b></div></div>
+    ${list.length ? `<button class="pvllego" data-a="llego">${pvI("truck")}<span>Llegó un proveedor</span><small>anota lo que dejó y lo que le pagas, de una</small></button><div class="pvsum"><div class="card pvs ${debt > 0 ? "big" : ""}"><small>Debes en total${owing ? ` · ${owing} ${owing === 1 ? "proveedor" : "proveedores"}` : ""}</small><b class="num">${money(debt)}</b></div><div class="card pvs"><small>Pagado hoy</small><b class="num">${money(hoy)}</b></div><div class="card pvs"><small>Te fiaron este mes</small><b class="num">${money(fiado)}</b></div></div>
     <div class="pvtools"><label class="pvq">${pvI("srch")}<input type="search" id="psq" placeholder="Buscar proveedor…" value="${esc(ui.psq || "")}" autocomplete="off" aria-label="Buscar proveedor"></label><div class="pvfl" role="group" aria-label="Mostrar">${[["all", "Todos"], ["debo", "Les debo"], ["cero", "Sin deuda"]].map(([k, t]) => `<button class="${f === k ? "on" : ""}" data-a="pvf" data-f="${k}" aria-pressed="${f === k}">${t}</button>`).join("")}</div></div>
     <div id="pvlist">${list.map(row).join("")}<p class="muted pvnone" id="pvnone" hidden>No hay proveedores así.</p></div>`
       : `<div class="empty"><h2>Aún no tienes proveedores</h2><p>Agrega a quien te surte para anotar lo que le debes y lo que le vas pagando.</p><button class="btn" data-a="psnew">Agregar proveedor</button></div>`}`;
@@ -3319,10 +3319,93 @@ function provDetail(v, s) {
       <div class="pvchn"><h1>${esc(s.name)}</h1><p>${[s.phone ? esc(s.phone) : "", s.note ? esc(s.note) : ""].filter(Boolean).join(" · ") || "Sin celular ni nota"}</p></div>
       <button class="btn sec sm pved" data-a="psedit" data-id="${s.id}" aria-label="Editar proveedor">${svg("edit", "bi")}<span>Editar</span></button></div>
     <div class="card pvtop"><div class="pvdebe ${b > 0 ? "owe" : b < 0 ? "fav" : "ok"}"><small>${b > 0 ? "Le debes" : b < 0 ? "A tu favor" : "No le debes"}</small><b class="num">${b === 0 ? "S/ 0.00 ✓" : money(Math.abs(b))}</b></div>
-      <div class="pvtacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="psdebt" data-id="${s.id}">${pvI("box")}Me fiaron</button></div></div>
+      <div class="pvtacts">${b > 0 ? `<button class="pvb pay" data-a="pspayall" data-id="${s.id}">${pvI("pay")}Pagar todo</button><button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("abono")}Abonar</button>` : `<button class="pvb abo" data-a="pspay" data-id="${s.id}">${pvI("pay")}Pagar</button>`}<button class="pvb fio" data-a="llego" data-id="${s.id}">${pvI("box")}Me fiaron</button></div></div>
     <div class="card pvlist">${list || `<div class="pvvac"><b>Todavía no hay movimientos</b><span>Cuando ${esc(s.name)} te deje mercadería, toca «Me fiaron». Cuando le pagues, toca «Pagar todo» o «Abonar».</span></div>`}
       ${!all ? `<button class="pvmore" data-a="pvall" data-id="${s.id}">Ver ${rows.length - PV_MAX} movimientos anteriores</button>` : ""}</div>`;
 }
+// «Llegó un proveedor» (opción 1 de 5 elegida por David, 26 oct 2026: «lo único que veo difícil y demorado es proveedores»):
+// en una sola ventana se elige al proveedor, se escribe lo que dejó y cuánto se le paga ahora (Nada / Todo / Solo lo de hoy / Otro)
+// con qué medio; abajo se ve al toque en cuánto queda la deuda. Guarda la deuda y el pago juntos.
+function llegoUI(id) {
+  ui.ll = { id: id || "", pay: "nada", m: "efectivo", dejo: "", otro: "", note: "" };
+  llegoPaint();
+}
+function llegoRead() {
+  const L = ui.ll; if (!L) return; const g = (k) => $("#" + k);
+  if (g("lla")) L.dejo = g("lla").value; if (g("llo")) L.otro = g("llo").value; if (g("lln")) L.note = g("lln").value;
+}
+function llegoCalc() {
+  const L = ui.ll, s = supp(L.id); if (!s) return null;
+  const b = suppBal(s), dejo = Math.max(0, r2(num(L.dejo))), total = r2(b + dejo);
+  const pago = L.pay === "todo" ? Math.max(0, total) : L.pay === "hoy" ? dejo : L.pay === "otro" ? Math.max(0, r2(num(L.otro))) : 0;
+  return { s, b, dejo, total, pago, queda: r2(total - pago) };
+}
+function llegoPaint() {
+  const L = ui.ll; if (!L) return;
+  const s = supp(L.id);
+  if (!s) {
+    const list = DB.supp.slice().sort((a, b) => suppLast(b) - suppLast(a) || cmpEs(a.name, b.name));
+    openModal(`<h2>Llegó un proveedor</h2><p class="muted" style="margin-bottom:10px">¿Quién llegó?</p>
+      <label class="pvq llsrch">${pvI("srch")}<input type="search" id="llq" placeholder="Buscar proveedor…" autocomplete="off" aria-label="Buscar proveedor" autofocus></label>
+      <div class="llpick" id="llpick">${list.map((x) => { const b = suppBal(x); return `<button class="llp" data-a="llpick" data-id="${x.id}" data-n="${esc(norm(x.name))}"><span class="pvav" style="background:${pvCol(x.name)}">${esc(pvIni(x.name))}</span><b>${esc(x.name)}</b><small class="num ${b > 0 ? "debe" : ""}">${b > 0 ? "debes " + money(b) : "sin deuda"}</small></button>`; }).join("") || `<p class="muted">Aún no tienes proveedores.</p>`}</div>
+      <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn sec" data-a="psnew">${svg("plus", "bi")}Nuevo proveedor</button></div>`);
+    const q = $("#llq");
+    if (q) {
+      q.oninput = () => { const v = norm(q.value); $$("#llpick .llp").forEach((b) => { b.hidden = !!v && !b.dataset.n.includes(v); }); };
+      q.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); const b = $$("#llpick .llp").find((x) => !x.hidden); if (b) b.click(); } };
+    }
+    return;
+  }
+  const b = suppBal(s), cash = can("caja");
+  const chip = (k, t) => `<button class="llc${L.pay === k ? " on" : ""}" data-a="llpay" data-k="${k}" aria-pressed="${L.pay === k}">${t}</button>`;
+  openModal(`<h2>Llegó ${esc(s.name)}</h2>
+    <div class="llwho"><span class="pvav" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span><div><b>${esc(s.name)}</b><small>${b > 0 ? `Ya le debías <b class="num">${money(b)}</b>` : b < 0 ? `Tenías a tu favor ${money(-b)}` : "No le debías nada"}</small></div><button class="link" data-a="llcambiar">Cambiar</button></div>
+    <label class="llq1"><span>1. ¿Cuánto es lo que te dejó?</span><span class="llbox"><i>S/</i><input id="lla" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(L.dejo)}"></span></label>
+    <div class="llq1"><span>2. ¿Cuánto le pagas ahora?</span><div class="llch">${chip("nada", "Nada")}${chip("todo", `Todo · <b class="num" id="llt"></b>`)}${b > 0 ? chip("hoy", `Solo lo de hoy · <b class="num" id="llh"></b>`) : ""}${chip("otro", "Otro monto")}</div>
+      ${L.pay === "otro" ? `<span class="llbox sm"><i>S/</i><input id="llo" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(L.otro)}"></span>` : ""}
+      ${L.pay !== "nada" ? `<div class="llch llm">${["efectivo", "yape", "plin", "bcp"].map((m) => `<button class="llc${L.m === m ? " on" : ""}" data-a="llmet" data-m="${m}"><i class="pmi m-${m}" aria-hidden="true"></i>${METHODS[m]}</button>`).join("")}</div>${L.m === "efectivo" ? `<p class="muted sm">${cash ? "Sale del efectivo de la caja." : "Tu usuario no puede sacar dinero de la caja: elige otro medio."}</p>` : ""}` : ""}</div>
+    <label class="fld llnota"><span>Nota (opcional)</span><input class="inp" id="lln" maxlength="50" placeholder="Ej: factura 123, gaseosas y arroz" value="${esc(L.note)}"></label>
+    <div class="llres" id="llres" aria-live="polite"></div>
+    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" id="llok" data-a="llok" data-enter>Guardar</button></div>`);
+  ["lla", "llo", "lln"].forEach((k) => { const i = $("#" + k); if (i) i.oninput = () => { llegoRead(); llegoUpd(); }; });
+  llegoUpd();
+  setTimeout(() => { const i = $(L.pay === "otro" && !L.otro ? "#llo" : "#lla"); if (i && !L.dejo) { i.focus(); i.select(); } }, 30);
+}
+function llegoUpd() {
+  const c = llegoCalc(); if (!c) return;
+  const t = $("#llt"), h = $("#llh"), r = $("#llres"), ok = $("#llok");
+  if (t) t.textContent = money(Math.max(0, c.total)); if (h) h.textContent = money(c.dejo);
+  if (r) {
+    r.className = "llres " + (c.queda > 0 ? "debe" : c.queda < 0 ? "fav" : "ok");
+    r.innerHTML = `<span>${c.pago > 0 ? `Le pagas <b class="num">${money(c.pago)}</b> · ` : ""}${c.queda > 0 ? "Le quedarás debiendo" : c.queda < 0 ? "Quedará a tu favor" : "Quedas en"}</span><b class="num">${c.queda === 0 ? "S/ 0.00 ✓" : money(Math.abs(c.queda))}</b>`;
+  }
+  if (ok) ok.disabled = !(c.dejo > 0 || c.pago > 0);
+}
+act({
+  llego: (el) => llegoUI(el.dataset.id),
+  llpick: (el) => { if (!ui.ll) return; ui.ll.id = el.dataset.id; llegoPaint(); },
+  llcambiar: () => { if (!ui.ll) return; llegoRead(); ui.ll.id = ""; llegoPaint(); },
+  llpay: (el) => { if (!ui.ll) return; llegoRead(); ui.ll.pay = el.dataset.k; llegoPaint(); if (el.dataset.k === "otro") setTimeout(() => { const i = $("#llo"); if (i) i.focus(); }, 40); },
+  llmet: (el) => { if (!ui.ll) return; llegoRead(); ui.ll.m = el.dataset.m; llegoPaint(); },
+  llok: () => {
+    llegoRead(); const L = ui.ll, c = L && llegoCalc(); if (!c) return;
+    if (!(c.dejo > 0 || c.pago > 0)) return toast("Escribe lo que te dejó o cuánto le pagas");
+    if (c.pago > 0 && REM) return toast("Los pagos a proveedores se anotan en la caja de la tienda", true);
+    if (c.pago > 0 && L.m === "efectivo" && !can("caja")) return toast("Tu usuario no puede sacar dinero de la caja");
+    const s = c.s, u = me(), note = (L.note || "").trim(), t = Date.now();
+    let nuevo = null;
+    if (c.dejo > 0) { const e = { id: uid(), sid: s.id, t, date: dkey(), type: "deuda", amt: c.dejo, note, m: "", u: u ? u.id : "", un: u ? u.name : "" }; DB.sm.push(e); nuevo = e.id; }
+    if (c.pago > 0) {
+      const mv = addMove("proveedor", c.pago, `${s.name}${note ? " · " + note : ""}`, { m: L.m, sup: s.id });
+      const e = { id: uid(), sid: s.id, t: t + 1, date: dkey(), type: "pago", amt: c.pago, note, m: L.m, mv: mv.id, u: u ? u.id : "", un: u ? u.name : "" }; DB.sm.push(e); nuevo = e.id;
+    }
+    log("Llegó un proveedor", `${s.name}: dejó ${money(c.dejo)}${c.pago > 0 ? `, le pagaste ${money(c.pago)} (${METHODS[L.m]})` : ""}`); save();
+    if (ui.ps === s.id) ui.pvNew = nuevo;
+    ui.ll = null; closeModal();
+    toast(c.queda > 0 ? `Anotado: le debes ${money(c.queda)} a ${s.name}` : c.queda < 0 ? `Anotado: ${s.name} te debe ${money(-c.queda)}` : `Anotado: ya no le debes a ${s.name} ✓`);
+    render();
+  }
+});
 function suppForm(id) {
   const s = id ? supp(id) : { name: "", phone: "", note: "" };
   openModal(`<h2>${id ? "Editar proveedor" : "Nuevo proveedor"}</h2>
@@ -3355,7 +3438,9 @@ act({
     if (DB.supp.some((x) => x.id !== id && x.name.toLowerCase() === name.toLowerCase())) return toast("Ya tienes un proveedor con ese nombre");
     let s = id ? supp(id) : null;
     if (s) Object.assign(s, { name, phone: g("phone"), note: g("note") }); else { s = { id: uid(), name, phone: g("phone"), note: g("note"), t: Date.now() }; DB.supp.push(s); log("Proveedor creado", name); }
-    save(); closeModal(); toast("Proveedor guardado"); ui.ps = s.id; render();
+    save(); toast("Proveedor guardado");
+    if (ui.ll && !id) { ui.ll.id = s.id; render(); return llegoPaint(); } // vino de «Llegó un proveedor»: sigue ahí con el nuevo
+    closeModal(); ui.ps = s.id; render();
   },
   psrm: (el) => { const s = supp(el.dataset.id); if (!s) return; const n = DB.sm.filter((x) => x.sid === s.id).length;
     confirmBox(`¿Eliminar a ${s.name}?`, "Eliminar", () => { DB.supp = DB.supp.filter((x) => x !== s); DB.sm = DB.sm.filter((x) => x.sid !== s.id); log("Proveedor eliminado", s.name); save(); ui.ps = null; toast("Proveedor eliminado"); render(); }, true, n ? `Se borran también sus ${n} movimientos. Los pagos en efectivo ya salieron de la caja y no se devuelven.` : ""); },
@@ -5728,7 +5813,7 @@ const HELP_KB = [
   { k: ["turno", "cambio de turno", "cambiar turno", "turno de la tarde", "turno de la noche", "pasar la caja", "otro cajero"], t: "Cambiar turno", go: "caja", s: ["En Caja toca «Cambiar turno».", "Escribe cuánto hay en el cajón y toca «Cerrar y pasar la caja».", "El que sigue abre la caja: ya sale lo que se contó como sencillo."] },
   { k: ["flechas", "teclado", "sin mouse", "sin el mouse", "moverme"], t: "Usar la caja con las flechas", s: ["Fuera de Vender, las flechas ↑ ↓ ← → mueven el borde verde al botón de al lado, también al menú de la izquierda.", "Enter aprieta lo marcado; Esc cierra la ventana o vuelve atrás.", "En Vender las flechas siguen igual: tickets, líneas del ticket, resultados y cobro."] },
   { k: ["gasto", "retiro", "ingreso de dinero", "sale dinero", "saque plata"], t: "Anotar un gasto, ingreso o retiro", go: "caja", s: ["Entra a Caja.", "Toca Gasto, Ingreso de dinero o Retiro de dinero.", "Escribe el monto y el motivo, y guarda."] },
-  { k: ["proveedor", "me fiaron", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores.", "En la fila del proveedor toca «Pagar» (si le debes, ya sale todo lo que le debes) o «Abonar» (una parte).", "Para anotar lo que te fiaron, toca el nombre del proveedor y luego «Me fiaron»."] },
+  { k: ["proveedor", "me fiaron", "llego", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores y toca «Llegó un proveedor» (arriba).", "Elige al proveedor, escribe cuánto te dejó y toca cuánto le pagas ahora: Nada, Todo, Solo lo de hoy u Otro monto (y con qué: Efectivo, Yape, Plin o BCP).", "Abajo ves en cuánto queda la deuda. Toca «Guardar». Para pagar sin que haya dejado nada, en su fila toca «Pagar» o «Abonar»."] },
   { k: ["report", "ganancia", "cuanto vendi", "resumen", "utilidad"], t: "Ver ventas y ganancia", go: "rep", s: ["Entra a Reportes y elige el periodo.", "Si tienes la voz activa, también puedes escribirme: «cuánto vendí hoy»."] },
   { k: ["balanza", "kilo", "peso", "gramos", "fruta", "verdura"], t: "Vender por peso", go: "venta", s: ["Pon el producto como «por kilo» en Productos.", "En Vender escribe el peso o usa la balanza si la conectaste.", "Configura la balanza en Ajustes › Balanza."] },
   { k: ["usuario", "pin", "cajero", "permiso", "clave"], t: "Cajeros y PIN", go: "aj.usuarios", s: ["Entra a Ajustes › Usuarios y permisos.", "Crea al cajero y elige qué puede hacer.", "Cada uno entra con su PIN. No compartas tu PIN."] },
