@@ -3058,9 +3058,9 @@ function cerrarDia() {
   if (mine) { ui.cnt = null; ui.turno = false; ui.dia = true; return closeShiftUI(mine.id); }
   need("cierre", () => A.zclose(), "Cierre del día");
 }
-// Contar la caja (pedido de David, 26 oct 2026: «se ve muy complicado»): arriba cuánto debe haber, un solo campo grande
-// «¿Cuánto hay en el cajón?», al toque si cuadra/falta/sobra, y «Contar billete por billete» plegado para quien lo quiera.
-const denLbl = (d) => (d < 1 ? `${Math.round(d * 100)} cént.` : `S/ ${d}`);
+// Contar la caja: la ventana de siempre (resumen a la izquierda, billetes y monedas a la derecha) pero más compacta
+// (pedido de David, 26 oct 2026) y con «Contaste S/ X» + «Ver lo que contaste». Todo se pone al día sin redibujar la ventana.
+const denLbl = (d) => (d < 1 ? `S/ ${d.toFixed(2)}` : `S/ ${d}`);
 function closeShiftUI(id) {
   const sh = DB.shifts.find((s) => s.id === id); if (!sh) return;
   ui.cnt = ui.cnt && ui.cnt.id === id ? ui.cnt : { id, q: {}, direct: "" };
@@ -3068,25 +3068,40 @@ function closeShiftUI(id) {
   const val = ui.cnt.direct !== "" ? ui.cnt.direct : conDen ? countTotal(q).toFixed(2) : "";
   const tit = ui.turno ? "Cambiar turno" : ui.dia ? "Cerrar caja del día" : `Cerrar la caja de ${esc(sh.un)}`;
   const ok = ui.turno ? "Cerrar y pasar la caja" : ui.dia ? "Cerrar caja del día" : "Cerrar caja";
-  const ln = (t, a) => `<div class="kv"><span>${t}</span><b class="num">${money(a)}</b></div>`;
+  const ln = (t, a, cls) => `<div class="kv${cls ? " " + cls : ""}"><span>${t}</span><b class="num">${money(a)}</b></div>`;
   const dig = (S.by.yape || 0) + (S.by.plin || 0) + (S.by.bcp || 0) + (S.by.culqi || 0) + (S.by.tarjeta || 0) + (S.by.transferencia || 0);
-  openModal(`<div class="arq"><h2>${tit}</h2><p class="muted">${esc(sh.un)} · desde ${hhmm(sh.t0)} · ${S.n === 1 ? "1 venta" : S.n + " ventas"}</p>
-    <div class="arqdebe"><span>En el cajón debe haber</span><b class="num">${money(S.expected)}</b></div>
-    <details class="arqhow"><summary>¿De dónde sale?</summary>${ln("Empezaste con", sh.open)}${ln("+ Ventas en efectivo", S.by.efectivo || 0)}${S.abonosCash ? ln("+ Cobros de deudas", S.abonosCash) : ""}${S.ingresos ? ln("+ Metiste plata", S.ingresos) : ""}${S.prov ? ln("− Proveedores", S.prov) : ""}${S.gastos ? ln("− Gastos", S.gastos) : ""}${S.retiros ? ln("− Sacaste", S.retiros) : ""}${S.devol || S.anul ? ln("− Devoluciones", S.devol + S.anul) : ""}${dig ? `<p class="muted sm">Yape, Plin, BCP y tarjeta (${money(dig)}) no van en el cajón.</p>` : ""}</details>
-    <label class="arqin"><span>¿Cuánto hay en el cajón?</span><span class="arqbox"><i>S/</i><input id="cntd" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(val)}" autofocus></span></label>
-    <div class="arqres" id="arqres" aria-live="polite"></div>
-    <details class="arqden"${conDen ? " open" : ""}><summary>Contar billete por billete</summary><div class="arqgrid">${DENOMS.map((d) => `<div class="arqd ${d >= 10 ? "bil" : "mon"}"><b>${denLbl(d)}</b><span class="arqst"><button data-a="den" data-d="${d}" data-v="-1" aria-label="Quitar ${denLbl(d)}">−</button><span class="num" data-dq="${d}">${q[d] || 0}</span><button data-a="den" data-d="${d}" data-v="1" aria-label="Agregar ${denLbl(d)}">+</button></span></div>`).join("")}</div></details>
-    <label class="fld arqnota"><span>Nota (opcional)</span><input class="inp" id="cntn" maxlength="60"></label></div>
-    <div class="btns h"><button class="btn sec" data-a="cntcancel">Cancelar</button><button class="btn" id="arqok" data-a="shclose" data-id="${sh.id}" data-enter disabled>${ok}</button></div>`);
-  ui.mk = "count"; ui.cnt.exp = S.expected; arqUpd();
-  setTimeout(() => { const i = $("#cntd"); if (i) { i.focus(); i.select(); } }, 30);
+  openModal(`<div class="arqv"><h2>${tit}</h2><p class="muted">${esc(sh.un)} · abierta ${fmtDT(sh.t0)} · ${S.n === 1 ? "1 venta" : S.n + " ventas"}</p>
+    <div class="cols2"><div>
+      ${ln("Caja inicial", sh.open)}${ln("+ Ventas en efectivo", S.by.efectivo || 0)}${S.abonosCash ? ln("+ Cobros de deudas", S.abonosCash) : ""}${S.ingresos ? ln("+ Otros ingresos", S.ingresos) : ""}${S.prov ? ln("− Proveedores", S.prov) : ""}${S.gastos ? ln("− Gastos", S.gastos) : ""}${S.retiros ? ln("− Retiros", S.retiros) : ""}${S.devol || S.anul ? ln("− Devoluciones y anulaciones", S.devol + S.anul) : ""}
+      ${ln("Debe haber", S.expected, "strong")}${ln("Yape / Plin / BCP / tarjeta", dig)}${S.by.credito ? ln("Ventas al crédito", S.by.credito) : ""}
+      <div class="arqsum"><span>Contaste</span><b class="num" id="arqtot">S/ 0.00</b></div>
+      <div class="verdict" id="arqres" aria-live="polite"></div>
+      <button class="link arqver" data-a="arqver" id="arqverb">Ver lo que contaste</button>
+      <div class="arqlist" id="arqlist" hidden></div>
+    </div><div>
+      <p class="muted sm" style="margin-bottom:4px">Cuenta billetes y monedas (o escribe el total abajo):</p>
+      ${DENOMS.map((d) => `<div class="den"><b class="num">${denLbl(d)}</b><span class="step"><button data-a="den" data-d="${d}" data-v="-1" aria-label="Quitar ${denLbl(d)}">−</button><span class="num" data-dq="${d}">${q[d] || 0}</span><button data-a="den" data-d="${d}" data-v="1" aria-label="Agregar ${denLbl(d)}">+</button></span><span class="s num" data-ds="${d}">${money(d * (q[d] || 0))}</span></div>`).join("")}
+      <label class="fld" style="margin-top:6px"><span>Total contado (S/)</span><input class="inp num" id="cntd" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(val)}"></label>
+    </div></div>
+    <label class="fld"><span>Observación (opcional)</span><input class="inp" id="cntn" maxlength="60"></label></div>
+    <div class="btns h"><button class="btn sec" data-a="cntcancel">Cancelar</button><button class="btn" id="arqok" data-a="shclose" data-id="${sh.id}" data-enter disabled>${ok}</button></div>`, "wide");
+  ui.mk = "count"; ui.cnt.exp = S.expected; ui.cnt.ver = false; arqUpd();
 }
-// Pone al día el resultado sin volver a dibujar la ventana (así no se pierde lo que se escribe).
+// Pone al día lo contado, el resultado y la lista sin volver a dibujar la ventana (así no se pierde lo que se escribe).
 function arqUpd() {
   const c = ui.cnt, r = $("#arqres"), b = $("#arqok"); if (!c || !r) return;
-  const any = c.direct.trim() !== "" || Object.values(c.q).some((n) => n > 0), counted = c.direct.trim() !== "" ? r2(num(c.direct)) : countTotal(c.q), diff = r2(counted - (c.exp || 0));
-  r.className = "arqres" + (any ? (diff === 0 ? " ok" : diff < 0 ? " short" : " over") : "");
-  r.innerHTML = !any ? "Escribe lo que contaste" : diff === 0 ? "✓ La caja cuadra" : diff < 0 ? `Falta <b class="num">${money(-diff)}</b>` : `Sobra <b class="num">${money(diff)}</b>`;
+  const dir = c.direct.trim() !== "", any = dir || Object.values(c.q).some((n) => n > 0), counted = dir ? r2(num(c.direct)) : countTotal(c.q), diff = r2(counted - (c.exp || 0));
+  DENOMS.forEach((d) => { const e = $(`[data-ds="${d}"]`); if (e) e.textContent = money(d * (c.q[d] || 0)); });
+  const t = $("#arqtot"); if (t) t.textContent = money(any ? counted : 0);
+  r.hidden = !any; r.className = "verdict " + (diff === 0 ? "ok" : diff < 0 ? "short" : "over");
+  r.innerHTML = `<span>${diff === 0 ? "La caja cuadra" : diff < 0 ? "Falta dinero" : "Sobra dinero"}</span><b class="num">${diff === 0 ? "✓" : money(Math.abs(diff))}</b>`;
+  const L = $("#arqlist"), vb = $("#arqverb");
+  if (vb) vb.textContent = c.ver ? "Ocultar lo que contaste" : "Ver lo que contaste";
+  if (L) {
+    L.hidden = !c.ver;
+    const rows = DENOMS.filter((d) => c.q[d] > 0).map((d) => `<div><span>${c.q[d]} × ${denLbl(d)}</span><b class="num">${money(d * c.q[d])}</b></div>`).join("");
+    L.innerHTML = rows || dir ? `${rows}${dir && rows && r2(countTotal(c.q)) !== counted ? `<div class="muted"><span>Escribiste el total a mano</span><b class="num">${money(counted)}</b></div>` : ""}${!rows && dir ? `<div><span>Escribiste el total</span><b class="num">${money(counted)}</b></div>` : ""}<div class="tot"><span>Total contado</span><b class="num">${money(counted)}</b></div>` : `<p class="muted sm">Todavía no contaste nada.</p>`;
+  }
   if (b) b.disabled = !any;
 }
 function liqHtml(sh) {
@@ -3194,6 +3209,7 @@ act({
     const c = ui.cnt; if (!c) return; const d = el.dataset.d; c.q[d] = Math.max(0, (c.q[d] || 0) + +el.dataset.v); c.direct = "";
     const n = $(`[data-dq="${d}"]`); if (n) n.textContent = c.q[d]; const i = $("#cntd"); if (i) i.value = Object.values(c.q).some((x) => x > 0) ? countTotal(c.q).toFixed(2) : ""; arqUpd();
   },
+  arqver: () => { if (ui.cnt) { ui.cnt.ver = !ui.cnt.ver; arqUpd(); } },
   cntcancel: () => { ui.cnt = null; ui.turno = ui.dia = false; closeModal(); },
   shclose: (el) => {
     const sh = DB.shifts.find((s) => s.id === el.dataset.id), c = ui.cnt; if (!sh || !c) return;
@@ -5693,7 +5709,7 @@ const HELP_KB = [
   { k: ["imprim", "whatsapp", "compartir ticket", "enviar ticket", "mandar ticket"], t: "Mandar o imprimir el ticket", go: "ventas", s: ["Entra a Ventas y abre la venta.", "Elige imprimir o enviarlo por WhatsApp."] },
   { k: ["boleta", "factura", "ruc", "dni", "sunat"], t: "Boleta y factura", go: "aj.comp", s: ["Para factura, elige un cliente con RUC válido (F1).", "Las boletas desde S/ 700 piden el DNI del cliente.", "Los datos de comprobantes están en Ajustes › Comprobantes."] },
   { k: ["anular", "devol", "me equivoque", "cancelar venta", "error en la venta"], t: "Anular o devolver una venta", go: "ventas", s: ["Entra a Ventas.", "Abre la venta equivocada.", "Elige anular o devolver. Necesitas permiso para hacerlo."] },
-  { k: ["abrir caja", "cerrar caja", "cierro mi caja", "arqueo", "cierre", "cerrar dia", "contar"], t: "Abrir y cerrar la caja", go: "caja", s: ["En Caja toca «Abrir caja» y pon el sencillo inicial.", "En la noche toca «Cerrar caja del día»: escribe cuánto hay en el cajón (o cuéntalo billete por billete) y te dice si cuadra.", "Al cerrar se guarda el cierre del día (Z). Si quieres papel, toca «Imprimir caja» o «Imprimir Z»."] },
+  { k: ["abrir caja", "cerrar caja", "cierro mi caja", "arqueo", "cierre", "cerrar dia", "contar"], t: "Abrir y cerrar la caja", go: "caja", s: ["En Caja toca «Abrir caja» y pon el sencillo inicial.", "En la noche toca «Cerrar caja del día»: cuenta los billetes y monedas con − y + (o escribe el total) y te dice si cuadra; «Ver lo que contaste» muestra el detalle.", "Al cerrar se guarda el cierre del día (Z). Si quieres papel, toca «Imprimir caja» o «Imprimir Z»."] },
   { k: ["turno", "cambio de turno", "cambiar turno", "turno de la tarde", "turno de la noche", "pasar la caja", "otro cajero"], t: "Cambiar turno", go: "caja", s: ["En Caja toca «Cambiar turno».", "Escribe cuánto hay en el cajón y toca «Cerrar y pasar la caja».", "El que sigue abre la caja: ya sale lo que se contó como sencillo."] },
   { k: ["flechas", "teclado", "sin mouse", "sin el mouse", "moverme"], t: "Usar la caja con las flechas", s: ["Fuera de Vender, las flechas ↑ ↓ ← → mueven el borde verde al botón de al lado, también al menú de la izquierda.", "Enter aprieta lo marcado; Esc cierra la ventana o vuelve atrás.", "En Vender las flechas siguen igual: tickets, líneas del ticket, resultados y cobro."] },
   { k: ["gasto", "retiro", "ingreso de dinero", "sale dinero", "saque plata"], t: "Anotar un gasto, ingreso o retiro", go: "caja", s: ["Entra a Caja.", "Toca Gasto, Ingreso de dinero o Retiro de dinero.", "Escribe el monto y el motivo, y guarda."] },
