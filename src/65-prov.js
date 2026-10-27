@@ -1,9 +1,10 @@
 /* ===================== 65 · PROVEEDORES: lo que debes, lo que abonas y lo que pagas ===================== */
-// DB.supp = proveedores. DB.sm = movimientos: "deuda" (te fiaron mercadería) y "pago" (abono o pago al contado).
+// DB.supp = proveedores. DB.sm = movimientos: "deuda" (te fiaron mercadería), "pago" (abono o pago) y "compra"
+// (boleta pagada en el momento: no cambia lo que le debes; pedido de David, 27 oct 2026: «se pone un fiado sin haber aplastado fiado»).
 const supp = (id) => DB.supp.find((x) => x.id === id);
 // Lo que le debes. Nunca baja de 0: si le pagas más de lo que le debías (o le pagas sin deberle, al contado), eso fue una compra
 // al contado y no queda «a tu favor» (pedido de David, 26 oct 2026: «yo solo quiero anotar que pagué 70 de la boleta»).
-const suppBal = (s) => { let b = 0; DB.sm.filter((x) => x.sid === s.id).sort((x, y) => x.t - y.t).forEach((x) => { b = Math.max(0, r2(b + (x.type === "deuda" ? x.amt : -x.amt))); }); return b; };
+const suppBal = (s) => { let b = 0; DB.sm.filter((x) => x.sid === s.id).sort((x, y) => x.t - y.t).forEach((x) => { if (x.type !== "compra") b = Math.max(0, r2(b + (x.type === "deuda" ? x.amt : -x.amt))); }); return b; };
 const suppTotalDebt = () => r2(DB.supp.reduce((a, s) => a + Math.max(0, suppBal(s)), 0));
 const suppLast = (s) => DB.sm.filter((x) => x.sid === s.id).reduce((a, x) => Math.max(a, x.t), 0);
 
@@ -23,7 +24,7 @@ VIEWS.prov = function viewProv(v) {
   if (ui.ps) return provDetail(v, supp(ui.ps));
   const list = DB.supp.slice().sort((a, b) => suppBal(b) - suppBal(a) || cmpEs(a.name, b.name));
   const debt = suppTotalDebt(), owing = DB.supp.filter((s) => suppBal(s) > 0).length, mes = dkey().slice(0, 7);
-  const hoy = r2(DB.sm.filter((x) => x.type === "pago" && x.date === dkey()).reduce((a, x) => a + x.amt, 0));
+  const hoy = r2(DB.sm.filter((x) => (x.type === "pago" || x.type === "compra") && x.date === dkey()).reduce((a, x) => a + x.amt, 0));
   const fiado = r2(DB.sm.filter((x) => x.type === "deuda" && (x.date || "").slice(0, 7) === mes).reduce((a, x) => a + x.amt, 0));
   const f = ui.pf || "all";
   const row = (s) => {
@@ -59,9 +60,9 @@ function provDetail(v, s) {
   const all = ui.pvAll === s.id || rows.length <= PV_MAX, shown = all ? rows : rows.slice(0, PV_MAX);
   const nuevo = ui.pvNew; ui.pvNew = null;
   const list = shown.map((x) => {
-    const pg = x.type === "pago", sub = [pvDia(x.date), hhmm(x.t), pg && x.m ? "con " + (METHODS[x.m] || x.m) : ""].filter(Boolean).join(" · ");
-    return `<div class="pvmv ${pg ? "p" : "d"}${x.id === nuevo ? " nuevo" : ""}"><div class="pvmt"><b>${pg ? "Le pagaste" : "Te fió"}${x.note ? " · " + esc(x.note) : ""}</b><small>${sub}</small></div>
-      <span class="pvma num">${pg ? "−" : "+"} ${money(x.amt)}</span><button class="pvdel" data-a="psdel" data-id="${x.id}" aria-label="Borrar este movimiento" title="Borrar">✕</button></div>`;
+    const pg = x.type === "pago", cp = x.type === "compra", sub = [pvDia(x.date), hhmm(x.t), (pg || cp) && x.m ? "con " + (METHODS[x.m] || x.m) : ""].filter(Boolean).join(" · ");
+    return `<div class="pvmv ${cp ? "cp" : pg ? "p" : "d"}${x.id === nuevo ? " nuevo" : ""}"><div class="pvmt"><b>${cp ? "Boleta pagada" : pg ? "Le pagaste" : "Te fió"}${x.note ? " · " + esc(x.note) : ""}</b><small>${sub}</small></div>
+      <span class="pvma num">${cp ? "" : pg ? "− " : "+ "}${money(x.amt)}</span><button class="pvdel" data-a="psdel" data-id="${x.id}" aria-label="Borrar este movimiento" title="Borrar">✕</button></div>`;
   }).join("");
   v.innerHTML = `<button class="link pvback" data-a="psback">‹ Proveedores</button>
     <div class="pvhd"><span class="pvav big" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span>
@@ -147,11 +148,17 @@ act({
     if (c.pago > 0 && L.m === "efectivo" && !can("caja")) return toast("Tu usuario no puede sacar dinero de la caja");
     const s = c.s, u = me(), note = (L.note || "").trim(), t = Date.now();
     let nuevo = null;
-    if (c.dejo > 0) { const e = { id: uid(), sid: s.id, t, date: dkey(), type: "deuda", amt: c.dejo, note, m: "", u: u ? u.id : "", un: u ? u.name : "" }; DB.sm.push(e); nuevo = e.id; }
-    if (c.pago > 0) {
-      const mv = addMove("proveedor", c.pago, `${s.name}${note ? " · " + note : ""}`, { m: L.m, sup: s.id });
-      const e = { id: uid(), sid: s.id, t: t + 1, date: dkey(), type: "pago", amt: c.pago, note, m: L.m, mv: mv.id, u: u ? u.id : "", un: u ? u.name : "" }; DB.sm.push(e); nuevo = e.id;
-    }
+    // Lo de la boleta que se paga ahora es una compra al contado («Boleta pagada»), no un fiado + un pago.
+    // Solo lo que queda sin pagar de la boleta es deuda, y lo que se paga de más va a la deuda de antes.
+    const contado = Math.min(c.dejo, c.pago), resto = r2(c.dejo - contado), abono = r2(c.pago - contado);
+    const mk = (type, amt, dt, pay) => {
+      const e = { id: uid(), sid: s.id, t: t + dt, date: dkey(), type, amt, note, m: pay ? L.m : "", u: u ? u.id : "", un: u ? u.name : "" };
+      if (pay) e.mv = addMove("proveedor", amt, `${s.name}${note ? " · " + note : ""}`, { m: L.m, sup: s.id }).id;
+      DB.sm.push(e); nuevo = e.id;
+    };
+    if (resto > 0) mk("deuda", resto, 0, false);
+    if (contado > 0) mk("compra", contado, 1, true);
+    if (abono > 0) mk("pago", abono, 2, true);
     log("Llegó un proveedor", `${s.name}: dejó ${money(c.dejo)}${c.pago > 0 ? `, le pagaste ${money(c.pago)} (${METHODS[L.m]})` : ""}`); save();
     if (ui.ps === s.id) ui.pvNew = nuevo;
     ui.ll = null; closeModal();
