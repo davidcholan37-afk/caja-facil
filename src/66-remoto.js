@@ -9,7 +9,10 @@ const REM_KEY = "cf-remoto"; // sessionStorage: { neg, sid, name } de la caja qu
 // así al volver a abrir entra directo a manejar su caja (pedido de David, 25 oct 2026).
 const REM_FIJO = "cf-remoto-fijo";
 const remFijoGet = () => { try { return cloudLoad().ver ? JSON.parse(localStorage.getItem(REM_FIJO) || "null") : null; } catch (e) { return null; } };
-const REM_T = ["products", "clients", "supp", "sm", "users"]; // registros que viajan por su clave (como en la nube)
+const REM_T = ["products", "clients", "supp", "sm", "users", "moves", "shifts", "closes", "periods"]; // registros que viajan por su clave (como en la nube)
+// Caja a distancia (pedido de David, 26 oct 2026: «que aparezca caja… y todas las funciones»): gastos, ingresos, retiros,
+// Yapes anotados, abrir caja, sencillo, cambiar turno, cerrar cajas, cierre del día y del mes viajan como los productos.
+// Al aplicarlos, la caja de la tienda vuelve a calcular lo que debía haber con SUS ventas (siguió vendiendo).
 const REM_CFG_NO = { lastBackup: 1, avisoDia: 1, series: 1 }; // ajustes que cambian solos o llevan el correlativo
 // Acciones que mueven dinero o datos de toda la tienda: solo en la caja de la tienda.
 const REM_NO = { void: 1, ret: 1, retok: 1, dispatch: 1, prevgo: 1, prevvoid: 1, abono: 1, abok: 1, pspay: 1, pspayall: 1, sample: 1, reset: 1, archive: 1, dbcheck: 1, cloudrecover: 1, cloudrec: 1, cloudnew: 1, cloudout: 1, cloudpush: 1, cloudview: 1, sopon: 1, sopoff: 1, lock: 1, codecanje: 1, remgo: 1, remcli: 1, rempick: 1 };
@@ -68,7 +71,7 @@ function remDiff() {
   REM.cfg.forEach((_, p) => { if (!(p in cd)) cu.push(p); });
   return { r, kx: kxOut, log: lg.map((e) => ({ a: e.a, x: e.x, u: e.u })), c, cu, n: r.length + kxOut.length + Object.keys(c).length + cu.length };
 }
-const REM_NOM = { products: ["producto", "productos"], clients: ["cliente", "clientes"], supp: ["proveedor", "proveedores"], sm: ["deuda de proveedor", "deudas de proveedor"], users: ["usuario", "usuarios"] };
+const REM_NOM = { products: ["producto", "productos"], clients: ["cliente", "clientes"], supp: ["proveedor", "proveedores"], sm: ["deuda de proveedor", "deudas de proveedor"], users: ["usuario", "usuarios"], moves: ["movimiento de caja", "movimientos de caja"], shifts: ["turno de caja", "turnos de caja"], closes: ["cierre del día", "cierres del día"], periods: ["cierre de mes", "cierres de mes"] };
 function remResumen(d) {
   const by = {}, partes = [];
   d.r.forEach((x) => { (by[x.t] = by[x.t] || new Set()).add(x.k); });
@@ -91,17 +94,37 @@ function remSetPath(path, v) {
 function remApply(d, quiet, meta) {
   if (!d) return;
   const idx = {}, mapOf = (t) => idx[t] || (idx[t] = (() => { const m = new Map(); cloudEach(t, (x, k) => m.set(k, x)); return m; })());
+  const cerradas = [], zs = [], mvs = [];
   (d.r || []).forEach((c) => {
     const arr = DB[c.t]; if (!Array.isArray(arr) || !REM_NOM[c.t]) return;
     const m = mapOf(c.t), x = m.get(c.k);
     if (c.op === "del") { if (x) { const i = arr.indexOf(x); if (i >= 0) arr.splice(i, 1); m.delete(c.k); } }
-    else if (c.op === "add") { if (x) Object.assign(x, c.v); else { const v = Object.assign({}, c.v); arr.push(v); m.set(c.k, v); } }
-    else if (c.op === "set" && x) { Object.assign(x, c.f || {}); (c.un || []).forEach((q) => { delete x[q]; }); }
+    else if (c.op === "add") {
+      if (c.t === "closes" && !x && DB.closes.some((z) => z.date === (c.v || {}).date)) return; // ese día ya se cerró aquí
+      if (c.t === "closes" && !x && openShifts().length) { if (!quiet) log("Cierre del día pendiente", `Llegó a distancia, pero falta cerrar la caja de ${openShifts().map((o) => o.un).join(", ")}`); return; }
+      let v = x; if (x) Object.assign(x, c.v); else { v = Object.assign({}, c.v); arr.push(v); m.set(c.k, v); }
+      if (c.t === "closes") zs.push(v); else if (c.t === "moves") mvs.push(v); else if (c.t === "shifts" && v.t1) cerradas.push(v);
+    } else if (c.op === "set" && x) {
+      const cierra = c.t === "shifts" && c.f && c.f.t1;
+      if (cierra && x.t1) return; // el cajero ya la cerró aquí: vale la de la tienda
+      Object.assign(x, c.f || {}); (c.un || []).forEach((q) => { delete x[q]; });
+      if (cierra) cerradas.push(x);
+    }
   });
+  // Movimientos hechos a distancia: van a la caja abierta de la tienda (la de esa persona o la única abierta).
+  mvs.forEach((mv) => {
+    const sh = DB.shifts.find((x) => x.id === mv.shift);
+    if (sh && !sh.t1) return;
+    const ab = openShifts(), o = ab.find((x) => x.u === mv.uid) || (ab.length === 1 ? ab[0] : null);
+    if (o) mv.shift = o.id;
+  });
+  // Cajas cerradas y cierres del día: lo que debía haber se calcula con las ventas de la tienda (siguió vendiendo).
+  cerradas.forEach((sh) => { const S = shiftSummary(sh); sh.expected = S.expected; sh.diff = r2((+sh.counted || 0) - S.expected); sh.sum = S; });
+  zs.forEach((z) => { z.sum = zSummary(z.date); z.z = ++DB.zseq; });
   (d.kx || []).forEach((e) => { const p = prod(e.p); if (p && p.stock != null) stockAdd(p, +e.q || 0, e.ty || "ajuste", (e.r ? e.r + " · " : "") + "desde otro equipo"); });
   Object.keys(d.c || {}).forEach((p) => remSetPath(p, d.c[p]));
   (d.cu || []).forEach((p) => remSetPath(p, undefined));
-  if (d.cierre) remCierreApply(d.cierre, quiet);
+  if (d.cierre) remCierreApply(d.cierre, quiet); // paquetes del primer «Cerrar caja» a distancia (26 oct 2026)
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; if (a) { a.on = true; a.role = "admin"; } }
   if (quiet) return;
   const quien = (meta && meta.autor) || "otro equipo";
@@ -178,11 +201,11 @@ function remGo(neg, sid, name) {
     if (copia) { cloud.st.ver = true; cloudStore(); } // este equipo era una copia: deja de ser caja (no sube ni recibe como ella)
     try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); if (cloudLoad().ver) localStorage.setItem(REM_FIJO, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
     location.reload();
-  }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender se hace solo allá; la caja del día la puedes cerrar desde aquí.");
+  }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender se hace solo allá; la Caja (gastos, turnos y cierre del día) también desde aquí.");
 }
 function remPickHtml(neg, tiendas, cli = []) {
   const it = (t, n, mine) => `<button class="it" data-a="remone" data-n="${esc(n)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${!mine && t.correo ? esc(t.correo) + " · " : ""}${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}</small></div></button>`;
-  return `<h2>¿Qué caja quieres manejar?</h2><p class="muted" style="margin-bottom:12px">Cambia sus productos, precios, clientes, proveedores, usuarios, ajustes y vitrina desde aquí.</p>
+  return `<h2>¿Qué caja quieres manejar?</h2><p class="muted" style="margin-bottom:12px">Cambia sus productos, precios, clientes, proveedores, usuarios, ajustes, vitrina y caja desde aquí.</p>
     ${tiendas.length ? `${cli.length ? `<h3 class="remh">Tu negocio</h3>` : ""}<div class="list">${tiendas.map((t) => it(t, neg, true)).join("")}</div>` : ""}
     ${cli.length ? `<h3 class="remh">Cajas de tus clientes <small class="muted">· te dieron permiso</small></h3><div class="list">${cli.map((t) => it(t, t.neg, false)).join("")}</div>` : ""}
     <div class="btns"><button class="btn sec" data-a="close">Cancelar</button></div>`;
@@ -242,7 +265,6 @@ function remCierreApply(ci, quiet) {
 }
 function remCierreUI() {
   const k = dkey(), abiertas = openShifts(), z = DB.closes.some((x) => x.date === k);
-  if (remState.sent.some((x) => x.cierre && !x.ok)) return toast("Ya enviaste el cierre: su caja lo hará apenas esté prendida y con internet");
   if (!abiertas.length && z) return toast("Su caja ya tiene el cierre de hoy");
   if (!abiertas.length && !DB.sales.some((x) => x.date === k) && !DB.shifts.some((x) => x.d0 === k)) return toast("Hoy su caja no tiene ventas ni cajas abiertas");
   openModal(`<h2>Cerrar caja del día</h2><p class="muted" style="margin-bottom:10px">${esc(REM.name)} · ${dmy(k)}</p>
@@ -263,19 +285,24 @@ function remCierreUI() {
   $$("#modal .rcq").forEach((i) => { i.oninput = upd; });
   setTimeout(() => { const i = $("#modal .rcq"); if (i) i.focus(); }, 40);
 }
-async function remCierreSend() {
+// Se cierra aquí mismo (como en la tienda) y viaja con los demás cambios; allá se recalcula lo que debía haber.
+function remCierreSend() {
   const ins = $$("#modal .rcq");
   if (ins.some((i) => i.value.trim() === "")) return toast("Escribe cuánto contaron en cada caja");
-  const u = me(), ci = { k: dkey(), autor: (u && u.name) || "Dueño", cajas: ins.map((i) => ({ id: i.dataset.id, counted: r2(num(i.value)) })) };
-  const b = $("#rcok"); if (b) b.disabled = true;
-  try {
-    const res = "Cerrar caja del día";
-    const row = await sb("cambios", { method: "POST", headers: { Prefer: "return=representation" }, body: { negocio_id: REM.neg, tienda: REM.sid, datos: { r: [], kx: [], log: [], c: {}, cu: [], cierre: ci }, resumen: res, dispositivo: cloudLoad().dev } });
-    remState.sent.push({ id: row[0].id, res, t: Date.now(), ok: false, cierre: 1 });
-    remCierreApply(ci, true); // aquí solo para verlo cerrado; la de verdad la cierra su caja
-    closeModal(); render(); remPaint(); remWatchSoon(8000);
-    toast("Enviado: su caja se cierra en un minuto si está prendida y con internet");
-  } catch (e) { if (b) b.disabled = false; toast("No se pudo enviar. Revisa tu internet e inténtalo otra vez.", true); }
+  const k = dkey(), u = me(), por = ((u && u.name) || "Dueño") + " (a distancia)", dias = [k];
+  ins.forEach((i) => {
+    const sh = DB.shifts.find((x) => x.id === i.dataset.id && !x.t1); if (!sh) return;
+    const S = shiftSummary(sh), counted = r2(num(i.value));
+    Object.assign(sh, { t1: Date.now(), d1: k, q: {}, counted, expected: S.expected, diff: r2(counted - S.expected), note: "Cerrada a distancia", by: por, sum: S });
+    dias.push(sh.d0); log("Cierre de caja", `${sh.un}: contado ${money(counted)}`);
+  });
+  let z = null;
+  if (!openShifts().length && !DB.closes.some((x) => x.date === k)) {
+    z = { id: uid(), z: ++DB.zseq, date: k, t: Date.now(), un: por, sum: zSummary(k) };
+    DB.closes.push(z); log("Cierre del día", `Z ${z.z} · ${dmy(k)}`);
+  }
+  save(...dias); closeModal(); render();
+  toast("Listo: su caja se cierra en un minuto si está prendida y con internet");
 }
 
 /* ---------- barra «Manejando la caja de…» ---------- */
@@ -287,7 +314,7 @@ function remPaint() {
   const st = remState.busy ? ["env", "Enviando tus cambios…"] : remState.err ? ["err", remState.err]
     : falta || pend ? ["esp", `Esperando a su caja · ${falta + (pend ? 1 : 0)} ${falta + (pend ? 1 : 0) === 1 ? "envío" : "envíos"}`]
     : remState.sent.length ? ["ok", "Su caja ya aplicó todo"] : ["ok", "Lo que cambies se envía solo"];
-  const html = `<span class="rb-dot ${st[0]}" aria-hidden="true"></span><span class="rb-tx"><b>Manejando: ${esc(REM.name)}</b><small>${esc(st[1])}</small></span><button class="rb-btn cj" data-a="remcierre">Cerrar caja</button><button class="rb-btn" data-a="remver">Ver</button><button class="rb-btn out" data-a="remsalir">Salir</button>`;
+  const html = `<span class="rb-dot ${st[0]}" aria-hidden="true"></span><span class="rb-tx"><b>Manejando: ${esc(REM.name)}</b><small>${esc(st[1])}</small></span><button class="rb-btn" data-a="remver">Ver</button><button class="rb-btn out" data-a="remsalir">Salir</button>`;
   if (el.innerHTML !== html) el.innerHTML = html;
   if (ui.tab === "aj" && ui.atab === "nube" && !modalOpen() && $("#remlist")) $("#remlist").innerHTML = remListHtml();
 }
@@ -297,14 +324,14 @@ function remListHtml() {
 }
 // En Ajustes › Nube mientras se maneja otra caja.
 function remSettingsHtml() {
-  return `<div class="card"><h2>Manejando: ${esc(REM.name)}</h2><p class="muted" style="margin-bottom:10px">Lo que cambias aquí (productos, precios, stock, clientes, proveedores, usuarios, ajustes y vitrina) se envía solo. Su caja lo aplica en un minuto si está prendida y con internet; si no, cuando se conecte.</p>
+  return `<div class="card"><h2>Manejando: ${esc(REM.name)}</h2><p class="muted" style="margin-bottom:10px">Lo que cambias aquí (productos, precios, stock, clientes, proveedores, usuarios, ajustes, vitrina y caja) se envía solo. Su caja lo aplica en un minuto si está prendida y con internet; si no, cuando se conecte.</p>
     <div class="kv"><span>Código de la caja</span><b>${esc(REM.sid)}</b></div>
     <h3 style="margin:12px 0 6px">Lo que enviaste</h3><div id="remlist">${remListHtml()}</div>
-    <p class="muted sm" style="margin-top:10px">Vender, anular ventas y cobrar deudas se hacen solo en la caja de la tienda. La caja del día sí la puedes cerrar desde aquí: te dicen cuánto contaron y tú lo escribes.</p>
+    <p class="muted sm" style="margin-top:10px">Vender, anular ventas y cobrar deudas se hacen solo en la caja de la tienda. La Caja sí: gastos, Yapes, abrir, cambiar turno y cerrar la caja del día (te dicen cuánto contaron y tú lo escribes).</p>
     <div class="btns h"><button class="btn sec" data-a="remcierre">Cerrar caja del día</button><button class="btn" data-a="remsalir">Salir y volver a mi caja</button></div></div>`;
 }
 function remOfrecerHtml() {
-  return `<div class="card"><h2>Manejar otra caja</h2><p class="muted" style="margin-bottom:10px">Cambia productos, precios, stock, clientes, usuarios, ajustes y vitrina de otra caja de tu negocio${cloudLoad().admin ? " (o de un cliente que te dio permiso)" : ""} desde este equipo. Su caja recibe los cambios sola en un minuto. Tus datos de aquí no se tocan.</p><button class="btn sec" data-a="rempick">Elegir caja</button></div>`;
+  return `<div class="card"><h2>Manejar otra caja</h2><p class="muted" style="margin-bottom:10px">Cambia productos, precios, stock, clientes, usuarios, ajustes, vitrina y caja de otra caja de tu negocio${cloudLoad().admin ? " (o de un cliente que te dio permiso)" : ""} desde este equipo. Su caja recibe los cambios sola en un minuto. Tus datos de aquí no se tocan.</p><button class="btn sec" data-a="rempick">Elegir caja</button></div>`;
 }
 
 /* ---------- en la caja de la tienda: recibir y aplicar ---------- */
@@ -342,7 +369,7 @@ function remBoot() {
 }
 
 act({
-  remcierre: () => { if (REM) remCierreUI(); },
+  remcierre: () => { if (!REM) return; if (modalOpen()) closeModal(); ui.tab = "caja"; ui.date = dkey(); render(); remCierreUI(); },
   remcierreok: () => { if (REM) remCierreSend(); },
   remver: () => { if (modalOpen()) closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); },
   remsalir: () => remSalir(),

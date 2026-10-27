@@ -67,6 +67,7 @@ function cajaListo(sh, z) {
 }
 // Cerrar caja del día: cuenta tu caja si está abierta y luego hace el cierre del día (Z).
 function cerrarDia() {
+  if (REM) return remCierreUI(); // a distancia: todas las cajas abiertas en una sola ventana
   const k = dkey(); ui.date = k;
   const mine = curShift(), z = DB.closes.some((x) => x.date === k);
   if (z) { if (mine) { ui.cnt = null; ui.turno = ui.dia = false; return closeShiftUI(mine.id); } return toast("Hoy ya tiene cierre del día"); }
@@ -167,16 +168,17 @@ function cajaDia(T) {
 }
 
 VIEWS.caja = function viewCash(v) {
-  const k = ui.date, T = dayTotals(k), mine = curShift(), today = k === dkey();
+  // A distancia la caja abierta es la del cajero de la tienda (no la de este equipo).
+  const k = ui.date, T = dayTotals(k), mine = REM ? openShifts().sort((a, b) => a.t0 - b.t0)[0] || null : curShift(), today = k === dkey();
   const shifts = DB.shifts.filter((s) => s.d0 === k || (!s.t1 && today)).filter((s, i, a) => a.indexOf(s) === i).sort((a, b) => a.t0 - b.t0);
   const moves = DB.moves.filter((m) => m.date === k).sort((a, b) => b.t - a.t);
-  const z = DB.closes.find((x) => x.date === k), others = shifts.filter((s) => !s.t1 && s.u !== ui.user);
+  const z = DB.closes.find((x) => x.date === k), others = shifts.filter((s) => !s.t1 && (REM ? s !== mine : s.u !== ui.user));
   const MS = mine ? shiftSummary(mine) : null;
   v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button><button class="btn sec sm" data-a="cajamas">Más</button></div>` : ""}</div>
     <div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>
-    ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
+    ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>${REM ? `Caja abierta · ${esc(mine.un)}` : "Tu caja está abierta"}</h2><p class="muted">Desde ${hhmm(mine.t0)} · ${REM ? "empezó" : "empezaste"} con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
       <div class="row wrap cjacts3" style="margin-top:12px"><button class="btn sec" data-a="shturno" data-id="${mine.id}">${svg("swap", "bi")}Cambiar turno</button><button class="btn" data-a="cerrardia">${svg("lock", "bi")}Cerrar caja del día</button></div>`
-      : `<div class="row sp wrap"><div><h2>Tu caja está cerrada</h2><p class="muted">Ábrela con el sencillo del cajón para empezar a cobrar.</p></div><div class="row wrap cjacts3">${!z && shifts.length ? `<button class="btn sec" data-a="cerrardia">${svg("lock", "bi")}Cerrar caja del día</button>` : ""}<button class="btn" data-a="shopen">Abrir caja</button></div></div>`}</div>` : ""}
+      : `<div class="row sp wrap"><div><h2>${REM ? "Su caja está cerrada" : "Tu caja está cerrada"}</h2><p class="muted">${REM ? "Se abre sola con su primera venta, o ábrela aquí con el sencillo del cajón." : "Ábrela con el sencillo del cajón para empezar a cobrar."}</p></div><div class="row wrap cjacts3">${!z && shifts.length ? `<button class="btn sec" data-a="cerrardia">${svg("lock", "bi")}Cerrar caja del día</button>` : ""}<button class="btn" data-a="shopen">Abrir caja</button></div></div>`}${REM ? `<p class="muted sm" style="margin-top:10px">Ves la última copia que subió su caja. Lo que hagas aquí le llega en un minuto y allá se calcula con todas sus ventas.</p>` : ""}</div>` : ""}
     <div class="cols stack"><div class="stack">
       <div class="card vdia">${cajaDia(T)}
         ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}</div>

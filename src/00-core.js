@@ -180,7 +180,7 @@ function wire(db) {
 let DB = normalize(null);
 // «Manejar otra caja» (66-remoto): mientras dura, aquí no se guarda nada y Vender/Caja no se muestran.
 let REM = null;
-const REM_TABS_NO = { venta: 1, caja: 1 };
+const REM_TABS_NO = { venta: 1 }; // Caja sí se ve a distancia (pedido de David, 26 oct 2026)
 // Ordenar por nombre en español (localeCompare con "es": V8 lo hace rápido; un Intl.Collator propio resultó más lento).
 const cmpEs = (a, b) => String(a).localeCompare(String(b), "es");
 

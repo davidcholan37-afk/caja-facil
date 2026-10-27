@@ -3377,7 +3377,6 @@ html[data-theme=dark] .llres.debe{background:rgba(255,170,80,.14);color:#FFC27A}
 @media (prefers-reduced-motion:reduce){.pvllego,.llc{transition:none}}
 
 /* ===== Cerrar caja del día a distancia (66-remoto, pedido de David, 26 oct 2026) ===== */
-#rembar .rb-btn.cj{background:#FBBF24;color:#3B2A00}
 .sheet.rcsheet{max-width:440px}
 .rch{margin:0 0 6px;font-size:14.5px;font-weight:700}
 .rcrow{display:grid;grid-template-columns:1fr 150px;align-items:center;gap:4px 10px;padding:8px 0;border-top:1px solid var(--hl2)}
@@ -3389,4 +3388,3 @@ html[data-theme=dark] .llres.debe{background:rgba(255,170,80,.14);color:#FFC27A}
 html[data-theme=dark] .rcres.ok{color:#8FE3AE}html[data-theme=dark] .rcres.short{color:#FCA5A5}html[data-theme=dark] .rcres.over{color:#A9C3F2}
 .rcsheet .muted.sm{margin-top:10px}
 @media (max-width:420px){.rcrow{grid-template-columns:1fr 128px}}
-@media (max-width:600px){#rembar .rb-btn[data-a=remver]{display:none}}
