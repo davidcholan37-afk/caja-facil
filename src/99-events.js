@@ -45,7 +45,7 @@ document.addEventListener("input", (e) => {
   else if (id === "rsq" || id === "rsc") updRestock();
   else if (t.dataset.in === "wk") paintWeighLcd();
   else if (id === "qv") updQty();
-  else if (id === "cntd" && ui.cnt) { ui.cnt.direct = t.value; const b = $("[data-a=shclose]"); if (b) b.disabled = t.value.trim() === "" && !Object.values(ui.cnt.q).some((n) => n > 0); }
+  else if (id === "cntd" && ui.cnt) { ui.cnt.direct = t.value; arqUpd(); }
   else if (id === "mva" && $("#mvsum")) { const l = parseAmounts(t.value); $("#mvsum").textContent = l.length ? `${l.length} ${l.length === 1 ? "monto" : "montos"} · Total ${money(l.reduce((a, b) => a + b, 0))}` : ""; }
 });
 // Los cambios se aplican un instante después: redibujar justo durante un "blur" da error en algunos navegadores.
@@ -57,7 +57,6 @@ function onChange(t) {
   if ((t.id && t.id.slice(0, 3) === "vt-") || t.dataset.vtx) { save(); return; }
   if (t.dataset.perm) { const [r, p] = t.dataset.perm.split(":"), L = DB.roles[r]; if (t.checked) { if (!L.includes(p)) L.push(p); } else DB.roles[r] = L.filter((x) => x !== p); log("Permisos", `${ROLE_LABEL[r]}: ${t.checked ? "puede" : "no puede"} ${PERMS.find((x) => x[0] === p)[1]}`); save(); toast("Permiso guardado"); return; }
   if (t.closest && t.closest("#pe") && t.dataset.f === "unit") { readPE(); paintPE(); return; }
-  if (t.id === "cntd" && ui.cnt) { closeShiftUI(ui.cnt.id); return; }
   if (k === "disc") {
     const v = Math.max(0, r2(num(t.value))), apply = () => { DB.cart.disc = v; if (v) log("Descuento", `${money(v)} en ${ticketLabel(DB.cart)}`); save(); paintCart(); };
     if (v > 0 && !can("descuento")) { t.value = DB.cart.disc || ""; return need("descuento", apply, `Descuento de ${money(v)}`); }

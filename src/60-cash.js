@@ -50,44 +50,62 @@ function autoShift() {
   DB.shifts.push(sh); log("Apertura de caja", `${u.name}: automática al primer cobro`); save(); paintNav();
   toast("Abrimos tu caja. Anota tu sencillo en Caja");
 }
-// Cambiar turno (pedido de David, 26 oct 2026): el mismo arqueo y, al cerrar, el que sigue abre la caja con lo contado ya puesto.
+// Cambiar turno (pedido de David, 26 oct 2026): se cuenta la caja y, al cerrar, el que sigue abre con lo contado ya puesto.
+// No imprime solo: «Imprimir» queda como botón.
+const arqRes = (sh) => (sh.diff === 0 ? "La caja cuadra ✓" : sh.diff < 0 ? `Faltó ${money(-sh.diff)}` : `Sobró ${money(sh.diff)}`);
 function turnoSigue(sh) {
-  if (!needLogin()) return openShift();
-  openModal(`<h2>Turno cerrado</h2><p class="muted" style="margin-bottom:14px">${esc(sh.un)} dejó ${money(sh.counted)} en el cajón. ¿Quién recibe la caja?</p>
-    <div class="btns h"><button class="btn sec" data-a="shopen">Sigo yo</button><button class="btn" data-a="turnolock">Entra otro cajero</button></div>`);
+  openModal(`<div class="arqfin"><span class="arqico ${sh.diff === 0 ? "ok" : sh.diff < 0 ? "short" : "over"}">${sh.diff === 0 ? "✓" : "!"}</span><h2>Turno cerrado</h2>
+    <p>${esc(sh.un)} dejó <b class="num">${money(sh.counted)}</b> en el cajón · ${arqRes(sh)}</p><p class="muted">¿Quién recibe la caja?</p></div>
+    <div class="btns h">${needLogin() ? `<button class="btn sec" data-a="shopen">Sigo yo</button><button class="btn" data-a="turnolock" data-enter>Entra otro cajero</button>` : `<button class="btn sec" data-a="close">Ahora no</button><button class="btn" data-a="shopen" data-enter>Abrir el siguiente turno</button>`}</div>
+    <button class="link arqprn" data-a="liqprint" data-id="${sh.id}">${svg("print", "bi")}Imprimir el cierre del turno</button>`);
 }
-// Cerrar el día (botón de arriba): cuenta tu caja si está abierta y luego hace el cierre del día (Z).
+// Al terminar: lo que pasó y botones para imprimir si quiere.
+function cajaListo(sh, z) {
+  openModal(`<div class="arqfin"><span class="arqico ${!sh || sh.diff === 0 ? "ok" : sh.diff < 0 ? "short" : "over"}">${!sh || sh.diff === 0 ? "✓" : "!"}</span><h2>${z ? "Día cerrado" : "Caja cerrada"}</h2>
+    ${sh ? `<p>Contaste <b class="num">${money(sh.counted)}</b> · ${arqRes(sh)}</p>` : ""}${z ? `<p class="muted">Cierre del día (Z) N° ${pad(z.z, 4)} guardado.</p>` : ""}</div>
+    <div class="btns h">${sh ? `<button class="btn sec" data-a="liqprint" data-id="${sh.id}">${svg("print", "bi")}Imprimir caja</button>` : ""}${z ? `<button class="btn sec" data-a="zprint" data-id="${z.id}">${svg("print", "bi")}Imprimir Z</button>` : ""}<button class="btn" data-a="close" data-enter>Listo</button></div>`);
+}
+// Cerrar caja del día: cuenta tu caja si está abierta y luego hace el cierre del día (Z).
 function cerrarDia() {
   const k = dkey(); ui.date = k;
-  if (DB.closes.some((x) => x.date === k)) return toast("Hoy ya tiene cierre del día");
+  const mine = curShift(), z = DB.closes.some((x) => x.date === k);
+  if (z) { if (mine) { ui.cnt = null; ui.turno = ui.dia = false; return closeShiftUI(mine.id); } return toast("Hoy ya tiene cierre del día"); }
   const abiertas = DB.shifts.filter((s) => !s.t1 && s.u !== ui.user);
+  if (abiertas.length && ui.lastSh) { cajaListo(ui.lastSh); ui.lastSh = null; }
   if (abiertas.length) return toast(`Primero cierren ${abiertas.length === 1 ? "la caja de" : "las cajas de"} ${abiertas.map((s) => s.un).join(", ")}. Tócala en «Cajas del día».`, true);
-  const mine = curShift();
   if (mine) { ui.cnt = null; ui.turno = false; ui.dia = true; return closeShiftUI(mine.id); }
-  A.zclose();
+  need("cierre", () => A.zclose(), "Cierre del día");
 }
+// Contar la caja (pedido de David, 26 oct 2026: «se ve muy complicado»): arriba cuánto debe haber, un solo campo grande
+// «¿Cuánto hay en el cajón?», al toque si cuadra/falta/sobra, y «Contar billete por billete» plegado para quien lo quiera.
+const denLbl = (d) => (d < 1 ? `${Math.round(d * 100)} cént.` : `S/ ${d}`);
 function closeShiftUI(id) {
   const sh = DB.shifts.find((s) => s.id === id); if (!sh) return;
   ui.cnt = ui.cnt && ui.cnt.id === id ? ui.cnt : { id, q: {}, direct: "" };
-  const S = shiftSummary(sh), q = ui.cnt.q, counted = ui.cnt.direct !== "" ? r2(num(ui.cnt.direct)) : countTotal(q), diff = r2(counted - S.expected), any = ui.cnt.direct !== "" || Object.values(q).some((n) => n > 0);
-  openModal(`<h2>${ui.turno ? `Cambiar turno: cuenta la caja de ${esc(sh.un)}` : ui.dia ? `Cerrar el día: cuenta la caja de ${esc(sh.un)}` : `Cerrar caja de ${esc(sh.un)}`}</h2><p class="muted" style="margin-bottom:10px">Abierta ${fmtDT(sh.t0)} · ${S.n} ventas</p>
-    <div class="cols2"><div>
-      <div class="kv"><span>Caja inicial</span><b class="num">${money(sh.open)}</b></div>
-      <div class="kv"><span>+ Ventas en efectivo</span><b class="num">${money(S.by.efectivo || 0)}</b></div>
-      ${S.abonosCash ? `<div class="kv"><span>+ Cobros de deudas</span><b class="num">${money(S.abonosCash)}</b></div>` : ""}${S.ingresos ? `<div class="kv"><span>+ Otros ingresos</span><b class="num">${money(S.ingresos)}</b></div>` : ""}
-      ${S.prov ? `<div class="kv"><span>− Proveedores</span><b class="num">${money(S.prov)}</b></div>` : ""}${S.gastos ? `<div class="kv"><span>− Gastos</span><b class="num">${money(S.gastos)}</b></div>` : ""}${S.retiros ? `<div class="kv"><span>− Retiros</span><b class="num">${money(S.retiros)}</b></div>` : ""}${S.devol || S.anul ? `<div class="kv"><span>− Devoluciones y anulaciones</span><b class="num">${money(S.devol + S.anul)}</b></div>` : ""}
-      <div class="kv strong"><span>Debe haber</span><b class="num">${money(S.expected)}</b></div>
-      <div class="kv"><span>Yape / Plin / BCP / tarjeta</span><b class="num">${money((S.by.yape || 0) + (S.by.plin || 0) + (S.by.bcp || 0) + (S.by.culqi || 0) + (S.by.tarjeta || 0) + (S.by.transferencia || 0))}</b></div>
-      ${S.by.credito ? `<div class="kv"><span>Ventas al crédito</span><b class="num">${money(S.by.credito)}</b></div>` : ""}
-      ${any ? `<div class="verdict ${diff === 0 ? "ok" : diff < 0 ? "short" : "over"}"><span>${diff === 0 ? "La caja cuadra" : diff < 0 ? "Falta dinero" : "Sobra dinero"}</span><b class="num">${money(Math.abs(diff))}</b></div>` : ""}
-    </div><div>
-      <p class="muted" style="margin-bottom:6px">Cuenta billetes y monedas (o escribe el total abajo):</p>
-      ${DENOMS.map((d) => `<div class="den"><b class="num">S/ ${d < 1 ? d.toFixed(2) : d}</b><span class="step"><button data-a="den" data-d="${d}" data-v="-1" aria-label="Quitar">−</button><span class="num">${q[d] || 0}</span><button data-a="den" data-d="${d}" data-v="1" aria-label="Agregar">+</button></span><span class="s num">${money(d * (q[d] || 0))}</span></div>`).join("")}
-      <label class="fld" style="margin-top:8px"><span>Total contado (S/)</span><input class="inp num" id="cntd" inputmode="decimal" value="${ui.cnt.direct !== "" ? esc(ui.cnt.direct) : any ? counted.toFixed(2) : ""}" placeholder="0.00"></label>
-    </div></div>
-    <label class="fld"><span>Observación (opcional)</span><input class="inp" id="cntn" maxlength="60"></label>
-    <div class="btns h"><button class="btn sec" data-a="cntcancel">Cancelar</button><button class="btn" data-a="shclose" data-id="${sh.id}" ${any ? "" : "disabled"}>Cerrar caja e imprimir</button></div>`, "wide");
-  ui.mk = "count";
+  const S = shiftSummary(sh), q = ui.cnt.q, conDen = Object.values(q).some((n) => n > 0);
+  const val = ui.cnt.direct !== "" ? ui.cnt.direct : conDen ? countTotal(q).toFixed(2) : "";
+  const tit = ui.turno ? "Cambiar turno" : ui.dia ? "Cerrar caja del día" : `Cerrar la caja de ${esc(sh.un)}`;
+  const ok = ui.turno ? "Cerrar y pasar la caja" : ui.dia ? "Cerrar caja del día" : "Cerrar caja";
+  const ln = (t, a) => `<div class="kv"><span>${t}</span><b class="num">${money(a)}</b></div>`;
+  const dig = (S.by.yape || 0) + (S.by.plin || 0) + (S.by.bcp || 0) + (S.by.culqi || 0) + (S.by.tarjeta || 0) + (S.by.transferencia || 0);
+  openModal(`<div class="arq"><h2>${tit}</h2><p class="muted">${esc(sh.un)} · desde ${hhmm(sh.t0)} · ${S.n === 1 ? "1 venta" : S.n + " ventas"}</p>
+    <div class="arqdebe"><span>En el cajón debe haber</span><b class="num">${money(S.expected)}</b></div>
+    <details class="arqhow"><summary>¿De dónde sale?</summary>${ln("Empezaste con", sh.open)}${ln("+ Ventas en efectivo", S.by.efectivo || 0)}${S.abonosCash ? ln("+ Cobros de deudas", S.abonosCash) : ""}${S.ingresos ? ln("+ Metiste plata", S.ingresos) : ""}${S.prov ? ln("− Proveedores", S.prov) : ""}${S.gastos ? ln("− Gastos", S.gastos) : ""}${S.retiros ? ln("− Sacaste", S.retiros) : ""}${S.devol || S.anul ? ln("− Devoluciones", S.devol + S.anul) : ""}${dig ? `<p class="muted sm">Yape, Plin, BCP y tarjeta (${money(dig)}) no van en el cajón.</p>` : ""}</details>
+    <label class="arqin"><span>¿Cuánto hay en el cajón?</span><span class="arqbox"><i>S/</i><input id="cntd" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(val)}" autofocus></span></label>
+    <div class="arqres" id="arqres" aria-live="polite"></div>
+    <details class="arqden"${conDen ? " open" : ""}><summary>Contar billete por billete</summary><div class="arqgrid">${DENOMS.map((d) => `<div class="arqd ${d >= 10 ? "bil" : "mon"}"><b>${denLbl(d)}</b><span class="arqst"><button data-a="den" data-d="${d}" data-v="-1" aria-label="Quitar ${denLbl(d)}">−</button><span class="num" data-dq="${d}">${q[d] || 0}</span><button data-a="den" data-d="${d}" data-v="1" aria-label="Agregar ${denLbl(d)}">+</button></span></div>`).join("")}</div></details>
+    <label class="fld arqnota"><span>Nota (opcional)</span><input class="inp" id="cntn" maxlength="60"></label></div>
+    <div class="btns h"><button class="btn sec" data-a="cntcancel">Cancelar</button><button class="btn" id="arqok" data-a="shclose" data-id="${sh.id}" data-enter disabled>${ok}</button></div>`);
+  ui.mk = "count"; ui.cnt.exp = S.expected; arqUpd();
+  setTimeout(() => { const i = $("#cntd"); if (i) { i.focus(); i.select(); } }, 30);
+}
+// Pone al día el resultado sin volver a dibujar la ventana (así no se pierde lo que se escribe).
+function arqUpd() {
+  const c = ui.cnt, r = $("#arqres"), b = $("#arqok"); if (!c || !r) return;
+  const any = c.direct.trim() !== "" || Object.values(c.q).some((n) => n > 0), counted = c.direct.trim() !== "" ? r2(num(c.direct)) : countTotal(c.q), diff = r2(counted - (c.exp || 0));
+  r.className = "arqres" + (any ? (diff === 0 ? " ok" : diff < 0 ? " short" : " over") : "");
+  r.innerHTML = !any ? "Escribe lo que contaste" : diff === 0 ? "✓ La caja cuadra" : diff < 0 ? `Falta <b class="num">${money(-diff)}</b>` : `Sobra <b class="num">${money(diff)}</b>`;
+  if (b) b.disabled = !any;
 }
 function liqHtml(sh) {
   const S = sh.sum || shiftSummary(sh);
@@ -142,8 +160,8 @@ VIEWS.caja = function viewCash(v) {
   v.innerHTML = `<div class="ph"><h1>Caja</h1>${can("caja") ? `<div class="row wrap"><button class="btn sec sm" data-a="mv" data-t="gasto">Gasto</button><button class="btn sec sm" data-a="mv" data-t="yape">Anotar Yapes</button><button class="btn sec sm" data-a="cajamas">Más</button></div>` : ""}</div>
     <div class="datebar"><button data-a="dstep" data-d="-1" aria-label="Día anterior">‹</button><label><span>${esc(fmtDate(k))}${!today ? ` · ${dmy(k)}` : ""}</span><input type="date" value="${k}" max="${dkey()}" data-in="date" aria-label="Elegir fecha"></label><button data-a="dstep" data-d="1" aria-label="Día siguiente" ${today ? "disabled" : ""}>›</button></div>
     ${today && can("caja") ? `<div class="card shiftcard ${mine ? "open" : ""}">${mine ? `<div class="row sp wrap"><div><h2>Tu caja está abierta</h2><p class="muted">Desde ${hhmm(mine.t0)} · empezaste con ${money(mine.open)} <button class="link xs" data-a="shopenedit" data-id="${mine.id}">${mine.open ? "Cambiar" : "Anotar sencillo"}</button> · ${MS.n} ventas</p></div><div class="bigcash"><span>Efectivo que debe haber</span><b class="num">${money(MS.expected)}</b></div></div>
-      <div class="row wrap" style="margin-top:12px"><button class="btn" data-a="shcount" data-id="${mine.id}">Cerrar mi caja (arqueo)</button><button class="btn sec" data-a="shturno" data-id="${mine.id}">${svg("swap", "bi")}Cambiar turno</button>${can("cierre") && !z ? `<button class="btn sec" data-a="cerrardia">${svg("lock", "bi")}Cerrar día</button>` : ""}<button class="btn sec" data-a="liqprint" data-id="${mine.id}">${svg("print", "bi")}Corte parcial</button></div>`
-      : `<div class="row sp wrap"><div><h2>Tu caja está cerrada</h2><p class="muted">Ábrela con el sencillo del cajón para empezar a cobrar.</p></div><div class="row wrap">${can("cierre") && !z && shifts.length ? `<button class="btn sec" data-a="cerrardia">${svg("lock", "bi")}Cerrar día</button>` : ""}<button class="btn" data-a="shopen">Abrir caja</button></div></div>`}</div>` : ""}
+      <div class="row wrap cjacts3" style="margin-top:12px"><button class="btn sec" data-a="shturno" data-id="${mine.id}">${svg("swap", "bi")}Cambiar turno</button><button class="btn" data-a="cerrardia">${svg("lock", "bi")}Cerrar caja del día</button></div>`
+      : `<div class="row sp wrap"><div><h2>Tu caja está cerrada</h2><p class="muted">Ábrela con el sencillo del cajón para empezar a cobrar.</p></div><div class="row wrap cjacts3">${!z && shifts.length ? `<button class="btn sec" data-a="cerrardia">${svg("lock", "bi")}Cerrar caja del día</button>` : ""}<button class="btn" data-a="shopen">Abrir caja</button></div></div>`}</div>` : ""}
     <div class="cols stack"><div class="stack">
       <div class="card vdia">${cajaDia(T)}
         ${T.abonos ? `<div class="kv"><span>Cobros de deudas</span><span class="num">${money(T.abonos)}</span></div>` : ""}${T.ret ? `<div class="kv"><span>Devoluciones</span><span class="num">− ${money(T.ret)}</span></div>` : ""}${T.voids ? `<div class="kv"><span>Ventas anuladas</span><span class="num">${T.voids}</span></div>` : ""}</div>
@@ -179,10 +197,10 @@ act({
       const n = Math.max(0, r2(num(v))); log("Sencillo inicial", `${sh.un}: ${money(sh.open)} → ${money(n)}`); sh.open = n; save(); toast("Guardado"); render();
     });
   },
-  shcount: (el) => { ui.cnt = null; ui.turno = ui.dia = false; closeShiftUI(el.dataset.id); },
+  shcount: (el) => { ui.cnt = null; ui.turno = ui.dia = false; ui.lastSh = null; closeShiftUI(el.dataset.id); },
   shturno: (el) => { ui.cnt = null; ui.turno = true; ui.dia = false; closeShiftUI(el.dataset.id); },
   turnolock: () => { closeModal(); lockNow(); },
-  cerrardia: () => need("cierre", cerrarDia, "Cierre del día"),
+  cerrardia: () => { ui.lastSh = null; cerrarDia(); },
   liq: (el) => {
     const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (!sh) return; ui.turno = ui.dia = false;
     if (!sh.t1 && sh.u !== ui.user) return can("cierre") ? confirmBox(`¿Cerrar la caja de ${sh.un}?`, "Hacer arqueo", () => { ui.cnt = null; closeShiftUI(sh.id); }, false) : toast("Solo un supervisor puede cerrar una caja ajena");
@@ -190,21 +208,25 @@ act({
     openModal(`<div class="rcpt">${liqHtml(sh)}</div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button><button class="btn" data-a="liqprint" data-id="${sh.id}">${svg("print", "bi")}Imprimir</button></div>`);
   },
   liqprint: (el) => { const sh = DB.shifts.find((s) => s.id === el.dataset.id); if (sh) printHtml(liqHtml(sh)); },
-  den: (el) => { const c = ui.cnt; if (!c) return; const d = el.dataset.d; c.q[d] = Math.max(0, (c.q[d] || 0) + +el.dataset.v); c.direct = ""; closeShiftUI(c.id); },
+  den: (el) => {
+    const c = ui.cnt; if (!c) return; const d = el.dataset.d; c.q[d] = Math.max(0, (c.q[d] || 0) + +el.dataset.v); c.direct = "";
+    const n = $(`[data-dq="${d}"]`); if (n) n.textContent = c.q[d]; const i = $("#cntd"); if (i) i.value = Object.values(c.q).some((x) => x > 0) ? countTotal(c.q).toFixed(2) : ""; arqUpd();
+  },
   cntcancel: () => { ui.cnt = null; ui.turno = ui.dia = false; closeModal(); },
   shclose: (el) => {
     const sh = DB.shifts.find((s) => s.id === el.dataset.id), c = ui.cnt; if (!sh || !c) return;
     const S = shiftSummary(sh), counted = c.direct !== "" ? r2(num(c.direct)) : countTotal(c.q);
     Object.assign(sh, { t1: Date.now(), d1: dkey(), q: c.q, counted, expected: S.expected, diff: r2(counted - S.expected), note: ($("#cntn") || { value: "" }).value.trim(), by: me().name, sum: S });
     log("Cierre de caja", `${sh.un}: esperado ${money(S.expected)}, contado ${money(counted)}`);
-    ui.cnt = null; save(sh.d0); closeModal(); printHtml(liqHtml(sh)); toast(sh.diff === 0 ? "Caja cerrada: cuadra" : sh.diff < 0 ? `Caja cerrada: falta ${money(-sh.diff)}` : `Caja cerrada: sobra ${money(sh.diff)}`, true); render();
+    ui.cnt = null; save(sh.d0); closeModal(); render();
     if (ui.turno) { ui.turno = false; turnoSigue(sh); }
-    else if (ui.dia) { ui.dia = false; cerrarDia(); }
+    else if (ui.dia) { ui.dia = false; ui.lastSh = sh; cerrarDia(); }
+    else cajaListo(sh);
   },
   zclose: () => need("cierre", () => {
     const k = ui.date; if (DB.closes.some((x) => x.date === k)) return toast("Este día ya tiene cierre");
     const z = { id: uid(), z: ++DB.zseq, date: k, t: Date.now(), un: me().name, sum: zSummary(k) };
-    DB.closes.push(z); log("Cierre del día", `Z ${z.z} · ${dmy(k)}`); save(k); printHtml(zHtml(z)); toast("Cierre del día guardado"); render();
+    DB.closes.push(z); log("Cierre del día", `Z ${z.z} · ${dmy(k)}`); save(k); render(); cajaListo(ui.lastSh, z); ui.lastSh = null;
   }, "Cierre del día"),
   zprint: (el) => { const z = DB.closes.find((x) => x.id === el.dataset.id); if (z) printHtml(zHtml(z)); },
   cajamas: () => openModal(`<h2>Más movimientos de caja</h2><div class="fgrid" style="margin:12px 0"><button class="fb" data-a="tab" data-t="prov">Proveedores</button><button class="fb" data-a="mv" data-t="ingreso">Ingreso de dinero</button><button class="fb" data-a="mv" data-t="retiro">Retiro de dinero</button></div><div class="btns h"><button class="btn sec" data-a="close">Cerrar</button></div>`),

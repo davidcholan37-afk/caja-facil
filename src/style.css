@@ -3286,3 +3286,38 @@ html[data-input=kbd] :is(button,a,summary,select,[data-a],[tabindex]):focus-visi
 html[data-input=kbd] :is(input,textarea):focus-visible{outline:3px solid #15A048!important;outline-offset:1px!important}
 html[data-input=kbd] aside.side :is(button,a):focus-visible{outline-color:#B9F5CF!important;box-shadow:0 0 0 6px rgba(185,245,207,.25)!important}
 html[data-input=kbd] .pvq input:focus-visible{outline:0!important}
+
+/* ===== Contar la caja (26 oct 2026, «se ve muy complicado»): cuánto debe haber, un campo grande, resultado al toque y billetes plegados ===== */
+.arq h2{margin:0}.arq>p.muted{margin:2px 0 12px}
+.arqdebe{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:14px;background:var(--s2)}
+.arqdebe span{font-size:15px;font-weight:650;color:var(--t2)}.arqdebe b{font-size:26px;font-weight:850;letter-spacing:-.01em;color:var(--t1)}
+.arqhow{margin:4px 2px 0}.arqhow summary,.arqden summary{display:flex;align-items:center;min-height:40px;cursor:pointer;color:var(--ac);font-size:14px;font-weight:700;list-style:none}
+.arqhow summary::-webkit-details-marker,.arqden summary::-webkit-details-marker{display:none}
+.arqhow summary::after,.arqden summary::after{content:"›";margin-left:8px;font-size:18px;transition:transform .2s var(--ease-out,ease-out)}
+.arqhow[open] summary::after,.arqden[open] summary::after{transform:rotate(90deg)}
+.arqhow .kv{font-size:14px;padding:5px 2px}.arqhow p{margin:6px 2px 2px}
+.arqin{display:block;margin-top:10px}.arqin>span:first-child{display:block;margin-bottom:6px;font-size:16px;font-weight:750;color:var(--t1)}
+.arqbox{display:flex;align-items:center;gap:8px;min-height:64px;padding:0 16px;border-radius:14px;background:var(--s1);box-shadow:inset 0 0 0 2px var(--hl2)}
+.arqbox:focus-within{box-shadow:inset 0 0 0 2.5px var(--ac)}
+.arqbox i{font-style:normal;font-size:22px;font-weight:700;color:var(--t3)}
+.arqbox input{flex:1;min-width:0;border:0;outline:0!important;background:none;color:var(--t1);font:850 32px var(--f,inherit);letter-spacing:-.01em}
+.arqres{margin-top:10px;padding:12px 16px;border-radius:14px;background:var(--s2);color:var(--t2);font-size:17px;font-weight:700;text-align:center}
+.arqres b{font-size:22px;font-weight:850}
+.arqres.ok{background:#DDF5E6;color:#0E6B32}.arqres.short{background:#FDE2DF;color:#9B1C12}.arqres.over{background:#FFF0D6;color:#8A4B0A}
+html[data-theme=dark] .arqres.ok{background:rgba(80,200,120,.16);color:#8FE3AE}html[data-theme=dark] .arqres.short{background:rgba(240,90,70,.16);color:#FF9A8A}html[data-theme=dark] .arqres.over{background:rgba(255,170,80,.16);color:#FFC27A}
+.arqden{margin-top:6px}
+.arqgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding-bottom:4px}
+.arqd{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:12px;background:var(--s2)}
+.arqd b{font-size:14.5px;font-weight:800;color:var(--t1)}.arqd.bil b{color:#0E6B32}html[data-theme=dark] .arqd.bil b{color:#8FE3AE}
+.arqst{display:flex;align-items:center;gap:4px}.arqst .num{min-width:28px;text-align:center;font-size:17px;font-weight:800}
+.arqst button{width:40px;height:40px;border:0;border-radius:10px;background:var(--s1);box-shadow:inset 0 0 0 1px var(--hl2);color:var(--t1);font:700 20px var(--f,inherit);cursor:pointer;transition:transform .12s var(--ease-out,ease-out)}
+.arqst button:active{transform:scale(.94)}
+.arqnota{margin-top:8px}
+.arqfin{text-align:center;padding:4px 0 8px}.arqfin p{margin:4px 0}.arqfin h2{margin:8px 0 4px}
+.arqico{display:inline-grid;place-items:center;width:56px;height:56px;border-radius:50%;font-size:28px;font-weight:900}
+.arqico.ok{background:#DDF5E6;color:#0E7A36}.arqico.short{background:#FDE2DF;color:#9B1C12}.arqico.over{background:#FFF0D6;color:#B45309}
+.arqprn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;min-height:40px}
+.cjacts3 .btn{min-height:48px}
+@media (prefers-reduced-motion:reduce){.arqhow summary::after,.arqden summary::after,.arqst button{transition:none}}
+html[data-input=kbd] .arqbox input:focus-visible{outline:0!important;box-shadow:none!important}
+.arqfin+.btns{flex-wrap:wrap}.arqfin+.btns .btn[data-a=close]{flex-basis:100%}
