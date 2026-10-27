@@ -179,19 +179,34 @@ function remGo(neg, sid, name) {
     location.reload();
   }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender y la caja se ven solo allá.");
 }
-function remPickHtml(neg, tiendas) {
+function remPickHtml(neg, tiendas, cli = []) {
+  const it = (t, n, mine) => `<button class="it" data-a="remone" data-n="${esc(n)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${!mine && t.correo ? esc(t.correo) + " · " : ""}${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}</small></div></button>`;
   return `<h2>¿Qué caja quieres manejar?</h2><p class="muted" style="margin-bottom:12px">Cambia sus productos, precios, clientes, proveedores, usuarios, ajustes y vitrina desde aquí.</p>
-    <div class="list">${tiendas.map((t) => `<button class="it" data-a="remone" data-n="${esc(neg)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}</small></div></button>`).join("")}</div>
+    ${tiendas.length ? `${cli.length ? `<h3 class="remh">Tu negocio</h3>` : ""}<div class="list">${tiendas.map((t) => it(t, neg, true)).join("")}</div>` : ""}
+    ${cli.length ? `<h3 class="remh">Cajas de tus clientes <small class="muted">· te dieron permiso</small></h3><div class="list">${cli.map((t) => it(t, t.neg, false)).join("")}</div>` : ""}
     <div class="btns"><button class="btn sec" data-a="close">Cancelar</button></div>`;
+}
+// Cajas de clientes que le dieron permiso de soporte al proveedor (pedido de David, 26 oct 2026: «ya me dio acceso pero no me aparece al manejar caja»).
+async function remClientes() {
+  const st = cloudLoad(); if (!st.admin) return [];
+  const out = [];
+  try {
+    const ns = await sb("rpc/admin_negocios", { method: "POST", body: {} });
+    for (const n of (ns || []).filter((n) => n.id !== st.neg && n.soporte_hasta && Date.parse(n.soporte_hasta) > Date.now())) {
+      try { const r = await sb(`registros?select=tienda,actualizado,nombre:datos->biz->>store,negocio:datos->biz->>name&negocio_id=eq.${n.id}&tipo=eq.config&borrado=eq.false&order=actualizado.desc`); r.forEach((x) => out.push({ ...x, neg: n.id, correo: n.correo || "" })); } catch (e) {}
+    }
+  } catch (e) {}
+  return out;
 }
 async function remPick() {
   try {
     const dev = cloudLoad().dev, ver = cloudLoad().ver;
     // La tienda de este equipo no se ofrece… salvo que en la nube la escriba OTRO equipo: entonces este es solo una
     // copia (p. ej. un celular donde se usó «Recuperar una tienda» de la caja de la tienda) y sí se puede manejar.
-    const t = (await cloudTiendas()).filter((x) => ver || x.tienda !== DB.biz.sid || (x.dispositivo && x.dispositivo !== dev));
-    if (!t.length) return toast("No hay otra caja de tu negocio en la nube");
-    openModal(remPickHtml(cloudLoad().neg, t));
+    const [t0, cli] = await Promise.all([cloudTiendas(), remClientes()]);
+    const t = t0.filter((x) => ver || x.tienda !== DB.biz.sid || (x.dispositivo && x.dispositivo !== dev));
+    if (!t.length && !cli.length) return toast(cloudLoad().admin ? "No hay otra caja de tu negocio y ningún cliente te dio permiso de soporte" : "No hay otra caja de tu negocio en la nube");
+    openModal(remPickHtml(cloudLoad().neg, t, cli));
   } catch (e) { toast("Sin conexión con la nube", true); }
 }
 async function remCliente(id) {
@@ -229,7 +244,7 @@ function remSettingsHtml() {
     <div class="btns h"><button class="btn" data-a="remsalir">Salir y volver a mi caja</button></div></div>`;
 }
 function remOfrecerHtml() {
-  return `<div class="card"><h2>Manejar otra caja</h2><p class="muted" style="margin-bottom:10px">Cambia productos, precios, stock, clientes, usuarios, ajustes y vitrina de otra caja de tu negocio desde este equipo. Su caja recibe los cambios sola en un minuto. Tus datos de aquí no se tocan.</p><button class="btn sec" data-a="rempick">Elegir caja</button></div>`;
+  return `<div class="card"><h2>Manejar otra caja</h2><p class="muted" style="margin-bottom:10px">Cambia productos, precios, stock, clientes, usuarios, ajustes y vitrina de otra caja de tu negocio${cloudLoad().admin ? " (o de un cliente que te dio permiso)" : ""} desde este equipo. Su caja recibe los cambios sola en un minuto. Tus datos de aquí no se tocan.</p><button class="btn sec" data-a="rempick">Elegir caja</button></div>`;
 }
 
 /* ---------- en la caja de la tienda: recibir y aplicar ---------- */
