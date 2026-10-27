@@ -106,16 +106,18 @@ function llegoPaint() {
     return;
   }
   const b = suppBal(s), cash = can("caja");
-  const chip = (k, t) => `<button class="llc${L.pay === k ? " on" : ""}" data-a="llpay" data-k="${k}" aria-pressed="${L.pay === k}">${t}</button>`;
-  openModal(`<h2>Llegó ${esc(s.name)}</h2>
-    <div class="llwho"><span class="pvav" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span><div><b>${esc(s.name)}</b><small>${b > 0 ? `Ya le debías <b class="num">${money(b)}</b>` : "No le debías nada"}</small></div><button class="link" data-a="llcambiar">Cambiar</button></div>
-    <label class="llq1"><span>1. ¿De cuánto es la boleta? <small class="muted">(lo que trajo hoy; vacío si solo viene a cobrar)</small></span><span class="llbox"><i>S/</i><input id="lla" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(L.dejo)}"></span></label>
-    <div class="llq1"><span>2. ¿Cuánto le pagas ahora?</span><div class="llch">${chip("hoy", `La boleta · <b class="num" id="llh"></b>`)}${b > 0 ? chip("todo", `Todo lo que le debes · <b class="num" id="llt"></b>`) : ""}${chip("otro", "Una parte (abono)")}${chip("nada", "Nada, me fió")}</div>
-      ${L.pay === "otro" ? `<span class="llbox sm"><i>S/</i><input id="llo" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(L.otro)}"></span>` : ""}
-      ${L.pay !== "nada" ? `<div class="llch llm">${["efectivo", "yape", "plin", "bcp"].map((m) => `<button class="llc${L.m === m ? " on" : ""}" data-a="llmet" data-m="${m}"><i class="pmi m-${m}" aria-hidden="true"></i>${METHODS[m]}</button>`).join("")}</div>${L.m === "efectivo" ? `<p class="muted sm">${cash ? "Sale del efectivo de la caja." : "Tu usuario no puede sacar dinero de la caja: elige otro medio."}</p>` : ""}` : ""}</div>
-    <label class="fld llnota"><span>Nota (opcional)</span><input class="inp" id="lln" maxlength="50" placeholder="Ej: factura 123, gaseosas y arroz" value="${esc(L.note)}"></label>
+  // «ordenado y más chico» (David, 26 oct 2026): cabecera de una línea, cada pregunta en su fila con la etiqueta a la izquierda,
+  // cuánto pagas y con qué en botones del mismo ancho, y abajo la cuenta (debías + boleta − pagas = quedas debiendo).
+  const chip = (k, t, sub) => `<button class="llc${L.pay === k ? " on" : ""}" data-a="llpay" data-k="${k}" aria-pressed="${L.pay === k}"><span>${t}</span><small class="num"${sub[0] === "#" ? ` id="${sub.slice(1)}"` : ""}>${sub[0] === "#" ? "" : sub}</small></button>`;
+  const row = (lab, body, cls = "") => `<div class="llrow${cls}"><span class="lllab">${lab}</span><div class="llval">${body}</div></div>`;
+  openModal(`<div class="llhd"><span class="pvav" style="background:${pvCol(s.name)}">${esc(pvIni(s.name))}</span><div><h2>Llegó ${esc(s.name)}</h2><small>${b > 0 ? `Ya le debías <b class="num">${money(b)}</b>` : "No le debías nada"}</small></div><button class="link" data-a="llcambiar">Cambiar</button></div>
+    ${row(`Boleta de hoy<small>vacía si solo cobra</small>`, `<label class="llbox"><i>S/</i><input id="lla" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(L.dejo)}" aria-label="De cuánto es la boleta"></label>`)}
+    ${row("Le pagas", `<div class="llseg${b > 0 ? " c4" : ""}">${chip("hoy", "La boleta", "#llh")}${b > 0 ? chip("todo", "Todo", "#llt") : ""}${chip("otro", "Abono", "una parte")}${chip("nada", "Nada", "me fió")}</div>
+      ${L.pay === "otro" ? `<label class="llbox sm"><i>S/</i><input id="llo" class="num" inputmode="decimal" placeholder="¿Cuánto abonas?" autocomplete="off" value="${esc(L.otro)}" aria-label="Cuánto abonas"></label>` : ""}`)}
+    ${L.pay !== "nada" ? row(`Con${L.m === "efectivo" ? `<small class="${cash ? "" : "bad"}">${cash ? "sale de la caja" : "no puedes sacar de la caja"}</small>` : ""}`, `<div class="llseg c4 llm">${["efectivo", "yape", "plin", "bcp"].map((m) => `<button class="llc${L.m === m ? " on" : ""}" data-a="llmet" data-m="${m}" aria-pressed="${L.m === m}"><i class="pmi m-${m}" aria-hidden="true"></i><span>${METHODS[m]}</span></button>`).join("")}</div>`) : ""}
+    ${row("Nota", `<input class="inp" id="lln" maxlength="50" placeholder="Opcional: factura 123, gaseosas…" value="${esc(L.note)}" aria-label="Nota">`)}
     <div class="llres" id="llres" aria-live="polite"></div>
-    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" id="llok" data-a="llok" data-enter>Guardar</button></div>`);
+    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" id="llok" data-a="llok" data-enter>Guardar</button></div>`, "llsheet");
   ["lla", "llo", "lln"].forEach((k) => { const i = $("#" + k); if (i) i.oninput = () => { llegoRead(); llegoUpd(); }; });
   llegoUpd();
   setTimeout(() => { const i = $(L.pay === "otro" && !L.otro ? "#llo" : "#lla"); if (i && !L.dejo) { i.focus(); i.select(); } }, 30);
@@ -126,7 +128,9 @@ function llegoUpd() {
   if (t) t.textContent = money(Math.max(0, c.total)); if (h) h.textContent = money(c.dejo);
   if (r) {
     r.className = "llres " + (c.queda > 0 ? "debe" : "ok");
-    r.innerHTML = `<span>${c.pago > 0 ? `Le pagas <b class="num">${money(c.pago)}</b> · ` : ""}${c.queda > 0 ? "Le quedarás debiendo" : "No le debes nada"}</span><b class="num">${c.queda > 0 ? money(c.queda) : "✓"}</b>`;
+    const ln = (t, v) => `<p><span>${t}</span><span class="num">${v}</span></p>`;
+    const parts = (c.b > 0 ? ln("Ya le debías", money(c.b)) : "") + (c.dejo > 0 ? ln("+ Boleta de hoy", money(c.dejo)) : "") + (c.pago > 0 ? ln("− Le pagas", money(c.pago)) : "");
+    r.innerHTML = (parts ? `<div class="llcta">${parts}</div>` : "") + `<p class="lltot"><span>${c.queda > 0 ? "Le quedarás debiendo" : "No le debes nada"}</span><b class="num">${c.queda > 0 ? money(c.queda) : "✓"}</b></p>`;
   }
   if (ok) ok.disabled = !(c.dejo > 0 || c.pago > 0);
 }
