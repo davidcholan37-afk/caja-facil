@@ -3358,4 +3358,20 @@ html[data-theme=dark] .llc.on{background:rgba(80,200,120,.16);color:#8FE3AE}html
 html[data-theme=dark] .llres.debe{background:rgba(255,170,80,.14);color:#FFC27A}html[data-theme=dark] .llres.ok{background:rgba(80,200,120,.16);color:#8FE3AE}
 .llsheet .btns.h{margin-top:12px}.llsheet .btns.h .btn{min-height:46px}
 @media (max-width:420px){.llrow{grid-template-columns:1fr;gap:6px}.lllab{padding-top:0}.lllab small{display:inline;margin-left:6px}}
+/* «reduce más el tamaño» (David, 26 oct 2026): ~430 px de alto en la NCR */
+.sheet.llsheet{max-width:430px;padding:12px 14px calc(12px + env(safe-area-inset-bottom))}
+.llhd{gap:8px;padding-bottom:8px;margin-bottom:0}.llhd .pvav{width:32px;height:32px;border-radius:10px;font-size:13px}
+.llhd h2{font-size:17px}.llhd small{font-size:12.5px;margin-top:0}.llhd .link{min-height:36px;font-size:14px}
+.llrow{grid-template-columns:86px 1fr;gap:8px;padding:6px 0}
+.lllab{padding-top:4px;font-size:13.5px}.lllab small{margin-top:1px;font-size:11px}
+.llbox{height:40px;padding:0 10px;border-radius:9px}.llbox i{font-size:14px}.llbox input{font-size:19px}
+.llbox.sm{height:36px;margin-top:5px}.llbox.sm input{font-size:16px}.llbox.sm input::placeholder{font-size:13.5px}
+.llseg{gap:4px}.llc{min-height:40px;padding:3px 3px;border-radius:9px;font-size:13px}.llc small{font-size:11px}
+.llm .llc{font-size:12px;gap:1px}.llc .pmi{width:16px;height:16px;border-radius:5px;background-size:10px}
+.llsheet #lln.inp{height:36px;min-height:36px;font-size:13.5px;padding:0 10px;border-radius:9px}
+.llres{margin-top:8px;padding:6px 10px;border-radius:10px;font-size:12.5px}
+.llcta{padding-bottom:3px;margin-bottom:3px;line-height:1.45}
+.lltot{font-size:14px}.lltot b{font-size:17px}
+.llsheet .btns.h{margin-top:10px;gap:8px}.llsheet .btns.h .btn{min-height:40px;font-size:15px}
+@media (max-width:420px){.llrow{grid-template-columns:1fr;gap:4px}.lllab{padding-top:0}}
 @media (prefers-reduced-motion:reduce){.pvllego,.llc{transition:none}}
