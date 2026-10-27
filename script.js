@@ -3581,6 +3581,7 @@ function remApply(d, quiet, meta) {
   (d.kx || []).forEach((e) => { const p = prod(e.p); if (p && p.stock != null) stockAdd(p, +e.q || 0, e.ty || "ajuste", (e.r ? e.r + " · " : "") + "desde otro equipo"); });
   Object.keys(d.c || {}).forEach((p) => remSetPath(p, d.c[p]));
   (d.cu || []).forEach((p) => remSetPath(p, undefined));
+  if (d.cierre) remCierreApply(d.cierre, quiet);
   if (!DB.users.some((u) => u.on && u.role === "admin")) { const a = DB.users.find((u) => u.role === "admin") || DB.users[0]; if (a) { a.on = true; a.role = "admin"; } }
   if (quiet) return;
   const quien = (meta && meta.autor) || "otro equipo";
@@ -3657,7 +3658,7 @@ function remGo(neg, sid, name) {
     if (copia) { cloud.st.ver = true; cloudStore(); } // este equipo era una copia: deja de ser caja (no sube ni recibe como ella)
     try { sessionStorage.setItem(REM_KEY, JSON.stringify({ neg, sid, name })); if (cloudLoad().ver) localStorage.setItem(REM_FIJO, JSON.stringify({ neg, sid, name })); } catch (e) { return toast("Este navegador no lo permite", true); }
     location.reload();
-  }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender y la caja se ven solo allá.");
+  }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender se hace solo allá; la caja del día la puedes cerrar desde aquí.");
 }
 function remPickHtml(neg, tiendas, cli = []) {
   const it = (t, n, mine) => `<button class="it" data-a="remone" data-n="${esc(n)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${!mine && t.correo ? esc(t.correo) + " · " : ""}${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}</small></div></button>`;
@@ -3698,6 +3699,65 @@ async function remCliente(id) {
   } catch (e) { toast("No se pudo: el cliente debe darte acceso de soporte", true); }
 }
 
+/* ---------- cerrar la caja del día a distancia (pedido de David, 26 oct 2026: «quiero cerrar caja desde mi laptop») ---------- */
+// La laptop no ve el cajón: alguien de la tienda le dice cuánto hay y él lo escribe. Va como un cambio más (`cierre`);
+// la caja de la tienda cierra esas cajas con lo que debe haber EN ESE MOMENTO (puede seguir vendiendo hasta que llegue)
+// y, si ya no queda ninguna abierta, hace el cierre del día (Z). Nada se imprime solo.
+function remCierreApply(ci, quiet) {
+  if (!ci) return;
+  const por = (ci.autor || "Dueño") + " (a distancia)", k = ci.k || dkey(), dias = [k];
+  (ci.cajas || []).forEach((c) => {
+    const sh = DB.shifts.find((x) => x.id === c.id && !x.t1); if (!sh) return;
+    const S = shiftSummary(sh), counted = r2(+c.counted || 0);
+    Object.assign(sh, { t1: Date.now(), d1: dkey(), q: {}, counted, expected: S.expected, diff: r2(counted - S.expected), note: "Cerrada a distancia", by: por, sum: S });
+    dias.push(sh.d0);
+    if (!quiet) log("Cierre de caja", `${sh.un}: esperado ${money(S.expected)}, contado ${money(counted)} · ${por}`);
+  });
+  const quedan = openShifts();
+  if (!quedan.length && !DB.closes.some((x) => x.date === k)) {
+    const z = { id: uid(), z: ++DB.zseq, date: k, t: Date.now(), un: por, sum: zSummary(k) };
+    DB.closes.push(z); if (!quiet) log("Cierre del día", `Z ${z.z} · ${dmy(k)} · ${por}`);
+  } else if (quedan.length && !quiet) log("Cierre del día pendiente", `Falta cerrar la caja de ${quedan.map((x) => x.un).join(", ")}`);
+  if (!quiet) save(...dias);
+}
+function remCierreUI() {
+  const k = dkey(), abiertas = openShifts(), z = DB.closes.some((x) => x.date === k);
+  if (remState.sent.some((x) => x.cierre && !x.ok)) return toast("Ya enviaste el cierre: su caja lo hará apenas esté prendida y con internet");
+  if (!abiertas.length && z) return toast("Su caja ya tiene el cierre de hoy");
+  if (!abiertas.length && !DB.sales.some((x) => x.date === k) && !DB.shifts.some((x) => x.d0 === k)) return toast("Hoy su caja no tiene ventas ni cajas abiertas");
+  openModal(`<h2>Cerrar caja del día</h2><p class="muted" style="margin-bottom:10px">${esc(REM.name)} · ${dmy(k)}</p>
+    ${abiertas.length ? `<p class="rch">Escribe cuánto contaron en el cajón:</p>${abiertas.map((sh) => { const S = shiftSummary(sh); return `<div class="rcrow"><div class="rcwho"><b>${esc(sh.un)}</b><small>Abrió ${hhmm(sh.t0)} · debe haber <b class="num">${money(S.expected)}</b></small></div><label class="llbox"><i>S/</i><input class="num rcq" data-id="${sh.id}" data-e="${S.expected}" inputmode="decimal" placeholder="0.00" autocomplete="off" aria-label="Cuánto contaron en la caja de ${esc(sh.un)}"></label><small class="rcres" data-r="${sh.id}"></small></div>`; }).join("")}`
+      : `<p style="margin-bottom:8px">No hay cajas abiertas: se hará el cierre del día (Z).</p>`}
+    <p class="muted sm">Su caja lo hace sola en un minuto si está prendida y con internet. Si venden algo más antes, allá se vuelve a calcular lo que debe haber.</p>
+    <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" id="rcok" data-a="remcierreok" data-enter${abiertas.length ? " disabled" : ""}>Cerrar caja del día</button></div>`, "rcsheet");
+  const upd = () => {
+    const ins = $$("#modal .rcq"); let all = true;
+    ins.forEach((i) => {
+      const r = $(`#modal [data-r="${i.dataset.id}"]`), v = i.value.trim();
+      if (v === "") { all = false; if (r) { r.textContent = ""; r.className = "rcres"; } return; }
+      const d = r2(num(v) - +i.dataset.e);
+      if (r) { r.textContent = d === 0 ? "Cuadra ✓" : d < 0 ? `Falta ${money(-d)}` : `Sobra ${money(d)}`; r.className = "rcres " + (d === 0 ? "ok" : d < 0 ? "short" : "over"); }
+    });
+    const b = $("#rcok"); if (b) b.disabled = !all;
+  };
+  $$("#modal .rcq").forEach((i) => { i.oninput = upd; });
+  setTimeout(() => { const i = $("#modal .rcq"); if (i) i.focus(); }, 40);
+}
+async function remCierreSend() {
+  const ins = $$("#modal .rcq");
+  if (ins.some((i) => i.value.trim() === "")) return toast("Escribe cuánto contaron en cada caja");
+  const u = me(), ci = { k: dkey(), autor: (u && u.name) || "Dueño", cajas: ins.map((i) => ({ id: i.dataset.id, counted: r2(num(i.value)) })) };
+  const b = $("#rcok"); if (b) b.disabled = true;
+  try {
+    const res = "Cerrar caja del día";
+    const row = await sb("cambios", { method: "POST", headers: { Prefer: "return=representation" }, body: { negocio_id: REM.neg, tienda: REM.sid, datos: { r: [], kx: [], log: [], c: {}, cu: [], cierre: ci }, resumen: res, dispositivo: cloudLoad().dev } });
+    remState.sent.push({ id: row[0].id, res, t: Date.now(), ok: false, cierre: 1 });
+    remCierreApply(ci, true); // aquí solo para verlo cerrado; la de verdad la cierra su caja
+    closeModal(); render(); remPaint(); remWatchSoon(8000);
+    toast("Enviado: su caja se cierra en un minuto si está prendida y con internet");
+  } catch (e) { if (b) b.disabled = false; toast("No se pudo enviar. Revisa tu internet e inténtalo otra vez.", true); }
+}
+
 /* ---------- barra «Manejando la caja de…» ---------- */
 function remPaint() {
   if (!REM) return;
@@ -3707,7 +3767,7 @@ function remPaint() {
   const st = remState.busy ? ["env", "Enviando tus cambios…"] : remState.err ? ["err", remState.err]
     : falta || pend ? ["esp", `Esperando a su caja · ${falta + (pend ? 1 : 0)} ${falta + (pend ? 1 : 0) === 1 ? "envío" : "envíos"}`]
     : remState.sent.length ? ["ok", "Su caja ya aplicó todo"] : ["ok", "Lo que cambies se envía solo"];
-  const html = `<span class="rb-dot ${st[0]}" aria-hidden="true"></span><span class="rb-tx"><b>Manejando: ${esc(REM.name)}</b><small>${esc(st[1])}</small></span><button class="rb-btn" data-a="remver">Ver</button><button class="rb-btn out" data-a="remsalir">Salir</button>`;
+  const html = `<span class="rb-dot ${st[0]}" aria-hidden="true"></span><span class="rb-tx"><b>Manejando: ${esc(REM.name)}</b><small>${esc(st[1])}</small></span><button class="rb-btn cj" data-a="remcierre">Cerrar caja</button><button class="rb-btn" data-a="remver">Ver</button><button class="rb-btn out" data-a="remsalir">Salir</button>`;
   if (el.innerHTML !== html) el.innerHTML = html;
   if (ui.tab === "aj" && ui.atab === "nube" && !modalOpen() && $("#remlist")) $("#remlist").innerHTML = remListHtml();
 }
@@ -3720,8 +3780,8 @@ function remSettingsHtml() {
   return `<div class="card"><h2>Manejando: ${esc(REM.name)}</h2><p class="muted" style="margin-bottom:10px">Lo que cambias aquí (productos, precios, stock, clientes, proveedores, usuarios, ajustes y vitrina) se envía solo. Su caja lo aplica en un minuto si está prendida y con internet; si no, cuando se conecte.</p>
     <div class="kv"><span>Código de la caja</span><b>${esc(REM.sid)}</b></div>
     <h3 style="margin:12px 0 6px">Lo que enviaste</h3><div id="remlist">${remListHtml()}</div>
-    <p class="muted sm" style="margin-top:10px">Vender, la caja, anular ventas y cobrar deudas se hacen solo en la caja de la tienda.</p>
-    <div class="btns h"><button class="btn" data-a="remsalir">Salir y volver a mi caja</button></div></div>`;
+    <p class="muted sm" style="margin-top:10px">Vender, anular ventas y cobrar deudas se hacen solo en la caja de la tienda. La caja del día sí la puedes cerrar desde aquí: te dicen cuánto contaron y tú lo escribes.</p>
+    <div class="btns h"><button class="btn sec" data-a="remcierre">Cerrar caja del día</button><button class="btn" data-a="remsalir">Salir y volver a mi caja</button></div></div>`;
 }
 function remOfrecerHtml() {
   return `<div class="card"><h2>Manejar otra caja</h2><p class="muted" style="margin-bottom:10px">Cambia productos, precios, stock, clientes, usuarios, ajustes y vitrina de otra caja de tu negocio${cloudLoad().admin ? " (o de un cliente que te dio permiso)" : ""} desde este equipo. Su caja recibe los cambios sola en un minuto. Tus datos de aquí no se tocan.</p><button class="btn sec" data-a="rempick">Elegir caja</button></div>`;
@@ -3762,6 +3822,8 @@ function remBoot() {
 }
 
 act({
+  remcierre: () => { if (REM) remCierreUI(); },
+  remcierreok: () => { if (REM) remCierreSend(); },
   remver: () => { if (modalOpen()) closeModal(); ui.tab = "aj"; ui.atab = "nube"; render(); },
   remsalir: () => remSalir(),
   rempick: () => remPick(),
@@ -5833,6 +5895,7 @@ const HELP_KB = [
   { k: ["preventa", "en espera", "guardar venta", "dejar pendiente"], t: "Dejar una venta en espera", go: "venta", s: ["En Vender toca «En espera» (F5) para guardar el ticket y atender a otro.", "O usa «Guardar preventa» y luego «Cobrar preventa»."] },
   { k: ["ocultar menu", "esconder menu", "quitar menu", "menu de la izquierda", "mas espacio", "mostrar menu", "volver a poner el menu"], t: "Ocultar o mostrar el menú", s: ["En la computadora, abajo del menú de la izquierda toca «Ocultar».", "Queda una franja verde delgada al borde izquierdo: tócala para que vuelva el menú.", "La caja recuerda tu elección en ese equipo."] },
   { k: ["manejar otra caja", "cambiar desde mi laptop", "cambiar a distancia", "otra caja", "desde otra computadora", "remoto", "cambios a distancia"], t: "Manejar otra caja desde aquí", s: ["Ve a Ajustes › Nube › «Manejar otra caja» y toca «Elegir caja».", "Elige la caja y toca «Manejar». Arriba sale la barra «Manejando: …».", "Cambia productos, precios, stock, clientes, proveedores, usuarios, ajustes o la vitrina como siempre: se envía solo.", "Su caja lo aplica en un minuto si está prendida y con internet. En «Ver» sale si ya lo aplicó.", "Para terminar toca «Salir»: vuelves a tus datos de este equipo, que no se tocaron."] },
+  { k: ["cerrar caja a distancia", "cerrar caja desde mi laptop", "cerrar caja desde el celular", "cerrar la caja de mi cliente", "cierre a distancia", "cerrar caja remoto"], t: "Cerrar la caja del día a distancia", s: ["Entra a manejar esa caja (Ajustes › Nube › «Manejar otra caja» › «Elegir caja»).", "En la barra de arriba toca «Cerrar caja».", "Pregunta en la tienda cuánto hay en el cajón y escríbelo en cada caja abierta: sale si cuadra, falta o sobra.", "Toca «Cerrar caja del día». Su caja la cierra sola en un minuto (si está prendida y con internet) y hace el cierre del día (Z). No imprime nada."] },
   { k: ["celular", "de viaje", "desde mi celular", "desde el celular", "fuera de la tienda", "no estoy en la tienda", "precios desde"], t: "Cambiar precios desde el celular (de viaje)", s: ["En el celular abre la página de Caja Fácil en Chrome (la misma dirección de siempre).", "Toca «Continuar con Google» y entra con la cuenta de Google del dueño (la misma de la caja).", "Sale una ventana: toca «Manejar mi caja desde aquí» y luego «Manejar».", "Cambia precios, productos, stock o ajustes como siempre: le llegan solos a la caja en un minuto si está prendida y con internet.", "El celular lo recuerda: la próxima vez entra directo. Para dejar de manejarla toca «Salir» arriba."] },
   { k: ["pantalla completa", "f11", "barra de windows", "barra de tareas", "maximizar"], t: "Pantalla completa", s: ["Toca «Completa» en el menú de la izquierda (abajo, junto a «Ocultar»): la caja ocupa toda la pantalla, sin la barra de Windows.", "Para volver, toca «Normal» o mantén apretada la tecla Esc.", "La caja lo recuerda en ese equipo: al abrirla otra vez entra sola en pantalla completa con el primer clic o el primer producto que escanees."] },
   { k: ["redondear", "redondeo", "centimos", "redondea"], t: "Redondear el total", go: "aj.cobros", s: ["La caja redondea el total sola a los 10 céntimos más cercanos: S/ 1.92 → S/ 1.90 y S/ 1.95 → S/ 2.00.", "En el ticket y en el comprobante sale como «Redondeo».", "Se apaga o se prende en Ajustes › Cobros y puntos › Redondeo."] },
