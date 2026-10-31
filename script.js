@@ -2612,17 +2612,50 @@ function openAdjust(id) {
 }
 
 /* ---------- kardex ---------- */
+// Movimientos del periodo. Los productos sin control de stock (y las copias en la nube sin kardex) no tienen
+// movimiento guardado: sus ventas, anulaciones y devoluciones se arman desde las ventas (pedido de David, 31 oct 2026:
+// «no le aparecen los movimientos de ese producto si vendió muchos»). Esas filas no tienen saldo.
+function kxRows(from, to, pid, ty) {
+  const ok = (x) => (!pid || x.p === pid) && (!ty || x.ty.startsWith(ty));
+  const real = DB.kx.filter((x) => x.d >= from && x.d <= to), out = real.filter(ok);
+  const ya = new Set(real.map((x) => x.p + "|" + x.ty + "|" + x.r));
+  const add = (x) => { if (!ya.has(x.p + "|" + x.ty + "|" + x.r) && ok(x)) out.push(x); };
+  DB.sales.forEach((s) => {
+    const ref = docShort(s), vd = s.void && s.void.t ? dkey(new Date(s.void.t)) : "";
+    if ((s.date < from || s.date > to) && !(vd >= from && vd <= to) && !(s.returns || []).length) return;
+    s.items.forEach((it, i) => { if (it.quick || (pid && it.id !== pid)) return; const q = r3(it.qty * (it.f || 1));
+      if (s.date >= from && s.date <= to) add({ t: s.t, d: s.date, p: it.id, ty: "venta", q: -q, b: null, r: ref, u: s.uname || "" });
+      if (vd && vd >= from && vd <= to) add({ t: s.void.t, d: vd, p: it.id, ty: "anulacion", q, b: null, r: ref, u: s.void.u || "" });
+      (s.returns || []).forEach((rt) => { if (!rt.restock) return; const rd = dkey(new Date(rt.t)); if (rd < from || rd > to) return;
+        rt.items.forEach((x) => { if (x.i === i) add({ t: rt.t, d: rd, p: it.id, ty: "devolucion", q: r3(x.qty * (it.f || 1)), b: null, r: ref, u: rt.u || "" }); }); });
+    });
+  });
+  return out.sort((a, b) => b.t - a.t);
+}
+// Lista de nombres para buscar el producto (se arma una vez por cambio de datos, no en cada filtro).
+let kxNomMemo = { v: -1, html: "", map: null };
+function kxNombres() {
+  if (kxNomMemo.v === DBV) return kxNomMemo;
+  const sorted = DB.products.slice().sort((a, b) => cmpEs(a.name, b.name)), map = new Map();
+  sorted.forEach((p) => { const k = norm(p.name); if (!map.has(k)) map.set(k, p.id); });
+  kxNomMemo = { v: DBV, map, html: sorted.map((p) => `<option value="${esc(p.name)}">`).join("") };
+  return kxNomMemo;
+}
 function paintKardex() {
   const el = $("#pbody"); const from = ui.kxfrom || addD(dkey(), -30), to = ui.kxto || dkey();
-  const pid = ui.kxp, rows = DB.kx.filter((x) => x.d >= from && x.d <= to && (!pid || x.p === pid) && (!ui.kxt || x.ty.startsWith(ui.kxt))).sort((a, b) => b.t - a.t);
-  const sorted = DB.products.slice().sort((a, b) => cmpEs(a.name, b.name));
-  el.innerHTML = `<div class="filters"><label class="fld"><span>Producto</span><select class="inp" data-in="kxp"><option value="">Todos</option>${sorted.map((p) => `<option value="${p.id}" ${p.id === pid ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+  const pid = ui.kxp, rows = kxRows(from, to, pid, ui.kxt), pp = pid ? prod(pid) : null, N = kxNombres();
+  const vendido = pid ? r3(-rows.filter((x) => x.ty === "venta").reduce((a, x) => a + x.q, 0)) : 0;
+  el.innerHTML = `<div class="filters"><label class="fld"><span>Producto</span><input class="inp" type="search" id="kxq" list="kxdl" autocomplete="off" placeholder="Todos · escribe para buscar" value="${pp ? esc(pp.name) : ""}"><datalist id="kxdl">${N.html}</datalist></label>
     <label class="fld"><span>Tipo</span><select class="inp" data-in="kxt"><option value="">Todos</option>${["venta", "ingreso", "ajuste", "merma", "devolucion", "anulacion", "trf", "receta", "inicial", "import"].map((k) => `<option value="${k}" ${ui.kxt === k ? "selected" : ""}>${k === "trf" ? "Transferencias" : KXL[k]}</option>`).join("")}</select></label>
     <label class="fld"><span>Desde</span><input class="inp" type="date" data-in="kxfrom" value="${from}" max="${dkey()}"></label><label class="fld"><span>Hasta</span><input class="inp" type="date" data-in="kxto" value="${to}" max="${dkey()}"></label></div>
+    ${pp && vendido ? `<p class="muted" style="margin:0 0 10px">${esc(pp.name)}: vendido ${fmtQ(vendido)}${pp.unit === "kg" ? " kg" : ""} en estas fechas.</p>` : ""}
     ${rows.length ? `<div class="tablewrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Producto</th><th>Movimiento</th><th class="r">Cantidad</th><th class="r">Saldo</th><th>Referencia</th><th>Usuario</th></tr></thead><tbody>
-    ${rows.slice(0, 500).map((x) => { const p = prod(x.p); return `<tr><td>${dmy(x.d)} ${hhmm(x.t)}</td><td>${esc(p ? p.name : "(eliminado)")}</td><td>${esc(KXL[x.ty] || x.ty)}</td><td class="r num ${x.q < 0 ? "loss" : "gain"}">${x.q > 0 ? "+" : ""}${fmtQ(x.q)}</td><td class="r num">${fmtQ(x.b)}</td><td>${esc(x.r)}</td><td>${esc(x.u)}</td></tr>`; }).join("")}</tbody></table></div>
+    ${rows.slice(0, 500).map((x) => { const p = prod(x.p); return `<tr><td>${dmy(x.d)} ${hhmm(x.t)}</td><td>${esc(p ? p.name : "(eliminado)")}</td><td>${esc(KXL[x.ty] || x.ty)}</td><td class="r num ${x.q < 0 ? "loss" : "gain"}">${x.q > 0 ? "+" : ""}${fmtQ(x.q)}</td><td class="r num">${x.b == null ? `<span class="muted" title="Este producto no controla stock">—</span>` : fmtQ(x.b)}</td><td>${esc(x.r)}</td><td>${esc(x.u)}</td></tr>`; }).join("")}</tbody></table></div>
     ${rows.length > 500 ? `<p class="muted">Mostrando 500 de ${rows.length}. Exporta para ver todo.</p>` : ""}<button class="btn sec sm" data-a="kxcsv" style="margin-top:10px">Exportar kardex (CSV)</button>`
     : `<div class="empty"><p>No hay movimientos con esos filtros.</p></div>`}`;
+  const q = $("#kxq");
+  if (q) { const elegir = () => { const v = q.value.trim(), id = v ? N.map.get(norm(v)) : ""; if (v && !id) return; if ((id || "") !== (ui.kxp || "")) { ui.kxp = id || ""; render(); } };
+    q.addEventListener("change", elegir); q.addEventListener("input", () => { if (!q.value.trim() && ui.kxp) { ui.kxp = ""; render(); } else if (N.map.has(norm(q.value.trim()))) elegir(); }); }
 }
 function paintLow() {
   const l = lowItems(), el = $("#pbody");
@@ -2799,7 +2832,7 @@ act({
     log(ui.adj === "conteo" ? "Ajuste de stock" : "Merma", `${p.name}: ${fmtQ(p.stock)}`); save(); closeModal(); toast("Stock actualizado"); render();
   },
   kxof: (el) => { ui.kxp = el.dataset.id; ui.ptab = "kx"; closeModal(); render(); },
-  kxcsv: () => { const from = ui.kxfrom || addD(dkey(), -30), to = ui.kxto || dkey(); csvOut([["fecha", "hora", "producto", "movimiento", "cantidad", "saldo", "referencia", "usuario"], ...DB.kx.filter((x) => x.d >= from && x.d <= to && (!ui.kxp || x.p === ui.kxp)).sort((a, b) => a.t - b.t).map((x) => { const p = prod(x.p); return [x.d, hhmm(x.t), p ? p.name : "", KXL[x.ty] || x.ty, x.q, x.b, x.r, x.u]; })], `kardex-${dkey()}.csv`); },
+  kxcsv: () => { const from = ui.kxfrom || addD(dkey(), -30), to = ui.kxto || dkey(); csvOut([["fecha", "hora", "producto", "movimiento", "cantidad", "saldo", "referencia", "usuario"], ...kxRows(from, to, ui.kxp, ui.kxt).reverse().map((x) => { const p = prod(x.p); return [x.d, hhmm(x.t), p ? p.name : "", KXL[x.ty] || x.ty, x.q, x.b == null ? "" : x.b, x.r, x.u]; })], `kardex-${dkey()}.csv`); },
   lowwa: (el) => {
     const k = (el && el.dataset.s) || "", g = lowGroups().find((x) => (x.s ? x.s.id : "") === k); if (!g) return;
     const txt = `*Pedido - ${DB.biz.name}*\n${g.s ? `Hola ${g.s.name}, necesito:\n` : ""}` + g.l.map((p) => `- ${p.name}: ${suggest(p)}${p.unit === "kg" ? " kg" : ""}`).join("\n");
@@ -3693,10 +3726,15 @@ function remGo(neg, sid, name) {
   }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender se hace solo allá; la Caja (gastos, turnos y cierre del día) también desde aquí.");
 }
 function remPickHtml(neg, tiendas, cli = []) {
-  const it = (t, n, mine) => `<button class="it" data-a="remone" data-n="${esc(n)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${!mine && t.correo ? esc(t.correo) + " · " : ""}${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}</small></div></button>`;
+  // Si una caja de cliente tiene el mismo código que una de «Tu negocio» y es más nueva, la nuestra es una copia vieja
+  // (31 oct 2026: David manejaba la copia de su laptop, del 27 oct, y no veía las ventas de la caja de verdad).
+  const nueva = new Map(); cli.forEach((t) => { const d = Date.parse(t.actualizado) || 0; if (d > (nueva.get(t.tienda) || 0)) nueva.set(t.tienda, d); });
+  const vieja = (t) => (nueva.get(t.tienda) || 0) > (Date.parse(t.actualizado) || 0);
+  const it = (t, n, mine) => `<button class="it" data-a="remone" data-n="${esc(n)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${!mine && t.correo ? esc(t.correo) + " · " : ""}${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}${mine && vieja(t) ? `</small><small class="loss">Copia vieja: la caja de verdad está abajo, en «Cajas de tus clientes»` : ""}</small></div></button>`;
   return `<h2>¿Qué caja quieres manejar?</h2><p class="muted" style="margin-bottom:12px">Cambia sus productos, precios, clientes, proveedores, usuarios, ajustes, vitrina y caja desde aquí.</p>
-    ${tiendas.length ? `${cli.length ? `<h3 class="remh">Tu negocio</h3>` : ""}<div class="list">${tiendas.map((t) => it(t, neg, true)).join("")}</div>` : ""}
-    ${cli.length ? `<h3 class="remh">Cajas de tus clientes <small class="muted">· te dieron permiso</small></h3><div class="list">${cli.map((t) => it(t, t.neg, false)).join("")}</div>` : ""}
+    ${(() => { const mias = tiendas.length ? `${cli.length ? `<h3 class="remh">Tu negocio</h3>` : ""}<div class="list">${tiendas.map((t) => it(t, neg, true)).join("")}</div>` : "",
+      suyas = cli.length ? `<h3 class="remh">Cajas de tus clientes <small class="muted">· te dieron permiso</small></h3><div class="list">${cli.map((t) => it(t, t.neg, false)).join("")}</div>` : "";
+      return tiendas.some(vieja) ? suyas + mias : mias + suyas; })()}
     <div class="btns"><button class="btn sec" data-a="close">Cancelar</button></div>`;
 }
 // Cajas de clientes que le dieron permiso de soporte al proveedor (pedido de David, 26 oct 2026: «ya me dio acceso pero no me aparece al manejar caja»).

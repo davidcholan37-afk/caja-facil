@@ -204,10 +204,15 @@ function remGo(neg, sid, name) {
   }, false, copia ? "Este equipo tiene una copia de esa caja: desde ahora deja de ser caja (no sube ni recibe nada como ella) y solo la maneja a distancia. Lo que tenía guardado no se borra. Hazlo solo en tu celular o laptop, nunca en la caja de la tienda." : "Los datos de este equipo no se tocan. Lo que cambies le llega solo a su caja en un minuto, cuando esté prendida y con internet. Vender se hace solo allá; la Caja (gastos, turnos y cierre del día) también desde aquí.");
 }
 function remPickHtml(neg, tiendas, cli = []) {
-  const it = (t, n, mine) => `<button class="it" data-a="remone" data-n="${esc(n)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${!mine && t.correo ? esc(t.correo) + " · " : ""}${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}</small></div></button>`;
+  // Si una caja de cliente tiene el mismo código que una de «Tu negocio» y es más nueva, la nuestra es una copia vieja
+  // (31 oct 2026: David manejaba la copia de su laptop, del 27 oct, y no veía las ventas de la caja de verdad).
+  const nueva = new Map(); cli.forEach((t) => { const d = Date.parse(t.actualizado) || 0; if (d > (nueva.get(t.tienda) || 0)) nueva.set(t.tienda, d); });
+  const vieja = (t) => (nueva.get(t.tienda) || 0) > (Date.parse(t.actualizado) || 0);
+  const it = (t, n, mine) => `<button class="it" data-a="remone" data-n="${esc(n)}" data-s="${esc(t.tienda)}" data-name="${esc(tiendaNom(t))}"><div class="t"><b>${esc(tiendaNom(t))}</b><small>${!mine && t.correo ? esc(t.correo) + " · " : ""}${t.negocio && t.nombre ? esc(t.nombre) + " · " : ""}Código ${esc(t.tienda)} · última copia ${fmtDT(Date.parse(t.actualizado))}${t.tienda === DB.biz.sid && !cloudLoad().ver ? " · este equipo tiene una copia" : ""}${mine && vieja(t) ? `</small><small class="loss">Copia vieja: la caja de verdad está abajo, en «Cajas de tus clientes»` : ""}</small></div></button>`;
   return `<h2>¿Qué caja quieres manejar?</h2><p class="muted" style="margin-bottom:12px">Cambia sus productos, precios, clientes, proveedores, usuarios, ajustes, vitrina y caja desde aquí.</p>
-    ${tiendas.length ? `${cli.length ? `<h3 class="remh">Tu negocio</h3>` : ""}<div class="list">${tiendas.map((t) => it(t, neg, true)).join("")}</div>` : ""}
-    ${cli.length ? `<h3 class="remh">Cajas de tus clientes <small class="muted">· te dieron permiso</small></h3><div class="list">${cli.map((t) => it(t, t.neg, false)).join("")}</div>` : ""}
+    ${(() => { const mias = tiendas.length ? `${cli.length ? `<h3 class="remh">Tu negocio</h3>` : ""}<div class="list">${tiendas.map((t) => it(t, neg, true)).join("")}</div>` : "",
+      suyas = cli.length ? `<h3 class="remh">Cajas de tus clientes <small class="muted">· te dieron permiso</small></h3><div class="list">${cli.map((t) => it(t, t.neg, false)).join("")}</div>` : "";
+      return tiendas.some(vieja) ? suyas + mias : mias + suyas; })()}
     <div class="btns"><button class="btn sec" data-a="close">Cancelar</button></div>`;
 }
 // Cajas de clientes que le dieron permiso de soporte al proveedor (pedido de David, 26 oct 2026: «ya me dio acceso pero no me aparece al manejar caja»).
