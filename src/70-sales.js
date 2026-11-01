@@ -126,6 +126,37 @@ function doReturn() {
   printHtml(`<h3>${esc(DB.biz.name)}</h3><div class="c doc"><b>CONSTANCIA DE DEVOLUCIÓN</b></div><div class="l"><span>Comprobante</span><span>${docNo(s)}</span></div><div class="l"><span>Fecha</span><span>${fmtDT(ret.t)}</span></div><hr>${items.map(({ i, qty }) => `<div class="l"><span>${fmtQ(qty)} × ${esc(s.items[i].name)}</span><span></span></div>`).join("")}<hr><div class="l t"><span>DEVUELTO</span><span>${money(amount)}</span></div><div class="l"><span>Medio</span><span>${r.m === "credito" ? "Rebaja de deuda" : METHODS[r.m]}</span></div><div class="c">Motivo: ${esc(ret.why)}</div>`);
   toast(`Devolución registrada: ${money(amount)}`, true); render();
 }
+// Cambiar medio de pago de una venta (pedido de David, 1 nov 2026: «pulsé efectivo y era Yape»).
+// Solo ventas con un medio (efectivo, Yape, Plin, BCP o tarjeta), sin devoluciones, con la caja de esa venta todavía abierta y el día sin cierre.
+const PM_CH = ["efectivo", "yape", "plin", "bcp", "tarjeta"];
+function pmChgWhy(s) {
+  if (!s || s.void) return "anulada";
+  const p = paysOf(s); if (p.length !== 1 || !PM_CH.includes(p[0].m)) return "Esta venta se pagó con varios medios o al crédito: no se puede cambiar";
+  if ((s.returns || []).length) return "Esta venta ya tiene devoluciones";
+  if (isLocked(s.date) || DB.closes.some((z) => z.date === s.date)) return "Ese día ya tiene cierre de caja: ya no se puede cambiar";
+  if (s.shift) { const sh = DB.shifts.find((x) => x.id === s.shift); if (sh && sh.t1) return "La caja de esa venta ya se cerró: ya no se puede cambiar"; }
+  else if (s.date !== dkey()) return "Solo se puede cambiar en ventas de hoy";
+  return "";
+}
+const pmChgOk = (s) => !REM && !pmChgWhy(s);
+function pmChgUI(s, fromSale) {
+  const why = pmChgWhy(s); if (why) return toast(why, true);
+  const cur = paysOf(s)[0].m;
+  openModal(`<h2>Cambiar medio de pago</h2><p class="muted" style="margin-bottom:12px">${s.doc ? DOCS[s.doc.type] + " " : ""}${docNo(s)} · ${money(s.total)} · ahora dice <b>${METHODS[cur]}</b>. ¿Con qué pagó de verdad?</p>
+    <div class="pmchg">${PM_CH.filter((m) => m !== cur).map((m) => `<button class="btn sec" data-a="pmchgok" data-id="${s.id}" data-m="${m}" data-f="${fromSale ? 1 : ""}"><i class="pmi m-${m}" aria-hidden="true"></i>${METHODS[m]}</button>`).join("")}</div>
+    <p class="muted sm" style="margin-top:10px">La caja se acomoda sola: ${cur === "efectivo" ? "ese monto ya no se cuenta como efectivo del cajón" : "el monto pasa al medio que elijas"}.</p>
+    <div class="btns"><button class="btn sec" data-a="${fromSale ? "seercpt" : "sale"}" data-id="${s.id}">Volver</button></div>`);
+}
+act({
+  pmchg: (el) => { const s = saleById(el.dataset.id); if (s && !REM) pmChgUI(s, !!el.dataset.f); },
+  pmchgok: (el) => { const s = saleById(el.dataset.id), m = el.dataset.m; if (!s || !PM_CH.includes(m)) return; const why = pmChgWhy(s); if (why) return toast(why, true);
+    need("anular", (sup) => { const de = paysOf(s)[0].m;
+      s.pays = [{ m, amt: s.total }];
+      if (m === "efectivo") { s.recv = s.total; s.change = 0; } else { s.recv = 0; s.change = 0; }
+      s.pmChg = (s.pmChg || []).concat({ t: Date.now(), de, a: m, u: (me() || {}).name, by: sup.name });
+      log("Medio de pago cambiado", `${docShort(s)} ${money(s.total)} · ${METHODS[de]} → ${METHODS[m]}${sup.id !== ui.user ? " · autorizó " + sup.name : ""}`);
+      save(s.date); toast(`Listo: ahora dice ${METHODS[m]}`); render(); showReceipt(s, !!el.dataset.f); }, "Cambiar medio de pago " + docShort(s)); },
+});
 act({
   vtab: (el) => { ui.vtab = el.dataset.t; render(); },
   range: (el) => { ui.range = el.dataset.r; render(); },

@@ -1183,7 +1183,7 @@ function doneHtml(s) {
       : `<div class="vu paid"><span>${esc(methodLabel(s))}</span><b class="num">${money(s.total)}</b><small>${s.ref ? "Operación " + esc(s.ref) : pays.some((p) => p.m === "credito") ? "Anotado en la cuenta del cliente" : "Pago completo"}</small></div>`}
     ${s.ptsEarn ? `<p class="dpts">${esc(s.cname.split(" ")[0])} ganó ${s.ptsEarn} puntos</p>` : ""}
     <div class="dacts"><button class="btn sec" data-a="print" data-id="${s.id}">${svg("print", "bi")}Imprimir</button><button class="btn sec" data-a="wa" data-id="${s.id}">${svg("wa", "bi")}WhatsApp${c && c.phone ? "" : ""}</button></div>
-    <button class="link" data-a="seercpt" data-id="${s.id}">Ver comprobante</button>
+    <button class="link" data-a="seercpt" data-id="${s.id}">Ver comprobante</button>${pmChgOk(s) ? `<button class="link" data-a="pmchg" data-id="${s.id}" data-f="1">¿Te equivocaste? Cambiar medio de pago</button>` : ""}
   </div>
   <div class="paybox"><button class="cobrar next" data-a="newsale">${DB.cart.items.length ? "Seguir con " + esc(ticketLabel(DB.cart)) : "Nueva venta"}<span class="kbd">Enter</span></button><p class="phint">${DB.cart.items.length ? `${esc(ticketLabel(DB.cart))} estaba en espera (${money(ticketTotal(DB.cart))}).` : "O escanea el siguiente producto y seguimos."}</p></div></div>`;
 }
@@ -1381,6 +1381,7 @@ const DOCTITLE = { NV: "NOTA DE VENTA", B: "BOLETA DE VENTA", F: "FACTURA" };
 function payBlock(s) {
   const pays = paysOf(s), cash = pays.some((p) => p.m === "efectivo");
   let h = pays.map((p) => `<div class="l"><span>${METHODS[p.m] || p.m}${p.m === "puntos" && s.ptsUsed ? ` (${s.ptsUsed} pts)` : ""}</span><span>${money(p.amt)}</span></div>`).join("");
+  if (s.pmChg && s.pmChg.length) { const u = s.pmChg[s.pmChg.length - 1]; h += `<div class="l"><span style="font-size:.85em">Cambiado de ${METHODS[u.de] || u.de} a las ${hhmm(u.t)}</span><span></span></div>`; }
   if (cash && s.recv) h += `<div class="l"><span>Recibido</span><span>${money(s.recv)}</span></div><div class="l"><span>Vuelto</span><span>${money(s.change)}</span></div>`;
   if (s.ref) h += `<div class="l"><span>N° operación</span><span>${esc(s.ref)}</span></div>`;
   return h;
@@ -1417,6 +1418,7 @@ function showReceipt(s, fromSale = false) {
   openModal(`<div class="rcpt">${receiptHtml(s)}</div>
     ${s.void ? `<p class="tag void" style="margin-top:8px">Venta anulada${s.void.why ? ": " + esc(s.void.why) : ""}</p>` : ""}
     <div class="btns h"><button class="btn sec" data-a="print" data-id="${s.id}">${svg("print", "bi")}Imprimir</button><button class="btn sec" data-a="wa" data-id="${s.id}">${svg("wa", "bi")}WhatsApp${c && c.phone ? "" : ""}</button></div>
+    ${pmChgOk(s) ? `<div class="btns"><button class="btn sec" data-a="pmchg" data-id="${s.id}" data-f="${fromSale ? 1 : ""}">${svg("swap", "bi")}Cambiar medio de pago</button></div>` : ""}
     ${!fromSale && !s.void ? `<div class="btns h"><button class="btn sec" data-a="ret" data-id="${s.id}">Devolución${ret ? ` (${ret})` : ""}</button><button class="btn red sec" data-a="void" data-id="${s.id}">Anular</button></div>` : ""}
     ${!fromSale && s.prev && !s.void ? `<div class="btns"><button class="btn sec" data-a="dispatch" data-id="${s.id}" ${s.disp ? "disabled" : ""}>${s.disp ? "Despachado " + hhmm(s.disp.t) : "Marcar como despachado"}</button></div>` : ""}
     <div class="btns"><button class="btn lg" data-a="${fromSale ? "newsale" : "close"}" data-enter>${fromSale ? "Nueva venta" : "Cerrar"}</button></div>`, "rc");
@@ -3537,7 +3539,7 @@ const REM_T = ["products", "clients", "supp", "sm", "users", "moves", "shifts", 
 // Al aplicarlos, la caja de la tienda vuelve a calcular lo que debía haber con SUS ventas (siguió vendiendo).
 const REM_CFG_NO = { lastBackup: 1, avisoDia: 1, series: 1 }; // ajustes que cambian solos o llevan el correlativo
 // Acciones que mueven dinero o datos de toda la tienda: solo en la caja de la tienda.
-const REM_NO = { void: 1, ret: 1, retok: 1, dispatch: 1, prevgo: 1, prevvoid: 1, abono: 1, abok: 1, pspay: 1, pspayall: 1, sample: 1, reset: 1, archive: 1, dbcheck: 1, cloudrecover: 1, cloudrec: 1, cloudnew: 1, cloudout: 1, cloudpush: 1, cloudview: 1, sopon: 1, sopoff: 1, lock: 1, codecanje: 1, remgo: 1, remcli: 1, rempick: 1 };
+const REM_NO = { pmchg: 1, pmchgok: 1, void: 1, ret: 1, retok: 1, dispatch: 1, prevgo: 1, prevvoid: 1, abono: 1, abok: 1, pspay: 1, pspayall: 1, sample: 1, reset: 1, archive: 1, dbcheck: 1, cloudrecover: 1, cloudrec: 1, cloudnew: 1, cloudout: 1, cloudpush: 1, cloudview: 1, sopon: 1, sopoff: 1, lock: 1, codecanje: 1, remgo: 1, remcli: 1, rempick: 1 };
 const remState = { busy: false, err: "", sent: [], timer: 0, watch: 0, pull: false };
 const remNo = () => toast("Eso se hace en la caja de la tienda. Desde aquí cambias productos, clientes, proveedores, usuarios y ajustes.");
 
@@ -5854,6 +5856,37 @@ function doReturn() {
   printHtml(`<h3>${esc(DB.biz.name)}</h3><div class="c doc"><b>CONSTANCIA DE DEVOLUCIÓN</b></div><div class="l"><span>Comprobante</span><span>${docNo(s)}</span></div><div class="l"><span>Fecha</span><span>${fmtDT(ret.t)}</span></div><hr>${items.map(({ i, qty }) => `<div class="l"><span>${fmtQ(qty)} × ${esc(s.items[i].name)}</span><span></span></div>`).join("")}<hr><div class="l t"><span>DEVUELTO</span><span>${money(amount)}</span></div><div class="l"><span>Medio</span><span>${r.m === "credito" ? "Rebaja de deuda" : METHODS[r.m]}</span></div><div class="c">Motivo: ${esc(ret.why)}</div>`);
   toast(`Devolución registrada: ${money(amount)}`, true); render();
 }
+// Cambiar medio de pago de una venta (pedido de David, 1 nov 2026: «pulsé efectivo y era Yape»).
+// Solo ventas con un medio (efectivo, Yape, Plin, BCP o tarjeta), sin devoluciones, con la caja de esa venta todavía abierta y el día sin cierre.
+const PM_CH = ["efectivo", "yape", "plin", "bcp", "tarjeta"];
+function pmChgWhy(s) {
+  if (!s || s.void) return "anulada";
+  const p = paysOf(s); if (p.length !== 1 || !PM_CH.includes(p[0].m)) return "Esta venta se pagó con varios medios o al crédito: no se puede cambiar";
+  if ((s.returns || []).length) return "Esta venta ya tiene devoluciones";
+  if (isLocked(s.date) || DB.closes.some((z) => z.date === s.date)) return "Ese día ya tiene cierre de caja: ya no se puede cambiar";
+  if (s.shift) { const sh = DB.shifts.find((x) => x.id === s.shift); if (sh && sh.t1) return "La caja de esa venta ya se cerró: ya no se puede cambiar"; }
+  else if (s.date !== dkey()) return "Solo se puede cambiar en ventas de hoy";
+  return "";
+}
+const pmChgOk = (s) => !REM && !pmChgWhy(s);
+function pmChgUI(s, fromSale) {
+  const why = pmChgWhy(s); if (why) return toast(why, true);
+  const cur = paysOf(s)[0].m;
+  openModal(`<h2>Cambiar medio de pago</h2><p class="muted" style="margin-bottom:12px">${s.doc ? DOCS[s.doc.type] + " " : ""}${docNo(s)} · ${money(s.total)} · ahora dice <b>${METHODS[cur]}</b>. ¿Con qué pagó de verdad?</p>
+    <div class="pmchg">${PM_CH.filter((m) => m !== cur).map((m) => `<button class="btn sec" data-a="pmchgok" data-id="${s.id}" data-m="${m}" data-f="${fromSale ? 1 : ""}"><i class="pmi m-${m}" aria-hidden="true"></i>${METHODS[m]}</button>`).join("")}</div>
+    <p class="muted sm" style="margin-top:10px">La caja se acomoda sola: ${cur === "efectivo" ? "ese monto ya no se cuenta como efectivo del cajón" : "el monto pasa al medio que elijas"}.</p>
+    <div class="btns"><button class="btn sec" data-a="${fromSale ? "seercpt" : "sale"}" data-id="${s.id}">Volver</button></div>`);
+}
+act({
+  pmchg: (el) => { const s = saleById(el.dataset.id); if (s && !REM) pmChgUI(s, !!el.dataset.f); },
+  pmchgok: (el) => { const s = saleById(el.dataset.id), m = el.dataset.m; if (!s || !PM_CH.includes(m)) return; const why = pmChgWhy(s); if (why) return toast(why, true);
+    need("anular", (sup) => { const de = paysOf(s)[0].m;
+      s.pays = [{ m, amt: s.total }];
+      if (m === "efectivo") { s.recv = s.total; s.change = 0; } else { s.recv = 0; s.change = 0; }
+      s.pmChg = (s.pmChg || []).concat({ t: Date.now(), de, a: m, u: (me() || {}).name, by: sup.name });
+      log("Medio de pago cambiado", `${docShort(s)} ${money(s.total)} · ${METHODS[de]} → ${METHODS[m]}${sup.id !== ui.user ? " · autorizó " + sup.name : ""}`);
+      save(s.date); toast(`Listo: ahora dice ${METHODS[m]}`); render(); showReceipt(s, !!el.dataset.f); }, "Cambiar medio de pago " + docShort(s)); },
+});
 act({
   vtab: (el) => { ui.vtab = el.dataset.t; render(); },
   range: (el) => { ui.range = el.dataset.r; render(); },
@@ -5959,6 +5992,7 @@ const HELP_KB = [
   { k: ["recordar", "recordatorio", "avisar deuda", "cobrarle"], t: "Recordarle su deuda a un cliente", go: "cli", s: ["Entra a Clientes.", "Abre al cliente que debe.", "Manda el recordatorio por WhatsApp."] },
   { k: ["imprim", "whatsapp", "compartir ticket", "enviar ticket", "mandar ticket"], t: "Mandar o imprimir el ticket", go: "ventas", s: ["Entra a Ventas y abre la venta.", "Elige imprimir o enviarlo por WhatsApp."] },
   { k: ["boleta", "factura", "ruc", "dni", "sunat"], t: "Boleta y factura", go: "aj.comp", s: ["Para factura, elige un cliente con RUC válido (F1).", "Las boletas desde S/ 700 piden el DNI del cliente.", "Los datos de comprobantes están en Ajustes › Comprobantes."] },
+  { k: ["cambiar medio", "medio de pago", "era yape", "era plin", "pulse efectivo", "puse efectivo", "me equivoque de pago", "cambiar pago"], t: "Cambiar el medio de pago de una venta", go: "ventas", s: ["Entra a Ventas y toca la venta (o, recién cobrada, toca «¿Te equivocaste? Cambiar medio de pago»).", "Toca «Cambiar medio de pago» y elige con qué pagó de verdad (Efectivo, Yape, Plin, BCP o Tarjeta).", "La caja se acomoda sola y queda en la Bitácora. Solo se puede mientras la caja de esa venta siga abierta."] },
   { k: ["anular", "devol", "me equivoque", "cancelar venta", "error en la venta"], t: "Anular o devolver una venta", go: "ventas", s: ["Entra a Ventas.", "Abre la venta equivocada.", "Elige anular o devolver. Necesitas permiso para hacerlo."] },
   { k: ["abrir caja", "cerrar caja", "cierro mi caja", "arqueo", "cierre", "cerrar dia", "contar"], t: "Abrir y cerrar la caja", go: "caja", s: ["En Caja toca «Abrir caja» y pon el sencillo inicial.", "En la noche toca «Cerrar caja del día»: cuenta los billetes y monedas con − y + (o escribe el total) y te dice si cuadra; «Ver lo que contaste» muestra el detalle.", "Al cerrar se guarda el cierre del día (Z). Si quieres papel, toca «Imprimir caja» o «Imprimir Z»."] },
   { k: ["turno", "cambio de turno", "cambiar turno", "turno de la tarde", "turno de la noche", "pasar la caja", "otro cajero"], t: "Cambiar turno", go: "caja", s: ["En Caja toca «Cambiar turno».", "Escribe cuánto hay en el cajón y toca «Cerrar y pasar la caja».", "El que sigue abre la caja: ya sale lo que se contó como sencillo."] },

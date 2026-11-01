@@ -251,7 +251,7 @@ function doneHtml(s) {
       : `<div class="vu paid"><span>${esc(methodLabel(s))}</span><b class="num">${money(s.total)}</b><small>${s.ref ? "Operación " + esc(s.ref) : pays.some((p) => p.m === "credito") ? "Anotado en la cuenta del cliente" : "Pago completo"}</small></div>`}
     ${s.ptsEarn ? `<p class="dpts">${esc(s.cname.split(" ")[0])} ganó ${s.ptsEarn} puntos</p>` : ""}
     <div class="dacts"><button class="btn sec" data-a="print" data-id="${s.id}">${svg("print", "bi")}Imprimir</button><button class="btn sec" data-a="wa" data-id="${s.id}">${svg("wa", "bi")}WhatsApp${c && c.phone ? "" : ""}</button></div>
-    <button class="link" data-a="seercpt" data-id="${s.id}">Ver comprobante</button>
+    <button class="link" data-a="seercpt" data-id="${s.id}">Ver comprobante</button>${pmChgOk(s) ? `<button class="link" data-a="pmchg" data-id="${s.id}" data-f="1">¿Te equivocaste? Cambiar medio de pago</button>` : ""}
   </div>
   <div class="paybox"><button class="cobrar next" data-a="newsale">${DB.cart.items.length ? "Seguir con " + esc(ticketLabel(DB.cart)) : "Nueva venta"}<span class="kbd">Enter</span></button><p class="phint">${DB.cart.items.length ? `${esc(ticketLabel(DB.cart))} estaba en espera (${money(ticketTotal(DB.cart))}).` : "O escanea el siguiente producto y seguimos."}</p></div></div>`;
 }
@@ -449,6 +449,7 @@ const DOCTITLE = { NV: "NOTA DE VENTA", B: "BOLETA DE VENTA", F: "FACTURA" };
 function payBlock(s) {
   const pays = paysOf(s), cash = pays.some((p) => p.m === "efectivo");
   let h = pays.map((p) => `<div class="l"><span>${METHODS[p.m] || p.m}${p.m === "puntos" && s.ptsUsed ? ` (${s.ptsUsed} pts)` : ""}</span><span>${money(p.amt)}</span></div>`).join("");
+  if (s.pmChg && s.pmChg.length) { const u = s.pmChg[s.pmChg.length - 1]; h += `<div class="l"><span style="font-size:.85em">Cambiado de ${METHODS[u.de] || u.de} a las ${hhmm(u.t)}</span><span></span></div>`; }
   if (cash && s.recv) h += `<div class="l"><span>Recibido</span><span>${money(s.recv)}</span></div><div class="l"><span>Vuelto</span><span>${money(s.change)}</span></div>`;
   if (s.ref) h += `<div class="l"><span>N° operación</span><span>${esc(s.ref)}</span></div>`;
   return h;
@@ -485,6 +486,7 @@ function showReceipt(s, fromSale = false) {
   openModal(`<div class="rcpt">${receiptHtml(s)}</div>
     ${s.void ? `<p class="tag void" style="margin-top:8px">Venta anulada${s.void.why ? ": " + esc(s.void.why) : ""}</p>` : ""}
     <div class="btns h"><button class="btn sec" data-a="print" data-id="${s.id}">${svg("print", "bi")}Imprimir</button><button class="btn sec" data-a="wa" data-id="${s.id}">${svg("wa", "bi")}WhatsApp${c && c.phone ? "" : ""}</button></div>
+    ${pmChgOk(s) ? `<div class="btns"><button class="btn sec" data-a="pmchg" data-id="${s.id}" data-f="${fromSale ? 1 : ""}">${svg("swap", "bi")}Cambiar medio de pago</button></div>` : ""}
     ${!fromSale && !s.void ? `<div class="btns h"><button class="btn sec" data-a="ret" data-id="${s.id}">Devolución${ret ? ` (${ret})` : ""}</button><button class="btn red sec" data-a="void" data-id="${s.id}">Anular</button></div>` : ""}
     ${!fromSale && s.prev && !s.void ? `<div class="btns"><button class="btn sec" data-a="dispatch" data-id="${s.id}" ${s.disp ? "disabled" : ""}>${s.disp ? "Despachado " + hhmm(s.disp.t) : "Marcar como despachado"}</button></div>` : ""}
     <div class="btns"><button class="btn lg" data-a="${fromSale ? "newsale" : "close"}" data-enter>${fromSale ? "Nueva venta" : "Cerrar"}</button></div>`, "rc");
