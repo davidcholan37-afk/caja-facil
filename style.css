@@ -3396,3 +3396,9 @@ html[data-theme=dark] .rcres.ok{color:#8FE3AE}html[data-theme=dark] .rcres.short
 .kxsug .kxs{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;border-radius:8px;font:inherit;color:inherit;cursor:pointer}
 .kxsug .kxs:hover,.kxsug .kxs.on{background:var(--hl,#e6f3ea)}
 .kxsug .muted{display:block;padding:10px 12px}
+
+/* Proveedores: pagar con «Caja central» (31 oct 2026). No toca la caja donde se vende. */
+.m-central{--c:#5B4636;background-color:#5B4636}
+.pmi.m-central{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4' width='17' height='15' rx='2'/%3E%3Ccircle cx='12' cy='11.5' r='3.2'/%3E%3Cpath d='M12 8.3v1.2M7 19v1.5M17 19v1.5'/%3E%3C/svg%3E")}
+.llseg.c5{grid-template-columns:repeat(5,1fr)}
+.llm .llc[data-m=central] span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.05;text-align:center;font-size:11.5px}

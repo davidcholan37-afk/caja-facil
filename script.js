@@ -61,7 +61,7 @@ const parseQty = (v) => {
 const fmtPhone = (v) => String(v || "").replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ").trim();
 const parseAmounts = (s) => String(s).replace(/(\d),(\d{1,2})(?!\d)/g, "$1.$2").split(/[\s;,]+/).map((x) => parseFloat(x)).filter((n) => isFinite(n) && n > 0).map(r2);
 
-const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", bcp: "BCP", culqi: "Culqi", tarjeta: "Tarjeta", transferencia: "Transferencia", credito: "Crédito", puntos: "Puntos" };
+const METHODS = { efectivo: "Efectivo", yape: "Yape", plin: "Plin", bcp: "BCP", culqi: "Culqi", tarjeta: "Tarjeta", transferencia: "Transferencia", central: "Caja central", credito: "Crédito", puntos: "Puntos" };
 const FK = { efectivo: "F2", yape: "F8", plin: "F10" }; // F9 también cobra en efectivo (pedido de David); tarjeta: tecla T en el cobro
 const DOCS = { NV: "Nota de venta", B: "Boleta", F: "Factura" };
 const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
@@ -3403,7 +3403,7 @@ function llegoPaint() {
     ${row(`Boleta<small>vacía si solo cobra</small>`, `<label class="llbox"><i>S/</i><input id="lla" class="num" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(L.dejo)}" aria-label="De cuánto es la boleta"></label>`)}
     ${row("Le pagas", `<div class="llseg${b > 0 ? " c4" : ""}">${chip("hoy", "La boleta", "#llh")}${b > 0 ? chip("todo", "Todo", "#llt") : ""}${chip("otro", "Abono", "una parte")}${chip("nada", "Nada", "me fió")}</div>
       ${L.pay === "otro" ? `<label class="llbox sm"><i>S/</i><input id="llo" class="num" inputmode="decimal" placeholder="¿Cuánto abonas?" autocomplete="off" value="${esc(L.otro)}" aria-label="Cuánto abonas"></label>` : ""}`)}
-    ${L.pay !== "nada" ? row(`Con${L.m === "efectivo" ? `<small class="${cash ? "" : "bad"}">${cash ? "sale de la caja" : "no puedes sacar de la caja"}</small>` : ""}`, `<div class="llseg c4 llm">${["efectivo", "yape", "plin", "bcp"].map((m) => `<button class="llc${L.m === m ? " on" : ""}" data-a="llmet" data-m="${m}" aria-pressed="${L.m === m}"><i class="pmi m-${m}" aria-hidden="true"></i><span>${METHODS[m]}</span></button>`).join("")}</div>`) : ""}
+    ${L.pay !== "nada" ? row(`Con${L.m === "efectivo" ? `<small class="${cash ? "" : "bad"}">${cash ? "sale de la caja" : "no puedes sacar de la caja"}</small>` : L.m === "central" ? `<small>no sale de esta caja</small>` : ""}`, `<div class="llseg c5 llm">${["efectivo", "yape", "plin", "bcp", "central"].map((m) => `<button class="llc${L.m === m ? " on" : ""}" data-a="llmet" data-m="${m}" aria-pressed="${L.m === m}"><i class="pmi m-${m}" aria-hidden="true"></i><span>${METHODS[m]}</span></button>`).join("")}</div>`) : ""}
     ${row("Nota", `<input class="inp" id="lln" maxlength="50" placeholder="Opcional: factura 123, gaseosas…" value="${esc(L.note)}" aria-label="Nota">`)}
     <div class="llres" id="llres" aria-live="polite"></div>
     <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" id="llok" data-a="llok" data-enter>Guardar</button></div>`, "llsheet");
@@ -3441,7 +3441,7 @@ act({
     const contado = Math.min(c.dejo, c.pago), resto = r2(c.dejo - contado), abono = r2(c.pago - contado);
     const mk = (type, amt, dt, pay) => {
       const e = { id: uid(), sid: s.id, t: t + dt, date: dkey(), type, amt, note, m: pay ? L.m : "", u: u ? u.id : "", un: u ? u.name : "" };
-      if (pay) e.mv = addMove("proveedor", amt, `${s.name}${note ? " · " + note : ""}`, { m: L.m, sup: s.id }).id;
+      if (pay && L.m !== "central") e.mv = addMove("proveedor", amt, `${s.name}${note ? " · " + note : ""}`, { m: L.m, sup: s.id }).id;
       DB.sm.push(e); nuevo = e.id;
     };
     if (resto > 0) mk("deuda", resto, 0, false);
@@ -3469,7 +3469,7 @@ function suppMoney(kind, id, modo) {
   openModal(`<h2>${kind === "pago" ? (todo ? "Pagar todo" : b > 0 ? "Abonar" : "Pagar") : "Anotar lo que me fiaron"}</h2><p class="muted" style="margin-bottom:12px">${esc(s.name)}${b > 0 ? ` · le debes <b>${money(b)}</b>` : ""}</p>
     <label class="fld"><span>Monto (S/)</span><input class="inp num big" id="spa" inputmode="decimal" placeholder="0.00" autofocus${todo ? ` value="${b.toFixed(2)}"` : ""}></label>
     ${kind === "pago" && b > 0 && !todo ? `<button class="link xs" data-a="spall" data-v="${b.toFixed(2)}" style="margin:-6px 0 10px">Pagar todo: ${money(b)}</button>` : ""}
-    ${kind === "pago" ? `<div class="methods" id="spm">${["efectivo", "yape", "plin", "transferencia"].map((m) => `<button class="mth ${m === "efectivo" ? "on" : ""}" data-a="spm" data-m="${m}">${METHODS[m]}</button>`).join("")}</div><p class="muted sm" style="margin:-4px 0 10px">Si es efectivo, sale de la caja.</p>` : ""}
+    ${kind === "pago" ? `<div class="methods" id="spm">${["efectivo", "yape", "plin", "transferencia", "central"].map((m) => `<button class="mth ${m === "efectivo" ? "on" : ""}" data-a="spm" data-m="${m}">${METHODS[m]}</button>`).join("")}</div><p class="muted sm" style="margin:-4px 0 10px">Si es efectivo, sale de la caja. Con «Caja central» no toca esta caja.</p>` : ""}
     <label class="fld"><span>Nota (opcional)</span><input class="inp" id="spn" maxlength="50" placeholder="${kind === "pago" ? "Ej: factura 123" : "Ej: gaseosas y arroz"}"></label>
     <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn" data-enter data-a="spok">${kind === "pago" ? "Registrar pago" : "Anotar deuda"}</button></div>`);
   if (todo) setTimeout(() => { const i = $("#spa"); if (i) i.select(); }, 0);
@@ -3505,7 +3505,7 @@ act({
     const e = { id: uid(), sid: s.id, t: Date.now(), date: dkey(), type: p.kind, amt, note, m: p.kind === "pago" ? p.m : "", u: u ? u.id : "", un: u ? u.name : "" };
     if (p.kind === "pago") {
       if (p.m === "efectivo" && !can("caja")) return toast("Tu usuario no puede sacar dinero de la caja");
-      const mv = addMove("proveedor", amt, `${s.name}${note ? " · " + note : ""}`, { m: p.m, sup: s.id }); e.mv = mv.id;
+      if (p.m !== "central") { const mv = addMove("proveedor", amt, `${s.name}${note ? " · " + note : ""}`, { m: p.m, sup: s.id }); e.mv = mv.id; }
     }
     DB.sm.push(e); log(p.kind === "pago" ? "Pago a proveedor" : "Deuda con proveedor", `${s.name} ${money(amt)}`); save();
     if (ui.ps === s.id) ui.pvNew = e.id;
@@ -5964,7 +5964,7 @@ const HELP_KB = [
   { k: ["turno", "cambio de turno", "cambiar turno", "turno de la tarde", "turno de la noche", "pasar la caja", "otro cajero"], t: "Cambiar turno", go: "caja", s: ["En Caja toca «Cambiar turno».", "Escribe cuánto hay en el cajón y toca «Cerrar y pasar la caja».", "El que sigue abre la caja: ya sale lo que se contó como sencillo."] },
   { k: ["flechas", "teclado", "sin mouse", "sin el mouse", "moverme"], t: "Usar la caja con las flechas", s: ["Fuera de Vender, las flechas ↑ ↓ ← → mueven el borde verde al botón de al lado, también al menú de la izquierda.", "Enter aprieta lo marcado; Esc cierra la ventana o vuelve atrás.", "En Vender las flechas siguen igual: tickets, líneas del ticket, resultados y cobro."] },
   { k: ["gasto", "retiro", "ingreso de dinero", "sale dinero", "saque plata"], t: "Anotar un gasto, ingreso o retiro", go: "caja", s: ["Entra a Caja.", "Toca Gasto, Ingreso de dinero o Retiro de dinero.", "Escribe el monto y el motivo, y guarda."] },
-  { k: ["proveedor", "me fiaron", "llego", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores y toca «Llegó un proveedor» (arriba).", "Elige al proveedor y escribe de cuánto es la boleta. Ya sale marcado «La boleta» (le pagas eso); si te fió toca «Nada, me fió», o «Una parte (abono)».", "Elige con qué pagas (Efectivo, Yape, Plin o BCP), mira abajo cuánto le quedas debiendo y toca «Guardar». Si solo viene a cobrar, deja la boleta vacía y toca «Todo lo que le debes» o «Una parte»."] },
+  { k: ["proveedor", "me fiaron", "llego", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores y toca «Llegó un proveedor» (arriba).", "Elige al proveedor y escribe de cuánto es la boleta. Ya sale marcado «La boleta» (le pagas eso); si te fió toca «Nada, me fió», o «Una parte (abono)».", "Elige con qué pagas (Efectivo, Yape, Plin, BCP o Caja central si la plata no sale de la caja donde vendes), mira abajo cuánto le quedas debiendo y toca «Guardar». Si solo viene a cobrar, deja la boleta vacía y toca «Todo lo que le debes» o «Una parte»."] },
   { k: ["report", "ganancia", "cuanto vendi", "resumen", "utilidad"], t: "Ver ventas y ganancia", go: "rep", s: ["Entra a Reportes y elige el periodo.", "Si tienes la voz activa, también puedes escribirme: «cuánto vendí hoy»."] },
   { k: ["balanza", "kilo", "peso", "gramos", "fruta", "verdura"], t: "Vender por peso", go: "venta", s: ["Pon el producto como «por kilo» en Productos.", "En Vender escribe el peso o usa la balanza si la conectaste.", "Configura la balanza en Ajustes › Balanza."] },
   { k: ["usuario", "pin", "cajero", "permiso", "clave"], t: "Cajeros y PIN", go: "aj.usuarios", s: ["Entra a Ajustes › Usuarios y permisos.", "Crea al cajero y elige qué puede hacer.", "Cada uno entra con su PIN. No compartas tu PIN."] },
