@@ -16,7 +16,7 @@ const PV_IC = { pay: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle c
 const pvI = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PV_IC[k]}</svg>`;
 function pvFilter() {
   const q = norm(ui.psq || ""), f = ui.pf || "all"; let n = 0;
-  $$("#pvlist .pvrow").forEach((r) => { const ok = (!q || r.dataset.n.includes(q)) && (f === "all" || (f === "debo" ? r.dataset.b === "1" : r.dataset.b !== "1")); r.hidden = !ok; if (ok) n++; });
+  $$("#pvlist .pvrow").forEach((r) => { const ok = (!q || nameHit(r.dataset.n, q)) && (f === "all" || (f === "debo" ? r.dataset.b === "1" : r.dataset.b !== "1")); r.hidden = !ok; if (ok) n++; });
   const e = $("#pvnone"); if (e) e.hidden = n > 0;
 }
 VIEWS.prov = function viewProv(v) {
@@ -101,7 +101,7 @@ function llegoPaint() {
       <div class="btns h"><button class="btn sec" data-a="close">Cancelar</button><button class="btn sec" data-a="psnew">${svg("plus", "bi")}Nuevo proveedor</button></div>`);
     const q = $("#llq");
     if (q) {
-      q.oninput = () => { const v = norm(q.value); $$("#llpick .llp").forEach((b) => { b.hidden = !!v && !b.dataset.n.includes(v); }); };
+      q.oninput = () => { const v = norm(q.value); $$("#llpick .llp").forEach((b) => { b.hidden = !!v && !nameHit(b.dataset.n, v); }); };
       q.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); const b = $$("#llpick .llp").find((x) => !x.hidden); if (b) b.click(); } };
     }
     return;

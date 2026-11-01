@@ -53,7 +53,7 @@ function paintVList(from, to) {
   if (ui.vtab === "dev") l = l.filter((s) => s.void || (s.returns || []).length);
   else {
     const q = norm(ui.vq), raw = (ui.vq || "").trim();
-    if (raw) l = l.filter((s) => docShort(s).toLowerCase().includes(raw.toLowerCase()) || String(s.doc.n) === raw.replace(/^0+/, "") || norm(s.cname).includes(q) || (s.cdoc || "").includes(raw) || s.items.some((i) => norm(i.name).includes(q)));
+    if (raw) l = l.filter((s) => docShort(s).toLowerCase().includes(raw.toLowerCase()) || String(s.doc.n) === raw.replace(/^0+/, "") || nameHit(s.cname, q) || (s.cdoc || "").includes(raw) || s.items.some((i) => nameHit(i.name, q)));
     if (ui.vdoc) l = l.filter((s) => s.doc.type === ui.vdoc);
     if (ui.vuser) l = l.filter((s) => s.user === ui.vuser);
   }

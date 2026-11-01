@@ -51,7 +51,7 @@ function paintCList() {
   const el = $("#clist"); if (!el) return;
   if (!DB.clients.length) { el.innerHTML = `<div class="empty"><h2>Aún no tienes clientes</h2><p>Regístralos para venderles al crédito, darles factura o acumular puntos.</p></div>`; return; }
   const q = norm(ui.cq), raw = ui.cq || "";
-  let list = DB.clients.map((c) => ({ c, a: agingOf(c) })).filter(({ c }) => !q || norm(c.name).includes(q) || (c.doc || "").includes(raw) || (c.phone || "").replace(/\D/g, "").includes(raw.replace(/\D/g, "") || "~"));
+  let list = DB.clients.map((c) => ({ c, a: agingOf(c) })).filter(({ c }) => !q || nameHit(c.name, q) || (c.doc || "").includes(raw) || (c.phone || "").replace(/\D/g, "").includes(raw.replace(/\D/g, "") || "~"));
   if (ui.cf === "deuda") list = list.filter((x) => x.a.debt > 0); else if (ui.cf === "vencidos") list = list.filter((x) => x.a.late);
   list.sort((a, b) => b.a.debt - a.a.debt || cmpEs(a.c.name, b.c.name));
   el.innerHTML = list.slice(0, 300).map(({ c, a }) => { const pts = DB.cfg.pts.on ? pointsOf(c) : 0; return `<button class="it" data-a="cliopen" data-id="${c.id}"><span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span><div class="t"><b>${esc(c.name)}</b><small>${c.doc ? esc(c.dt + " " + c.doc) : "Sin documento"}${c.phone ? " · " + esc(fmtPhone(c.phone)) : ""}${pts ? ` · ${pts} pts` : ""}</small>${a.late ? ` <span class="tag out">Vencido hace ${a.days - c.days} d</span>` : ""}</div><div class="v num ${a.debt > 0 ? "warn" : ""}">${a.debt > 0 ? money(a.debt) : "Al día"}<small>${a.debt > 0 ? "debe" : ""}</small></div></button>`; }).join("") || `<div class="empty"><p>Nadie coincide con ese filtro.</p></div>`;

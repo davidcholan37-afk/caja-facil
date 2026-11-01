@@ -259,7 +259,7 @@ function doneHtml(s) {
 /* ---------- cliente y comprobante del ticket ---------- */
 function pickClient(cb) {
   const list = () => {
-    const q = norm(ui.pcq || ""), cs = DB.clients.filter((c) => !q || norm(c.name).includes(q) || (c.doc || "").includes(ui.pcq || "") || (c.phone || "").includes(ui.pcq || "")).sort((a, b) => cmpEs(a.name, b.name)).slice(0, 60);
+    const q = norm(ui.pcq || ""), cs = DB.clients.filter((c) => !q || nameHit(c.name, q) || (c.doc || "").includes(ui.pcq || "") || (c.phone || "").includes(ui.pcq || "")).sort((a, b) => cmpEs(a.name, b.name)).slice(0, 60);
     return cs.map((c) => { const d = balanceOf(c); return `<button class="it" data-a="clipick" data-id="${c.id}"><span class="av" style="--h:${avHue(c)}">${esc(initials(c.name))}</span><div class="t"><b>${esc(c.name)}</b><small>${c.doc ? esc(c.dt + " " + c.doc) : "Sin documento"}${c.phone ? " · " + esc(fmtPhone(c.phone)) : ""}</small></div>${d > 0 ? `<div class="v num warn">Debe ${money(d)}</div>` : ""}</button>`; }).join("") || `<p class="muted" style="padding:10px 2px">No encontré clientes con ese dato.</p>`;
   };
   ui.clicb = cb || null;

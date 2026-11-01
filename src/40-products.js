@@ -52,7 +52,7 @@ function paintPList() {
   const q = norm(ui.pq), raw = ui.pq || "";
   // También por códigos de barras aprendidos (p.bar); el código exacto (lo que manda el lector) sale primero.
   const cod = raw.trim(), exact = (p) => !!cod && (p.code === cod || (p.bar || []).includes(cod) || (p.pres || []).some((x) => x.code === cod));
-  const list = DB.products.filter((p) => !q || norm(p.name).includes(q) || norm(p.cat).includes(q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
+  const list = DB.products.filter((p) => !q || nameHit(p.name, q) || nameHit((p.name || "") + " " + (p.cat || ""), q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
     .sort((a, b) => (exact(b) - exact(a)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || cmpEs(a.name, b.name));
   el.innerHTML = list.slice(0, 120).map(pRow).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
   // Con algo escrito, el primero queda marcado: Enter lo abre; ↑ ↓ se mueven.
@@ -248,20 +248,11 @@ function kxRows(from, to, pid, ty) {
   });
   return out.sort((a, b) => b.t - a.t);
 }
-// Lista de nombres para buscar el producto (se arma una vez por cambio de datos, no en cada filtro).
-let kxNomMemo = { v: -1, html: "", map: null };
-function kxNombres() {
-  if (kxNomMemo.v === DBV) return kxNomMemo;
-  const sorted = DB.products.slice().sort((a, b) => cmpEs(a.name, b.name)), map = new Map();
-  sorted.forEach((p) => { const k = norm(p.name); if (!map.has(k)) map.set(k, p.id); });
-  kxNomMemo = { v: DBV, map, html: sorted.map((p) => `<option value="${esc(p.name)}">`).join("") };
-  return kxNomMemo;
-}
 function paintKardex() {
   const el = $("#pbody"); const from = ui.kxfrom || addD(dkey(), -30), to = ui.kxto || dkey();
-  const pid = ui.kxp, rows = kxRows(from, to, pid, ui.kxt), pp = pid ? prod(pid) : null, N = kxNombres();
+  const pid = ui.kxp, rows = kxRows(from, to, pid, ui.kxt), pp = pid ? prod(pid) : null;
   const vendido = pid ? r3(-rows.filter((x) => x.ty === "venta").reduce((a, x) => a + x.q, 0)) : 0;
-  el.innerHTML = `<div class="filters"><label class="fld"><span>Producto</span><input class="inp" type="search" id="kxq" list="kxdl" autocomplete="off" placeholder="Todos · escribe para buscar" value="${pp ? esc(pp.name) : ""}"><datalist id="kxdl">${N.html}</datalist></label>
+  el.innerHTML = `<div class="filters"><label class="fld"><span>Producto</span><span class="kxbox"><input class="inp" type="search" id="kxq" autocomplete="off" placeholder="Todos · escribe para buscar" value="${pp ? esc(pp.name) : ""}"><span class="kxsug" id="kxsug" hidden></span></span></label>
     <label class="fld"><span>Tipo</span><select class="inp" data-in="kxt"><option value="">Todos</option>${["venta", "ingreso", "ajuste", "merma", "devolucion", "anulacion", "trf", "receta", "inicial", "import"].map((k) => `<option value="${k}" ${ui.kxt === k ? "selected" : ""}>${k === "trf" ? "Transferencias" : KXL[k]}</option>`).join("")}</select></label>
     <label class="fld"><span>Desde</span><input class="inp" type="date" data-in="kxfrom" value="${from}" max="${dkey()}"></label><label class="fld"><span>Hasta</span><input class="inp" type="date" data-in="kxto" value="${to}" max="${dkey()}"></label></div>
     ${pp && vendido ? `<p class="muted" style="margin:0 0 10px">${esc(pp.name)}: vendido ${fmtQ(vendido)}${pp.unit === "kg" ? " kg" : ""} en estas fechas.</p>` : ""}
@@ -269,9 +260,17 @@ function paintKardex() {
     ${rows.slice(0, 500).map((x) => { const p = prod(x.p); return `<tr><td>${dmy(x.d)} ${hhmm(x.t)}</td><td>${esc(p ? p.name : "(eliminado)")}</td><td>${esc(KXL[x.ty] || x.ty)}</td><td class="r num ${x.q < 0 ? "loss" : "gain"}">${x.q > 0 ? "+" : ""}${fmtQ(x.q)}</td><td class="r num">${x.b == null ? `<span class="muted" title="Este producto no controla stock">—</span>` : fmtQ(x.b)}</td><td>${esc(x.r)}</td><td>${esc(x.u)}</td></tr>`; }).join("")}</tbody></table></div>
     ${rows.length > 500 ? `<p class="muted">Mostrando 500 de ${rows.length}. Exporta para ver todo.</p>` : ""}<button class="btn sec sm" data-a="kxcsv" style="margin-top:10px">Exportar kardex (CSV)</button>`
     : `<div class="empty"><p>No hay movimientos con esos filtros.</p></div>`}`;
-  const q = $("#kxq");
-  if (q) { const elegir = () => { const v = q.value.trim(), id = v ? N.map.get(norm(v)) : ""; if (v && !id) return; if ((id || "") !== (ui.kxp || "")) { ui.kxp = id || ""; render(); } };
-    q.addEventListener("change", elegir); q.addEventListener("input", () => { if (!q.value.trim() && ui.kxp) { ui.kxp = ""; render(); } else if (N.map.has(norm(q.value.trim()))) elegir(); }); }
+  const q = $("#kxq"), sug = $("#kxsug");
+  if (q && sug) {
+    // Palabras en cualquier orden y a medias: «glori roj» o «roja gloria» encuentran «GLORIA ROJA».
+    const pinta = () => { const v = norm(q.value.trim()); if (!v || (pp && q.value === pp.name)) { sug.hidden = true; return; }
+      const l = DB.products.filter((p) => nameHit(p.name, v)).sort((a, b) => nameRank(a.name, v) - nameRank(b.name, v) || cmpEs(a.name, b.name)).slice(0, 12);
+      sug.innerHTML = l.map((p, i) => `<button type="button" class="kxs${i ? "" : " on"}" data-a="kxpick" data-id="${p.id}">${esc(p.name)}</button>`).join("") || `<span class="muted">Ningún producto se llama así</span>`; sug.hidden = false; };
+    q.addEventListener("input", () => { if (!q.value.trim() && ui.kxp) { ui.kxp = ""; render(); return; } pinta(); });
+    q.addEventListener("keydown", (e) => { const bs = $$("#kxsug .kxs"); if (!bs.length || sug.hidden) return; let k = bs.findIndex((b) => b.classList.contains("on"));
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation(); bs[k] && bs[k].classList.remove("on"); k = (k + (e.key === "ArrowDown" ? 1 : -1) + bs.length) % bs.length; bs[k].classList.add("on"); bs[k].scrollIntoView({ block: "nearest" }); }
+      else if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); (bs[k] || bs[0]).click(); } else if (e.key === "Escape") { sug.hidden = true; } });
+    q.addEventListener("blur", () => setTimeout(() => { sug.hidden = true; }, 200)); }
 }
 function paintLow() {
   const l = lowItems(), el = $("#pbody");
@@ -447,6 +446,7 @@ act({
     else { if (!(q > 0)) return toast("Escribe cuánto se perdió"); if (p.stock == null) return toast("Este producto no controla stock"); stockAdd(p, -q, "merma", why || "Merma"); }
     log(ui.adj === "conteo" ? "Ajuste de stock" : "Merma", `${p.name}: ${fmtQ(p.stock)}`); save(); closeModal(); toast("Stock actualizado"); render();
   },
+  kxpick: (el) => { ui.kxp = el.dataset.id; render(); },
   kxof: (el) => { ui.kxp = el.dataset.id; ui.ptab = "kx"; closeModal(); render(); },
   kxcsv: () => { const from = ui.kxfrom || addD(dkey(), -30), to = ui.kxto || dkey(); csvOut([["fecha", "hora", "producto", "movimiento", "cantidad", "saldo", "referencia", "usuario"], ...kxRows(from, to, ui.kxp, ui.kxt).reverse().map((x) => { const p = prod(x.p); return [x.d, hhmm(x.t), p ? p.name : "", KXL[x.ty] || x.ty, x.q, x.b == null ? "" : x.b, x.r, x.u]; })], `kardex-${dkey()}.csv`); },
   lowwa: (el) => {

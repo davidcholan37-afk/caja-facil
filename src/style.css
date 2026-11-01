@@ -3388,3 +3388,10 @@ html[data-theme=dark] .llres.debe{background:rgba(255,170,80,.14);color:#FFC27A}
 html[data-theme=dark] .rcres.ok{color:#8FE3AE}html[data-theme=dark] .rcres.short{color:#FCA5A5}html[data-theme=dark] .rcres.over{color:#A9C3F2}
 .rcsheet .muted.sm{margin-top:10px}
 @media (max-width:420px){.rcrow{grid-template-columns:1fr 128px}}
+
+/* Kardex: buscador de producto con sugerencias (31 oct 2026) */
+.kxbox{position:relative;display:block}
+.kxsug{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;max-height:320px;overflow:auto;background:var(--s0,#fff);border:1px solid var(--line,#d6e3da);border-radius:12px;box-shadow:0 12px 28px rgba(20,60,40,.16);padding:4px}
+.kxsug .kxs{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;border-radius:8px;font:inherit;color:inherit;cursor:pointer}
+.kxsug .kxs:hover,.kxsug .kxs.on{background:var(--hl,#e6f3ea)}
+.kxsug .muted{display:block;padding:10px 12px}
