@@ -1,8 +1,14 @@
 /* ===================== 40 · PRODUCTOS E INVENTARIO ===================== */
-const lowItems = () => DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || cmpEs(a.name, b.name));
+let lowMemo = { v: -1, l: [] };
+const lowItems = () => { if (lowMemo.v !== DBV) lowMemo = { v: DBV, l: DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || cmpEs(a.name, b.name)) }; return lowMemo.l.slice(); };
+// Todos los productos por nombre (para listas y selects); se rehace solo cuando cambia algo.
+let pbnMemo = { v: -1, l: [] };
+const prodsByName = () => { if (pbnMemo.v !== DBV) { const d = DB.products.map((p) => [norm(p.name), p]); d.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)); pbnMemo = { v: DBV, l: d.map((x) => x[1]) }; } return pbnMemo.l; };
 // Por vencer (hasta n días, ya vencidos incluidos) y sin mover (con stock y sin movimiento hace n días o más).
 const daysTo = (d) => Math.round((pk(d) - pk(dkey())) / 864e5);
-const expItems = (n = 7) => DB.products.filter((p) => p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= n).sort((a, b) => a.exp.localeCompare(b.exp) || cmpEs(a.name, b.name));
+let expMemo = { k: "", l: [] };
+const expItems = (n = 7) => { const k = DBV + "|" + n + "|" + dkey(); if (expMemo.k !== k) expMemo = { k, l: expItemsCalc(n) }; return expMemo.l.slice(); };
+const expItemsCalc = (n) => DB.products.filter((p) => p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= n).sort((a, b) => a.exp.localeCompare(b.exp) || cmpEs(a.name, b.name));
 const expTxt = (p) => { const d = daysTo(p.exp); return d < 0 ? `Vencido hace ${-d} ${d === -1 ? "día" : "días"}` : d === 0 ? "Vence hoy" : d === 1 ? "Vence mañana" : `Vence en ${d} días`; };
 let kxLast = { v: -1 };
 const idleItems = (n = 30) => {
@@ -20,7 +26,7 @@ function lowGroups() {
 const waNum = (t) => { const d = String(t || "").replace(/\D/g, ""); return d.length >= 9 ? "51" + d.slice(-9) : ""; };
 const suggest = (p) => Math.max(1, Math.ceil(Math.max((p.min || 0) * 2 - p.stock, p.min || 1)));
 VIEWS.prod = function viewProducts(v) {
-  const low = lowItems(), val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0)), nExp = expItems().length, nIdle = idleItems().length;
+  const low = lowItems(), val = invVal(), nExp = expItems().length, nIdle = idleItems().length;
   const T = [["lista", "Inventario"], ["low", `Por reponer${low.length ? ` (${low.length})` : ""}`], ["exp", `Por vencer${nExp ? ` (${nExp})` : ""}`], ["idle", `Sin mover${nIdle ? ` (${nIdle})` : ""}`], ["kx", "Movimientos (kardex)"]];
   v.innerHTML = `<div class="ph"><h1>Productos</h1><div class="row wrap">
       <button class="btn sec sm" data-a="prodmas">Más</button>${can("precios") ? `<button class="btn sm" data-a="pnew">+ Nuevo producto</button>` : ""}</div></div>
@@ -36,8 +42,10 @@ VIEWS.prod = function viewProducts(v) {
     <div class="list" id="plist"></div>`;
   paintPList();
 };
+let valMemo = { v: -1, x: 0 };
+const invVal = () => { if (valMemo.v !== DBV) valMemo = { v: DBV, x: r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0)) }; return valMemo.x; };
 function prodSum(low, val) {
-  low = low || lowItems(); if (val == null) val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0));
+  low = low || lowItems(); if (val == null) val = invVal();
   return `<div class="sum"><b>${DB.products.length}</b><span>Productos</span></div><button class="sum lowbtn ${low.length ? "warn" : ""}" data-a="ptab" data-t="low"><b>${low.length}</b><span>Stock bajo · ver</span></button>${can("costos") ? `<div class="sum"><b class="num">${money(val)}</b><span>Inventario al costo</span></div>` : `<div class="sum"><b>${[...new Set(DB.products.map((p) => p.cat).filter(Boolean))].length}</b><span>Categorías</span></div>`}`;
 }
 // Una fila de la lista de Productos (también se usa para cambiar solo esa fila al guardar).
@@ -52,8 +60,15 @@ function paintPList() {
   const q = norm(ui.pq), raw = ui.pq || "";
   // También por códigos de barras aprendidos (p.bar); el código exacto (lo que manda el lector) sale primero.
   const cod = raw.trim(), exact = (p) => !!cod && (p.code === cod || (p.bar || []).includes(cod) || (p.pres || []).some((x) => x.code === cod));
-  const list = DB.products.filter((p) => !q || nameHit(p.name, q) || nameHit((p.name || "") + " " + (p.cat || ""), q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
-    .sort((a, b) => (exact(b) - exact(a)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || cmpEs(a.name, b.name));
+  const isLow = (p) => p.stock != null && p.stock <= (p.min || 0);
+  let list;
+  if (!q && !cod) list = prodsByName().filter(isLow).concat(prodsByName().filter((p) => !isLow(p)));
+  else {
+    const d = DB.products.filter((p) => !q || nameCatHit(p.name, p.cat, q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
+      .map((p) => [p, exact(p) ? 0 : 1, q ? nameRank(p.name, q) : 0, isLow(p) ? 0 : 1, norm(p.name)]);
+    d.sort((a, b) => a[1] - b[1] || a[2] - b[2] || a[3] - b[3] || (a[4] < b[4] ? -1 : a[4] > b[4] ? 1 : 0));
+    list = d.map((x) => x[0]);
+  }
   el.innerHTML = list.slice(0, 120).map(pRow).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
   // Con algo escrito, el primero queda marcado: Enter lo abre; ↑ ↓ se mueven.
   ui.psel = q ? 0 : -1; pselMark();
@@ -78,7 +93,7 @@ function readPE() {
 }
 function paintPE() {
   const { id, d } = ui.pe, cats = [...new Set(DB.products.map((x) => x.cat).filter(Boolean))].sort();
-  const kg = d.unit === "kg", others = DB.products.filter((x) => x.id !== id).sort((a, b) => cmpEs(a.name, b.name));
+  const kg = d.unit === "kg", others = prodsByName().filter((x) => x.id !== id);
   const imgMode = d.img && d.img.startsWith("data:") ? "Tu foto" : d.img && d.img.startsWith("foto:") ? "Foto elegida" : d.img && d.img.startsWith("lib:") ? "Ilustración elegida" : "Automática por nombre";
   // Ficha «precio arriba» (opción 4 elegida por David, 23 oct 2026): adelante lo principal en grande (precio, costo, nombre,
   // categoría, se vende, código y stock); lo demás en 4 botones de arriba que abren su parte (ui.peTab, se recuerda al repintar).

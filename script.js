@@ -32,20 +32,29 @@ const num = (v) => { const n = parseFloat(String(v ?? "").replace(/\s/g, "").rep
 const normCalc = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 // norm() se usa por cada producto en cada tecla de la búsqueda: se recuerda el resultado (nombres de productos se repiten mucho).
 const normMemo = new Map();
-const norm = (s) => { if (s == null || s === "") return ""; const k = typeof s === "string" ? s : String(s), h = normMemo.get(k); if (h !== undefined) return h; const v = normCalc(k); if (normMemo.size > 20000) normMemo.clear(); normMemo.set(k, v); return v; };
+const norm = (s) => { if (s == null || s === "") return ""; const k = typeof s === "string" ? s : String(s), h = normMemo.get(k); if (h !== undefined) return h; const v = normCalc(k); if (normMemo.size > 80000) normMemo.clear(); normMemo.set(k, v); return v; };
 // Buscar por palabras sueltas, en cualquier orden: «manz vin» encuentra «Vinagre de manzana». q ya viene con norm().
-const nameHit = (name, q) => { const n = norm(name), pw = n.split(/\s+/); return q.split(/\s+/).filter(Boolean).every((w) => pw.some((x) => x.startsWith(w)) || (w.length >= 3 && n.includes(w))); };
+// Las palabras de cada nombre y de lo buscado se separan una sola vez (se repetía por cada producto en cada tecla).
+const wordsMemo = new Map();
+const wordsOf = (n) => { let w = wordsMemo.get(n); if (!w) { w = n.split(/\s+/); if (wordsMemo.size > 80000) wordsMemo.clear(); wordsMemo.set(n, w); } return w; };
+let nhQ = null, nhW = [];
+const qWords = (q) => { if (q !== nhQ) { nhQ = q; nhW = q.split(/\s+/).filter(Boolean); } return nhW; };
+const nameHit = (name, q) => { const n = norm(name), pw = wordsOf(n), ws = qWords(q); for (let i = 0; i < ws.length; i++) { const w = ws[i]; let ok = w.length >= 3 && n.includes(w); for (let j = 0; !ok && j < pw.length; j++) ok = pw[j].startsWith(w); if (!ok) return false; } return true; };
 // Primero los que empiezan con lo escrito, luego los que lo tienen en otra palabra, al final el resto.
-const nameRank = (name, q) => { const ws = q.split(/\s+/).filter(Boolean), n = norm(name); if (!ws.length || n.startsWith(ws[0])) return 0; return n.split(/\s+/).some((w) => w.startsWith(ws[0])) ? 1 : 2; };
+// Igual que nameHit, pero cada palabra puede estar en el nombre o en la categoría.
+const nameCatHit = (name, cat, q) => { const n = norm(name), c = norm(cat), pw = wordsOf(n), cw = c ? wordsOf(c) : [], ws = qWords(q); for (let i = 0; i < ws.length; i++) { const w = ws[i]; let ok = w.length >= 3 && (n.includes(w) || (c && c.includes(w))); for (let j = 0; !ok && j < pw.length; j++) ok = pw[j].startsWith(w); for (let j = 0; !ok && j < cw.length; j++) ok = cw[j].startsWith(w); if (!ok) return false; } return true; };
+const nameRank = (name, q) => { const ws = qWords(q), n = norm(name); if (!ws.length || n.startsWith(ws[0])) return 0; return wordsOf(n).some((w) => w.startsWith(ws[0])) ? 1 : 2; };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const hhmm = (ts) => new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+// Formateadores creados una sola vez: toLocale…String con opciones crea uno nuevo en cada llamada (lento en listas largas). Mismo texto.
+const F_HM = new Intl.DateTimeFormat("es-PE", { hour: "2-digit", minute: "2-digit" }), F_D = new Intl.DateTimeFormat("es-PE"), F_WD = new Intl.DateTimeFormat("es-PE", { weekday: "short", day: "numeric", month: "short" });
+const hhmm = (ts) => F_HM.format(new Date(ts));
 const dmy = (k) => k.split("-").reverse().join("/");
-const fmtDT = (ts) => new Date(ts).toLocaleDateString("es-PE") + " " + hhmm(ts);
+const fmtDT = (ts) => F_D.format(new Date(ts)) + " " + hhmm(ts);
 const fmtDate = (k) => {
   const t = dkey();
   if (k === t) return "Hoy";
   if (k === addD(t, -1)) return "Ayer";
-  return pk(k).toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short" });
+  return F_WD.format(pk(k));
 };
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const monthName = (m) => { const [y, mm] = m.split("-"); return MONTHS[+mm - 1] + " " + y; };
@@ -284,7 +293,12 @@ async function loadDB() {
 }
 
 /* ---------- ayudas de datos ---------- */
-const prod = (id) => DB.products.find((p) => p.id === id);
+// Producto por id con un índice (antes recorría los 6 000+ productos en cada búsqueda: ticket, cobro, kardex…).
+// Se rehace si cambia la lista o los datos (DBV); si algo no está en el índice, se busca como antes.
+let prodIdx = { a: null, n: -1, v: -1, m: null };
+const prod = (id) => { const a = DB.products; if (!a) return undefined;
+  if (prodIdx.a !== a || prodIdx.n !== a.length || prodIdx.v !== DBV || !prodIdx.m) { const m = new Map(); for (const p of a) if (!m.has(p.id)) m.set(p.id, p); prodIdx = { a, n: a.length, v: DBV, m }; }
+  const p = prodIdx.m.get(id); return p && p.id === id ? p : a.find((x) => x.id === id); };
 const cli = (id) => DB.clients.find((c) => c.id === id);
 const usr = (id) => DB.users.find((u) => u.id === id);
 const saleById = (id) => DB.sales.find((s) => s.id === +id);
@@ -408,7 +422,7 @@ const imgKeyMemo = new Map();
 function imgKey(p) {
   if (p.img && /^(lib|foto):/.test(p.img)) return p.img.slice(p.img.indexOf(":") + 1);
   const mk = p.name + "\u0001" + (p.cat || ""), hit = imgKeyMemo.get(mk); if (hit) return hit;
-  const v = imgKeyCalc(p); if (imgKeyMemo.size > 5000) imgKeyMemo.clear(); imgKeyMemo.set(mk, v); return v;
+  const v = imgKeyCalc(p); if (imgKeyMemo.size > 40000) imgKeyMemo.clear(); imgKeyMemo.set(mk, v); return v;
 }
 function imgKeyCalc(p) {
   const n = norm(p.name);
@@ -517,6 +531,7 @@ function readPhoto(file, cb) {
 
 /* ---------- sonido y avisos ---------- */
 let ac;
+["pointerdown", "keydown"].forEach((ev) => addEventListener(ev, function prep() { removeEventListener("pointerdown", prep, true); removeEventListener("keydown", prep, true); if (!(DB.cfg && DB.cfg.mute)) try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }, true));
 function beep(ok = true) {
   if (DB.cfg.mute) return;
   try {
@@ -541,7 +556,7 @@ let modalBack = null;
 function openModal(html, cls = "") {
   const m = $("#modal"); if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   ui.mk = "";
-  const sh = $(".sheet", m); sh.className = "sheet " + cls; sh.innerHTML = html; m.hidden = false; sh.scrollTop = 0;
+  const sh = $(".sheet", m), st = m.hidden ? 0 : sh.scrollTop; sh.className = "sheet " + cls; sh.innerHTML = html; m.hidden = false; if (st) sh.scrollTop = 0;
   document.body.classList.add("noscroll");
   const f = $("[autofocus]", m); if (f && (DESK() || f.dataset.mfocus !== undefined)) setTimeout(() => { f.focus(); if (f.select && f.value) f.select(); }, 60);
 }
@@ -1468,6 +1483,7 @@ function learnOpen(code) {
 // producto, código de una presentación y por último los códigos de barras aprendidos (p.bar).
 let codeIdx = { v: -1, m: null };
 function codeFind(code) {
+  if (codeIdx.m && codeIdx.v !== DBV) { const h = codeIdx.m.get(code); if (h && !h[1] && h[0].code === code && prod(h[0].id) === h[0]) return h; }
   if (codeIdx.v !== DBV || !codeIdx.m) {
     const m = new Map();
     for (const x of DB.products) if (x.code && !m.has(x.code)) m.set(x.code, [x, ""]);
@@ -2385,10 +2401,16 @@ function vitIdeas() {
 }
 
 /* ===================== 40 · PRODUCTOS E INVENTARIO ===================== */
-const lowItems = () => DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || cmpEs(a.name, b.name));
+let lowMemo = { v: -1, l: [] };
+const lowItems = () => { if (lowMemo.v !== DBV) lowMemo = { v: DBV, l: DB.products.filter((p) => p.stock != null && p.stock <= (p.min || 0)).sort((a, b) => a.stock - b.stock || cmpEs(a.name, b.name)) }; return lowMemo.l.slice(); };
+// Todos los productos por nombre (para listas y selects); se rehace solo cuando cambia algo.
+let pbnMemo = { v: -1, l: [] };
+const prodsByName = () => { if (pbnMemo.v !== DBV) { const d = DB.products.map((p) => [norm(p.name), p]); d.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)); pbnMemo = { v: DBV, l: d.map((x) => x[1]) }; } return pbnMemo.l; };
 // Por vencer (hasta n días, ya vencidos incluidos) y sin mover (con stock y sin movimiento hace n días o más).
 const daysTo = (d) => Math.round((pk(d) - pk(dkey())) / 864e5);
-const expItems = (n = 7) => DB.products.filter((p) => p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= n).sort((a, b) => a.exp.localeCompare(b.exp) || cmpEs(a.name, b.name));
+let expMemo = { k: "", l: [] };
+const expItems = (n = 7) => { const k = DBV + "|" + n + "|" + dkey(); if (expMemo.k !== k) expMemo = { k, l: expItemsCalc(n) }; return expMemo.l.slice(); };
+const expItemsCalc = (n) => DB.products.filter((p) => p.exp && (p.stock == null || p.stock > 0) && daysTo(p.exp) <= n).sort((a, b) => a.exp.localeCompare(b.exp) || cmpEs(a.name, b.name));
 const expTxt = (p) => { const d = daysTo(p.exp); return d < 0 ? `Vencido hace ${-d} ${d === -1 ? "día" : "días"}` : d === 0 ? "Vence hoy" : d === 1 ? "Vence mañana" : `Vence en ${d} días`; };
 let kxLast = { v: -1 };
 const idleItems = (n = 30) => {
@@ -2406,7 +2428,7 @@ function lowGroups() {
 const waNum = (t) => { const d = String(t || "").replace(/\D/g, ""); return d.length >= 9 ? "51" + d.slice(-9) : ""; };
 const suggest = (p) => Math.max(1, Math.ceil(Math.max((p.min || 0) * 2 - p.stock, p.min || 1)));
 VIEWS.prod = function viewProducts(v) {
-  const low = lowItems(), val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0)), nExp = expItems().length, nIdle = idleItems().length;
+  const low = lowItems(), val = invVal(), nExp = expItems().length, nIdle = idleItems().length;
   const T = [["lista", "Inventario"], ["low", `Por reponer${low.length ? ` (${low.length})` : ""}`], ["exp", `Por vencer${nExp ? ` (${nExp})` : ""}`], ["idle", `Sin mover${nIdle ? ` (${nIdle})` : ""}`], ["kx", "Movimientos (kardex)"]];
   v.innerHTML = `<div class="ph"><h1>Productos</h1><div class="row wrap">
       <button class="btn sec sm" data-a="prodmas">Más</button>${can("precios") ? `<button class="btn sm" data-a="pnew">+ Nuevo producto</button>` : ""}</div></div>
@@ -2422,8 +2444,10 @@ VIEWS.prod = function viewProducts(v) {
     <div class="list" id="plist"></div>`;
   paintPList();
 };
+let valMemo = { v: -1, x: 0 };
+const invVal = () => { if (valMemo.v !== DBV) valMemo = { v: DBV, x: r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0)) }; return valMemo.x; };
 function prodSum(low, val) {
-  low = low || lowItems(); if (val == null) val = r2(DB.products.reduce((a, p) => a + Math.max(0, p.stock || 0) * costOf(p), 0));
+  low = low || lowItems(); if (val == null) val = invVal();
   return `<div class="sum"><b>${DB.products.length}</b><span>Productos</span></div><button class="sum lowbtn ${low.length ? "warn" : ""}" data-a="ptab" data-t="low"><b>${low.length}</b><span>Stock bajo · ver</span></button>${can("costos") ? `<div class="sum"><b class="num">${money(val)}</b><span>Inventario al costo</span></div>` : `<div class="sum"><b>${[...new Set(DB.products.map((p) => p.cat).filter(Boolean))].length}</b><span>Categorías</span></div>`}`;
 }
 // Una fila de la lista de Productos (también se usa para cambiar solo esa fila al guardar).
@@ -2438,8 +2462,15 @@ function paintPList() {
   const q = norm(ui.pq), raw = ui.pq || "";
   // También por códigos de barras aprendidos (p.bar); el código exacto (lo que manda el lector) sale primero.
   const cod = raw.trim(), exact = (p) => !!cod && (p.code === cod || (p.bar || []).includes(cod) || (p.pres || []).some((x) => x.code === cod));
-  const list = DB.products.filter((p) => !q || nameHit(p.name, q) || nameHit((p.name || "") + " " + (p.cat || ""), q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
-    .sort((a, b) => (exact(b) - exact(a)) || (q ? nameRank(a.name, q) - nameRank(b.name, q) : 0) || (a.stock != null && a.stock <= (a.min || 0) ? 0 : 1) - (b.stock != null && b.stock <= (b.min || 0) ? 0 : 1) || cmpEs(a.name, b.name));
+  const isLow = (p) => p.stock != null && p.stock <= (p.min || 0);
+  let list;
+  if (!q && !cod) list = prodsByName().filter(isLow).concat(prodsByName().filter((p) => !isLow(p)));
+  else {
+    const d = DB.products.filter((p) => !q || nameCatHit(p.name, p.cat, q) || (p.code || "").includes(cod) || (p.bar || []).some((b) => String(b).includes(cod)) || (p.pres || []).some((x) => (x.code || "").includes(cod)))
+      .map((p) => [p, exact(p) ? 0 : 1, q ? nameRank(p.name, q) : 0, isLow(p) ? 0 : 1, norm(p.name)]);
+    d.sort((a, b) => a[1] - b[1] || a[2] - b[2] || a[3] - b[3] || (a[4] < b[4] ? -1 : a[4] > b[4] ? 1 : 0));
+    list = d.map((x) => x[0]);
+  }
   el.innerHTML = list.slice(0, 120).map(pRow).join("") + (list.length > 120 ? `<p class="muted">Mostrando 120 de ${list.length}. Busca para encontrar el resto.</p>` : "") || `<div class="empty"><p>Nada coincide con tu búsqueda.</p></div>`;
   // Con algo escrito, el primero queda marcado: Enter lo abre; ↑ ↓ se mueven.
   ui.psel = q ? 0 : -1; pselMark();
@@ -2464,7 +2495,7 @@ function readPE() {
 }
 function paintPE() {
   const { id, d } = ui.pe, cats = [...new Set(DB.products.map((x) => x.cat).filter(Boolean))].sort();
-  const kg = d.unit === "kg", others = DB.products.filter((x) => x.id !== id).sort((a, b) => cmpEs(a.name, b.name));
+  const kg = d.unit === "kg", others = prodsByName().filter((x) => x.id !== id);
   const imgMode = d.img && d.img.startsWith("data:") ? "Tu foto" : d.img && d.img.startsWith("foto:") ? "Foto elegida" : d.img && d.img.startsWith("lib:") ? "Ilustración elegida" : "Automática por nombre";
   // Ficha «precio arriba» (opción 4 elegida por David, 23 oct 2026): adelante lo principal en grande (precio, costo, nombre,
   // categoría, se vende, código y stock); lo demás en 4 botones de arriba que abren su parte (ui.peTab, se recuerda al repintar).

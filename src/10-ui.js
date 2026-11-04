@@ -54,7 +54,7 @@ const imgKeyMemo = new Map();
 function imgKey(p) {
   if (p.img && /^(lib|foto):/.test(p.img)) return p.img.slice(p.img.indexOf(":") + 1);
   const mk = p.name + "\u0001" + (p.cat || ""), hit = imgKeyMemo.get(mk); if (hit) return hit;
-  const v = imgKeyCalc(p); if (imgKeyMemo.size > 5000) imgKeyMemo.clear(); imgKeyMemo.set(mk, v); return v;
+  const v = imgKeyCalc(p); if (imgKeyMemo.size > 40000) imgKeyMemo.clear(); imgKeyMemo.set(mk, v); return v;
 }
 function imgKeyCalc(p) {
   const n = norm(p.name);
@@ -163,6 +163,7 @@ function readPhoto(file, cb) {
 
 /* ---------- sonido y avisos ---------- */
 let ac;
+["pointerdown", "keydown"].forEach((ev) => addEventListener(ev, function prep() { removeEventListener("pointerdown", prep, true); removeEventListener("keydown", prep, true); if (!(DB.cfg && DB.cfg.mute)) try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }, true));
 function beep(ok = true) {
   if (DB.cfg.mute) return;
   try {
@@ -187,7 +188,7 @@ let modalBack = null;
 function openModal(html, cls = "") {
   const m = $("#modal"); if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   ui.mk = "";
-  const sh = $(".sheet", m); sh.className = "sheet " + cls; sh.innerHTML = html; m.hidden = false; sh.scrollTop = 0;
+  const sh = $(".sheet", m), st = m.hidden ? 0 : sh.scrollTop; sh.className = "sheet " + cls; sh.innerHTML = html; m.hidden = false; if (st) sh.scrollTop = 0;
   document.body.classList.add("noscroll");
   const f = $("[autofocus]", m); if (f && (DESK() || f.dataset.mfocus !== undefined)) setTimeout(() => { f.focus(); if (f.select && f.value) f.select(); }, 60);
 }

@@ -536,6 +536,7 @@ function learnOpen(code) {
 // producto, código de una presentación y por último los códigos de barras aprendidos (p.bar).
 let codeIdx = { v: -1, m: null };
 function codeFind(code) {
+  if (codeIdx.m && codeIdx.v !== DBV) { const h = codeIdx.m.get(code); if (h && !h[1] && h[0].code === code && prod(h[0].id) === h[0]) return h; }
   if (codeIdx.v !== DBV || !codeIdx.m) {
     const m = new Map();
     for (const x of DB.products) if (x.code && !m.has(x.code)) m.set(x.code, [x, ""]);
