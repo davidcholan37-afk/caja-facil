@@ -1483,7 +1483,6 @@ function learnOpen(code) {
 // producto, código de una presentación y por último los códigos de barras aprendidos (p.bar).
 let codeIdx = { v: -1, m: null };
 function codeFind(code) {
-  if (codeIdx.m && codeIdx.v !== DBV) { const h = codeIdx.m.get(code); if (h && !h[1] && h[0].code === code && prod(h[0].id) === h[0]) return h; }
   if (codeIdx.v !== DBV || !codeIdx.m) {
     const m = new Map();
     for (const x of DB.products) if (x.code && !m.has(x.code)) m.set(x.code, [x, ""]);
@@ -1516,7 +1515,9 @@ function submitCode(raw) {
   if (pres) addToCart(p, qty || 1, pres);
   else if (qty != null) addToCart(p, qty);
   else if (!exact && (p.pres || []).length) presPicker(p);
-  else if (p.unit === "kg") openWeigh(p.id, "add");
+  // Por kilo con su código (p. ej. «1» la cebolla): entra 1 kg directo al ticket, sin la ventana del peso (pedido de
+  // David, 5 nov 2026). Se pide el peso si hay balanza conectada o si en Ajustes se prendió «Pedir el peso».
+  else if (p.unit === "kg") { if (exact && !DB.cfg.kgPide && !scaleState.on) addToCart(p, 1); else openWeigh(p.id, "add"); }
   else addToCart(p, 1);
   paintGrid();
 }
@@ -6031,7 +6032,7 @@ const HELP_KB = [
   { k: ["gasto", "retiro", "ingreso de dinero", "sale dinero", "saque plata"], t: "Anotar un gasto, ingreso o retiro", go: "caja", s: ["Entra a Caja.", "Toca Gasto, Ingreso de dinero o Retiro de dinero.", "Escribe el monto y el motivo, y guarda."] },
   { k: ["proveedor", "me fiaron", "llego", "debo a", "pago a", "pagar a", "abonar"], t: "Pagar a un proveedor", go: "prov", s: ["Entra a Proveedores y toca «Llegó un proveedor» (arriba).", "Elige al proveedor y escribe de cuánto es la boleta. Ya sale marcado «La boleta» (le pagas eso); si te fió toca «Nada, me fió», o «Una parte (abono)».", "Elige con qué pagas (Efectivo, Yape, Plin, BCP o Caja central si la plata no sale de la caja donde vendes), mira abajo cuánto le quedas debiendo y toca «Guardar». Si solo viene a cobrar, deja la boleta vacía y toca «Todo lo que le debes» o «Una parte»."] },
   { k: ["report", "ganancia", "cuanto vendi", "resumen", "utilidad"], t: "Ver ventas y ganancia", go: "rep", s: ["Entra a Reportes y elige el periodo.", "Si tienes la voz activa, también puedes escribirme: «cuánto vendí hoy»."] },
-  { k: ["balanza", "kilo", "peso", "gramos", "fruta", "verdura"], t: "Vender por peso", go: "venta", s: ["Pon el producto como «por kilo» en Productos.", "En Vender escribe el peso o usa la balanza si la conectaste.", "Configura la balanza en Ajustes › Balanza."] },
+  { k: ["balanza", "kilo", "peso", "gramos", "fruta", "verdura"], t: "Vender por peso", go: "venta", s: ["Pon el producto como «por kilo» en Productos.", "En Vender, si escribes su código (por ejemplo «1») entra 1 kg directo; cámbialo con − / + o escribe «0.5*1» para medio kilo. Si buscas por nombre, escribe el peso o usa la balanza.", "Configura la balanza en Ajustes › Balanza."] },
   { k: ["usuario", "pin", "cajero", "permiso", "clave"], t: "Cajeros y PIN", go: "aj.usuarios", s: ["Entra a Ajustes › Usuarios y permisos.", "Crea al cajero y elige qué puede hacer.", "Cada uno entra con su PIN. No compartas tu PIN."] },
   { k: ["respaldo", "copia", "nube", "otro equipo", "recuperar", "google"], t: "Copia de seguridad y nube", go: "aj.nube", s: ["Con internet, la nube copia tu caja sola (Ajustes › Nube).", "Para tener un archivo propio, usa Ajustes › Datos y respaldo.", "Para usarla en otro equipo, entra con la misma cuenta de Google."] },
   { k: ["sin internet", "offline", "no hay internet", "se cayo el internet", "wifi"], t: "Trabajar sin internet", go: "venta", s: ["La caja sigue vendiendo con sus datos guardados.", "La nube copia sola cuando vuelve el internet.", "La licencia se revisa con internet al menos cada 15 días."] },
@@ -6396,6 +6397,7 @@ VIEWS.aj = function viewSettings(v) {
       ${fld("Tamaño de las fichas de productos", `<div class="seg">${[["s", "Pequeñas"], ["m", "Medianas"], ["l", "Grandes (táctil)"]].map(([k, n]) => `<button class="${C.tile === k ? "on" : ""}" data-a="setv" data-k="cfg.tile" data-v="${k}">${n}</button>`).join("")}</div>`)}
       ${fld("Mesas o cuentas abiertas", inp("cfg.tables", C.tables, { num: true, ph: "0 = no uso mesas", max: 3 }), "Para restaurantes, juguerías o cuentas que se van sumando")}
       ${tog("cfg.needShift", C.needShift, "Preguntar el sencillo antes del primer cobro", "Apagado: la caja se abre sola al primer cobro y el sencillo se anota después en Caja")}
+      ${tog("cfg.kgPide", C.kgPide, "Pedir el peso al escribir el código de un producto por kilo", "Apagado: con el código (por ejemplo «1» la cebolla) entra 1 kg directo al ticket y lo cambias con − / + o escribiendo «0.5*1». Con balanza conectada siempre pide el peso")}
       ${tog("cfg.negStock", C.negStock, "Permitir vender sin stock", "Si está apagado, avisa cuando no queda")}
       ${tog("cfg.mute", !C.mute, "Sonidos", "Pitido al agregar y cobrar")}
       ${vozOk() ? tog("cfg.vozCalla", !C.vozCalla, "La voz responde hablando", "Si le preguntas «cuánto sale el kilo de tomate» o «cuánto me debe Rosa», te lo dice en voz alta además de escribirlo") : ""}

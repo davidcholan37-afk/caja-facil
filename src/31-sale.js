@@ -536,7 +536,6 @@ function learnOpen(code) {
 // producto, código de una presentación y por último los códigos de barras aprendidos (p.bar).
 let codeIdx = { v: -1, m: null };
 function codeFind(code) {
-  if (codeIdx.m && codeIdx.v !== DBV) { const h = codeIdx.m.get(code); if (h && !h[1] && h[0].code === code && prod(h[0].id) === h[0]) return h; }
   if (codeIdx.v !== DBV || !codeIdx.m) {
     const m = new Map();
     for (const x of DB.products) if (x.code && !m.has(x.code)) m.set(x.code, [x, ""]);
@@ -569,7 +568,9 @@ function submitCode(raw) {
   if (pres) addToCart(p, qty || 1, pres);
   else if (qty != null) addToCart(p, qty);
   else if (!exact && (p.pres || []).length) presPicker(p);
-  else if (p.unit === "kg") openWeigh(p.id, "add");
+  // Por kilo con su código (p. ej. «1» la cebolla): entra 1 kg directo al ticket, sin la ventana del peso (pedido de
+  // David, 5 nov 2026). Se pide el peso si hay balanza conectada o si en Ajustes se prendió «Pedir el peso».
+  else if (p.unit === "kg") { if (exact && !DB.cfg.kgPide && !scaleState.on) addToCart(p, 1); else openWeigh(p.id, "add"); }
   else addToCart(p, 1);
   paintGrid();
 }

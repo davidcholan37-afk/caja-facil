@@ -42,6 +42,7 @@ VIEWS.aj = function viewSettings(v) {
       ${fld("Tamaño de las fichas de productos", `<div class="seg">${[["s", "Pequeñas"], ["m", "Medianas"], ["l", "Grandes (táctil)"]].map(([k, n]) => `<button class="${C.tile === k ? "on" : ""}" data-a="setv" data-k="cfg.tile" data-v="${k}">${n}</button>`).join("")}</div>`)}
       ${fld("Mesas o cuentas abiertas", inp("cfg.tables", C.tables, { num: true, ph: "0 = no uso mesas", max: 3 }), "Para restaurantes, juguerías o cuentas que se van sumando")}
       ${tog("cfg.needShift", C.needShift, "Preguntar el sencillo antes del primer cobro", "Apagado: la caja se abre sola al primer cobro y el sencillo se anota después en Caja")}
+      ${tog("cfg.kgPide", C.kgPide, "Pedir el peso al escribir el código de un producto por kilo", "Apagado: con el código (por ejemplo «1» la cebolla) entra 1 kg directo al ticket y lo cambias con − / + o escribiendo «0.5*1». Con balanza conectada siempre pide el peso")}
       ${tog("cfg.negStock", C.negStock, "Permitir vender sin stock", "Si está apagado, avisa cuando no queda")}
       ${tog("cfg.mute", !C.mute, "Sonidos", "Pitido al agregar y cobrar")}
       ${vozOk() ? tog("cfg.vozCalla", !C.vozCalla, "La voz responde hablando", "Si le preguntas «cuánto sale el kilo de tomate» o «cuánto me debe Rosa», te lo dice en voz alta además de escribirlo") : ""}
